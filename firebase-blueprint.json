@@ -1,0 +1,282 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Stores student profile information and preferences.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "student"] },
+        "classLevel": { "type": "string", "enum": ["Class 6", "Class 7", "Class 8", "Class 9", "Class 10", "Class 11", "Class 12"] },
+        "medium": { "type": "string", "enum": ["English", "Hindi", "Odia"] },
+        "isPremium": { "type": "boolean" },
+        "xpPoints": { "type": "number" },
+        "level": { "type": "number" },
+        "badges": { "type": "array", "items": { "type": "string" } },
+        "streakCount": { "type": "number" },
+        "weakTopics": { "type": "array", "items": { "type": "string" } },
+        "lastLoginAt": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email"]
+    },
+    "Course": {
+      "title": "Educational Course",
+      "description": "Represents a subject for a specific class (e.g., Class 10 Mathematics).",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "classLevel": { "type": "string" },
+        "subject": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "thumbnail": { "type": "string" },
+        "board": { "type": "string", "enum": ["CBSE", "ICSE", "Odisha Board", "CHSE", "State Board"] }
+      },
+      "required": ["classLevel", "subject", "title"]
+    },
+    "Module": {
+      "title": "Chapter/Module",
+      "description": "A chapter within a course.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "courseId": { "type": "string" },
+        "title": { "type": "string" },
+        "order": { "type": "number" }
+      },
+      "required": ["courseId", "title"]
+    },
+    "Lesson": {
+      "title": "Lesson Content",
+      "description": "Specific educational content like notes or videos.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "moduleId": { "type": "string" },
+        "title": { "type": "string" },
+        "type": { "type": "string", "enum": ["video", "note", "flashcard", "quiz", "assignment"] },
+        "content": { "type": "string" },
+        "videoUrl": { "type": "string" },
+        "pdfUrl": { "type": "string" },
+        "dueDate": { "type": "string", "format": "date-time" },
+        "submissionInstructions": { "type": "string" },
+        "order": { "type": "number" }
+      },
+      "required": ["moduleId", "title", "type"]
+    },
+    "Submission": {
+      "title": "Assignment Submission",
+      "description": "Student work submitted for an assignment.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "lessonId": { "type": "string" },
+        "content": { "type": "string" },
+        "submissionUrl": { "type": "string" },
+        "submittedAt": { "type": "string", "format": "date-time" },
+        "score": { "type": "number" },
+        "feedback": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "graded"] }
+      }
+    },
+    "Quiz": {
+      "title": "Assessment Quiz",
+      "description": "A quiz for a chapter or course.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "moduleId": { "type": "string" },
+        "title": { "type": "string" },
+        "difficulty": { "type": "string", "enum": ["easy", "medium", "hard"] },
+        "format": { "type": "string", "enum": ["mcq", "tf", "short", "mixed"] },
+        "questions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "type": { "type": "string", "enum": ["mcq", "tf", "short"] },
+              "question": { "type": "string" },
+              "options": { "type": "array", "items": { "type": "string" } },
+              "correctAnswer": { "type": "string" },
+              "explanation": { "type": "string" },
+              "difficulty": { "type": "string", "enum": ["easy", "medium", "hard"] }
+            }
+          }
+        }
+      }
+    },
+    "QuizAttempt": {
+      "title": "Student Quiz Attempt",
+      "description": "Record of a student taking a quiz.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "quizId": { "type": "string" },
+        "score": { "type": "number" },
+        "totalQuestions": { "type": "number" },
+        "completedAt": { "type": "string", "format": "date-time" },
+        "weakTopics": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "StudyPlan": {
+      "title": "AI Study Plan",
+      "description": "Personalized AI-generated study schedule.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "goals": { "type": "array", "items": { "type": "string" } },
+        "schedule": { "type": "object" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "AIConversation": {
+      "title": "AI Teacher Chat",
+      "description": "History of interaction with the AI teacher.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "context": { "type": "string" },
+        "messages": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "role": { "type": "string", "enum": ["user", "model"] },
+              "text": { "type": "string" },
+              "timestamp": { "type": "string", "format": "date-time" }
+            }
+          }
+        }
+      }
+    },
+    "Payment": {
+      "title": "Payment Record",
+      "description": "Record of premium subscription payments.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "razorpayOrderId": { "type": "string" },
+        "razorpayPaymentId": { "type": "string" },
+        "amount": { "type": "number" },
+        "status": { "type": "string" },
+        "planType": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Notification": {
+      "title": "User Notification",
+      "description": "In-app alerts and reminders.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "type": { "type": "string" },
+        "read": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "FlashcardSet": {
+      "title": "Flashcard Set",
+      "description": "A collection of flashcards for a specific topic or chapter.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "moduleId": { "type": "string" },
+        "topic": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "cards": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "front": { "type": "string" },
+              "back": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "FounderProfile": {
+      "title": "Founder Profile",
+      "description": "Information about the platform's founder.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "title": { "type": "string" },
+        "mission": { "type": "string" },
+        "bio": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "socialLinks": {
+          "type": "object",
+          "properties": {
+            "linkedin": { "type": "string" },
+            "twitter": { "type": "string" },
+            "github": { "type": "string" }
+          }
+        },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    }
+  },
+  "firestore": {
+    "/settings/founder": {
+      "schema": "FounderProfile",
+      "description": "Global founder profile settings."
+    },
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Main user collection."
+    },
+    "/courses/{courseId}": {
+      "schema": "Course",
+      "description": "Root collection for courses."
+    },
+    "/courses/{courseId}/modules/{moduleId}": {
+      "schema": "Module",
+      "description": "Modules/Chapters within a course."
+    },
+    "/courses/{courseId}/modules/{moduleId}/lessons/{lessonId}": {
+      "schema": "Lesson",
+      "description": "Lessons within a module."
+    },
+    "/courses/{courseId}/modules/{moduleId}/quizzes/{quizId}": {
+      "schema": "Quiz",
+      "description": "Quizzes associated with a module."
+    },
+    "/quizAttempts/{attemptId}": {
+      "schema": "QuizAttempt",
+      "description": "Student quiz results."
+    },
+    "/studyPlans/{userId}": {
+      "schema": "StudyPlan",
+      "description": "User specific AI study plans."
+    },
+    "/aiConversations/{conversationId}": {
+      "schema": "AIConversation",
+      "description": "AI teacher chat history."
+    },
+    "/payments/{paymentId}": {
+      "schema": "Payment",
+      "description": "Billing records."
+    },
+    "/notifications/{notificationId}": {
+      "schema": "Notification",
+      "description": "User notifications."
+    },
+    "/flashcards/{flashcardSetId}": {
+      "schema": "FlashcardSet",
+      "description": "User's saved flashcard sets."
+    },
+    "/submissions/{submissionId}": {
+      "schema": "Submission",
+      "description": "Student assignment submissions."
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "GyanMitra - AI Study Platform",
+  "description": "An AI-powered education platform for Indian students (Class 6-12) featuring AI teachers, quizzes, and personalized learning.",
+  "requestFramePermissions": ["camera", "microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
