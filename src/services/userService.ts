@@ -86,8 +86,8 @@ export const syncUserProfile = async (user: FirebaseUser): Promise<UserProfile> 
     const newUser: UserProfile = {
       uid: user.uid,
       email: user.email || '',
-      displayName: user.displayName,
-      photoURL: user.photoURL,
+      displayName: user.displayName || null,
+      photoURL: user.photoURL || null,
       role: isAdminEmail ? 'admin' : 'student',
       isPremium: isAdminEmail, 
       xpPoints: 0,
