@@ -25,6 +25,15 @@ import { Link } from 'react-router-dom';
 import { BadgeIcon } from '../components/BadgeIcon';
 import { FounderProfile } from '../components/FounderProfile';
 
+// Add this right below your imports
+declare global {
+  interface ImportMeta {
+    readonly env: {
+      readonly VITE_GEMINI_API_KEY?: string;
+    };
+  }
+}
+
 interface DashboardProps {
   user: FirebaseUser;
   profile: UserProfile | null;
@@ -89,19 +98,32 @@ export default function Dashboard({ user, profile }: DashboardProps) {
     if (!profile) return;
     setIsGeneratingPlan(true);
     try {
-      const response = await fetch('/api/ai/study-plan', {
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY?.trim();
+      if (!apiKey) throw new Error("API Key missing!");
+
+      const prompt = `Generate a weekly study plan for a student in ${profile.classLevel}.
+      They have ${profile.xpPoints || 0} XP. Their weak topics are: ${profile.weakTopics?.join(', ') || 'None specified'}.
+      Return ONLY a raw JSON object with this exact structure. Do not wrap in markdown (like \`\`\`json):
+      {
+        "objective": "Main weekly goal",
+        "motivation": "A short encouraging quote",
+        "weeklySchedule": [
+          { "day": "Monday", "tasks": [{ "subject": "Math", "topic": "Algebra", "action": "Review notes" }] }
+        ]
+      }`;
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          studentProfile: profile,
-          performanceData: {
-            weakTopics: profile.weakTopics || [],
-            xp: profile.xpPoints
-          }
-        })
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
       });
+
+      if (!response.ok) throw new Error("Failed to connect to AI");
       const data = await response.json();
-      setStudyPlan(data.plan);
+      let rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+      rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+      
+      setStudyPlan(JSON.parse(rawText));
     } catch (err) {
       console.error(err);
     } finally {
