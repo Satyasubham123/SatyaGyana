@@ -1,11 +1,12 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { User, signOut } from 'firebase/auth';
-import { auth, signInWithGoogle } from '../lib/firebase';
-import { BookOpen, User as UserIcon, LogOut, Menu, X, Sparkles, Sun, Moon, ShieldCheck, ChevronRight } from 'lucide-react';
+import { auth } from '../lib/firebase';
+import { LogOut, Menu, X, Sparkles, ChevronRight, User as UserIcon } from 'lucide-react';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { UserProfile } from '../services/userService';
+import AuthModal from './AuthModal'; // 🔥 FIX: Import the shared login modal
 
 interface NavbarProps {
   user: User | null;
@@ -14,6 +15,7 @@ interface NavbarProps {
 
 export default function Navbar({ user, profile }: NavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isAuthOpen, setIsAuthOpen] = useState(false); // 🔥 FIX: Local control state for authentication modal
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -106,7 +108,7 @@ export default function Navbar({ user, profile }: NavbarProps) {
                </div>
              ) : (
                <button
-                 onClick={signInWithGoogle}
+                 onClick={() => setIsAuthOpen(true)} // 🔥 FIX: Desktop trigger launches modal framework
                  className="px-6 lg:px-8 py-3 bg-brand text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-xl shadow-brand/20 hover:bg-brand-dark transition-all active:scale-95 whitespace-nowrap"
                >
                  Initialize Link
@@ -222,7 +224,10 @@ export default function Navbar({ user, profile }: NavbarProps) {
                   </button>
                 ) : (
                   <button
-                    onClick={signInWithGoogle}
+                    onClick={() => {
+                      setIsOpen(false); // Close sidebar drawer matrix first
+                      setIsAuthOpen(true); // 🔥 FIX: Mobile drawer trigger launches modal
+                    }}
                     className="w-full py-4 bg-brand text-white font-black uppercase tracking-widest text-[10px] rounded-xl shadow-lg shadow-brand/20 active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
                     <UserIcon className="h-4 w-4" />
@@ -234,6 +239,9 @@ export default function Navbar({ user, profile }: NavbarProps) {
           </>
         )}
       </AnimatePresence>
+
+      {/* 🔥 FIX: Mount the unified system AuthModal container directly under the Navbar flow */}
+      <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
     </nav>
   );
 }
