@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import AuthModal from '../components/AuthModal';
 import { User as FirebaseUser } from 'firebase/auth';
 import { signInWithGoogle } from '../lib/firebase';
 import { motion } from 'motion/react';
@@ -33,6 +35,7 @@ export default function LandingPage({ user }: LandingPageProps) {
       description: "Track your XP, badges, and study streaks. Stay motivated with personal goal tracking."
     }
   ];
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
 
   return (
     <div className="overflow-x-hidden bg-bg-deep">
@@ -70,7 +73,7 @@ export default function LandingPage({ user }: LandingPageProps) {
                 </Link>
               ) : (
                 <button
-                  onClick={signInWithGoogle}
+                  onClick={() => setIsAuthOpen(true)}
                   className="w-full sm:w-auto bg-brand text-white px-12 py-6 rounded-xl font-black text-xl uppercase tracking-tighter hover:bg-brand-dark transition-all flex items-center justify-center shadow-2xl shadow-brand/20 active:scale-95"
                 >
                   <img src="https://www.google.com/favicon.ico" alt="Google" className="h-5 w-5 mr-3 invert brightness-0" />
@@ -211,6 +214,8 @@ export default function LandingPage({ user }: LandingPageProps) {
           </div>
         </div>
       </footer>
+      {/* Auth Modal Integration */}
+      <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
     </div>
   );
 }
