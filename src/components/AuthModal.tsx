@@ -95,21 +95,21 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
   return (
     <AnimatePresence>
-      {/* 🚀 FIX: Fixed Backdrop with perfect flex centering */}
       <motion.div 
         initial={{ opacity: 0 }} 
         animate={{ opacity: 1 }} 
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-sm"
+        /* The container takes up exactly 100% of the screen with a safe padding barrier (p-4) */
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
       >
-        {/* 🚀 FIX: The Modal is now locked at a max-height so it perfectly centers and scrolls internally */}
         <motion.div 
           initial={{ scale: 0.95, opacity: 0, y: 20 }} 
           animate={{ scale: 1, opacity: 1, y: 0 }} 
           exit={{ scale: 0.95, opacity: 0, y: 20 }}
-          className="w-full max-w-md bg-slate-900 rounded-[32px] border border-slate-800 shadow-2xl flex flex-col relative max-h-[95vh] sm:max-h-[85vh] overflow-hidden"
+          /* max-h-full forces the modal to obey the p-4 barrier. It can never get cut off now! */
+          className="w-full max-w-md bg-slate-900 rounded-[32px] border border-slate-800 shadow-2xl flex flex-col overflow-hidden max-h-full"
         >
-          {/* Sticky Header - NEVER SCROLLS */}
+          {/* Header - Stays glued to the top */}
           <div className="flex justify-between items-center p-6 border-b border-slate-800 bg-slate-900 shrink-0">
             <h3 className="text-xl font-black uppercase italic tracking-tighter text-white">
               {mode === 'login' ? 'SYSTEM LOGIN' : mode === 'signup' ? 'CREATE ACCESS NODE' : 'RECOVER PASSKEY'}
@@ -119,7 +119,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             </button>
           </div>
 
-          {/* Form Body Container - SCROLLS INTERNALLY IF NEEDED */}
+          {/* Form Body - Shrinks and scrolls internally if the laptop screen is too small */}
           <div className="p-8 overflow-y-auto">
             {error && (
               <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold uppercase tracking-widest rounded-xl flex items-center gap-3 text-left leading-relaxed">
