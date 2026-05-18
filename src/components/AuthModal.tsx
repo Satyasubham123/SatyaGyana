@@ -53,7 +53,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         await sendEmailVerification(userCredential.user);
         await auth.signOut();
         
-        setMessage('Verification sent! Please check your email inbox and click the link to activate your account.');
+        setMessage('Account created! Please check your inbox and click the verification link to activate your profile.');
         setTimeout(() => switchMode('login'), 5000);
 
       } else if (mode === 'login') {
@@ -62,20 +62,20 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         if (!userCredential.user.emailVerified) {
           await sendEmailVerification(userCredential.user);
           await auth.signOut(); 
-          setError("Your email is not verified yet. We have sent a new activation link to your inbox!");
+          setError("Your email address is not verified yet. We have just dispatched a fresh activation link to your inbox.");
           return;
         }
         onClose();
       } else if (mode === 'forgot') {
         await sendPasswordResetEmail(auth, email);
-        setMessage('Password reset email sent! Check your inbox.');
+        setMessage('Password reset instructions dispatched! Please check your email inbox.');
       }
     } catch (err: any) {
       console.error(err);
       let errorText = "An error occurred. Please try again.";
-      if (err.code === 'auth/email-already-in-use') errorText = "This email is already registered.";
-      if (err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') errorText = "Invalid email or password.";
-      if (err.code === 'auth/weak-password') errorText = "Password should be at least 6 characters.";
+      if (err.code === 'auth/email-already-in-use') errorText = "This email address is already registered.";
+      if (err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') errorText = "Incorrect email address or password.";
+      if (err.code === 'auth/weak-password') errorText = "Password must be at least 6 characters long.";
       setError(errorText);
     } finally {
       setIsLoading(false);
@@ -87,7 +87,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
       await signInWithGoogle();
       onClose();
     } catch (err) {
-      setError("Google Sign-In failed. Please try again.");
+      setError("Google Authentication failed. Please try again.");
     }
   };
 
@@ -103,18 +103,18 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
           className="bg-slate-900 w-full max-w-md rounded-[32px] border border-border-strong shadow-2xl relative flex flex-col max-h-[calc(100vh-2rem)] overflow-hidden"
         >
-          {/* Sticky Header */}
+          {/* Header */}
           <div className="flex justify-between items-center p-6 border-b border-border-strong bg-slate-900 shrink-0">
             <h3 className="text-xl font-black uppercase italic tracking-tighter text-white">
-              {mode === 'login' ? 'System Login' : mode === 'signup' ? 'Create Access Node' : 'Recover Password'}
+              {mode === 'login' ? 'Account Login' : mode === 'signup' ? 'Create Account' : 'Reset Password'}
             </h3>
             <button onClick={onClose} className="p-2 bg-slate-800 rounded-full text-slate-400 hover:text-white transition-all">
               <X className="h-4 w-4" />
             </button>
           </div>
 
-          {/* Scrollable Form Body */}
-          <div className="p-8 overflow-y-auto flex-1 custom-scrollbar">
+          {/* Form Body Container */}
+          <div className="p-8 overflow-y-auto flex-1">
             {error && (
               <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold uppercase tracking-widest rounded-xl flex items-center gap-3 text-left leading-relaxed">
                 <ShieldAlert className="h-6 w-6 shrink-0" />
@@ -135,8 +135,9 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   <div className="relative">
                     <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
                     <input 
-                      type="text" required value={name} onChange={e => setName(e.target.value)}
+                      type="text" name="name" required value={name} onChange={e => setName(e.target.value)} autoComplete="name"
                       className="w-full bg-slate-800 border border-border-strong p-4 pl-12 rounded-2xl text-white font-bold outline-none focus:border-brand transition-all"
+                      placeholder="John Doe"
                     />
                   </div>
                 </div>
@@ -147,8 +148,9 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 <div className="relative">
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
                   <input 
-                    type="email" required value={email} onChange={e => setEmail(e.target.value)}
+                    type="email" name="email" required value={email} onChange={e => setEmail(e.target.value)} autoComplete="email"
                     className="w-full bg-slate-800 border border-border-strong p-4 pl-12 rounded-2xl text-white font-bold outline-none focus:border-brand transition-all"
+                    placeholder="name@example.com"
                   />
                 </div>
               </div>
@@ -159,15 +161,16 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Password</label>
                     {mode === 'login' && (
                       <button type="button" onClick={() => switchMode('forgot')} className="text-[9px] font-black uppercase text-brand hover:underline tracking-widest">
-                        Forgot?
+                        Forgot Password?
                       </button>
                     )}
                   </div>
                   <div className="relative">
                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
                     <input 
-                      type="password" required value={password} onChange={e => setPassword(e.target.value)} minLength={6}
+                      type="password" name="password" required value={password} onChange={e => setPassword(e.target.value)} minLength={6} autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                       className="w-full bg-slate-800 border border-border-strong p-4 pl-12 rounded-2xl text-white font-bold outline-none focus:border-brand transition-all"
+                      placeholder="••••••••"
                     />
                   </div>
                 </div>
@@ -177,7 +180,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 type="submit" disabled={isLoading}
                 className="w-full py-4 mt-4 bg-brand text-white rounded-2xl font-black uppercase tracking-[0.1em] text-xs shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2"
               >
-                {isLoading ? 'Processing...' : mode === 'login' ? 'Authenticate' : mode === 'signup' ? 'Initialize Account' : 'Send Reset Link'} 
+                {isLoading ? 'Processing...' : mode === 'login' ? 'Log In' : mode === 'signup' ? 'Sign Up' : 'Send Reset Link'} 
                 {!isLoading && <ArrowRight className="h-4 w-4" />}
               </button>
             </form>
@@ -195,11 +198,11 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             <div className="mt-6 text-center">
               {mode === 'login' ? (
                 <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest">
-                  No access node? <button onClick={() => switchMode('signup')} className="text-brand hover:underline">Create One</button>
+                  Don't have an account? <button onClick={() => switchMode('signup')} className="text-brand hover:underline">Sign Up</button>
                 </p>
               ) : (
                 <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest">
-                  Return to <button onClick={() => switchMode('login')} className="text-brand hover:underline">Login Sequence</button>
+                  Already have an account? <button onClick={() => switchMode('login')} className="text-brand hover:underline">Log In</button>
                 </p>
               )}
             </div>

@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { UserProfile } from '../services/userService';
-import AuthModal from './AuthModal'; // ✅ Fix 1: Added modal connection link
+import AuthModal from './AuthModal'; 
 
 interface NavbarProps {
   user: User | null;
@@ -15,7 +15,7 @@ interface NavbarProps {
 
 export default function Navbar({ user, profile }: NavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [isAuthOpen, setIsAuthOpen] = useState(false); // ✅ Fix 2: Added state trigger toggle
+  const [isAuthOpen, setIsAuthOpen] = useState(false); 
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -52,7 +52,7 @@ export default function Navbar({ user, profile }: NavbarProps) {
               </span>
             </Link>
 
-            {/* Desktop Main Nav */}
+            {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-6 lg:space-x-8">
               {mainNav.map((item) => item.show && (
                 <Link
@@ -68,7 +68,6 @@ export default function Navbar({ user, profile }: NavbarProps) {
           </div>
 
           <div className="hidden md:flex items-center space-x-4 lg:space-x-8">
-             {/* Secondary Links Grouped */}
              <div className="hidden lg:flex items-center space-x-4 border-r border-border-strong pr-8">
                 {secondaryNav.slice(0, 3).map(item => (
                   <Link 
@@ -108,15 +107,15 @@ export default function Navbar({ user, profile }: NavbarProps) {
                </div>
              ) : (
                <button
-                 onClick={() => setIsAuthOpen(true)} // ✅ Fix 3: Desktop click now triggers the popup
+                 onClick={() => setIsAuthOpen(true)} 
                  className="px-6 lg:px-8 py-3 bg-brand text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-xl shadow-brand/20 hover:bg-brand-dark transition-all active:scale-95 whitespace-nowrap"
                >
-                 Initialize Link
+                 Log In / Sign Up
                </button>
              )}
           </div>
 
-          {/* Mobile Toggle */}
+          {/* Mobile Layout Elements */}
           <div className="md:hidden flex items-center space-x-4">
             {user && (
               <Link to="/profile" className="shrink-0">
@@ -139,21 +138,17 @@ export default function Navbar({ user, profile }: NavbarProps) {
         </div>
       </div>
 
-      {/* Mobile Menu Drawer */}
+      {/* Mobile Drawer Menu */}
       <AnimatePresence>
         {isOpen && (
           <>
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setIsOpen(false)}
               className="md:hidden fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-40"
             />
             <motion.div
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
+              initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
               className="md:hidden fixed inset-y-0 right-0 w-full max-w-[320px] bg-white dark:bg-bg-surface border-l border-border-strong z-50 flex flex-col shadow-2xl"
             >
@@ -162,25 +157,20 @@ export default function Navbar({ user, profile }: NavbarProps) {
                   <div className="w-8 h-8 bg-brand rounded-lg flex items-center justify-center">
                     <Sparkles className="h-4 w-4 text-white" />
                   </div>
-                  <span className="font-black italic uppercase tracking-tighter text-main">System</span>
+                  <span className="font-black italic uppercase tracking-tighter text-main">Menu</span>
                 </div>
-                <button
-                  onClick={() => setIsOpen(false)}
-                  className="p-2 text-secondary bg-bg-deep rounded-lg border border-border-strong"
-                >
+                <button onClick={() => setIsOpen(false)} className="p-2 text-secondary bg-bg-deep rounded-lg border border-border-strong">
                   <X className="h-5 w-5" />
                 </button>
               </div>
 
               <div className="flex-1 overflow-y-auto p-6 space-y-8">
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.3em] text-brand mb-6 pl-2 border-l-2 border-brand">Command Modules</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.3em] text-brand mb-6 pl-2 border-l-2 border-brand">Navigation</p>
                   <div className="space-y-3">
                     {mainNav.map((item) => item.show && (
                       <Link
-                        key={item.path}
-                        to={item.path}
-                        onClick={() => setIsOpen(false)}
+                        key={item.path} to={item.path} onClick={() => setIsOpen(false)}
                         className="flex items-center justify-between p-4 bg-bg-deep border border-border-strong rounded-2xl hover:border-brand/40 group transition-all"
                       >
                         <span className="text-xl font-black italic uppercase tracking-tighter text-main group-hover:text-brand">{item.name}</span>
@@ -189,29 +179,7 @@ export default function Navbar({ user, profile }: NavbarProps) {
                     ))}
                   </div>
                 </div>
-
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted mb-6 pl-2 border-l-2 border-border-strong">Global Protocol</p>
-                  <div className="grid grid-cols-1 gap-2">
-                    {secondaryNav.map((item) => (
-                      <Link
-                        key={item.path}
-                        to={item.path}
-                        onClick={() => setIsOpen(false)}
-                        className="p-3 text-[10px] font-black uppercase tracking-widest text-secondary hover:text-brand hover:bg-brand/5 rounded-xl transition-all"
-                      >
-                        {item.name}
-                      </Link>
-                    ))}
-                  </div>
-                </div>
               </div>
-
-              {profile?.streakCount && profile.streakCount > 0 && (
-                <div className="p-6 mx-6 mb-4 bg-brand/5 border border-brand/20 rounded-2xl flex items-center justify-center gap-3">
-                  <span className="text-brand font-black text-[10px] uppercase tracking-[0.2em] italic">🔥 {profile.streakCount} DAY NEURAL STREAK</span>
-                </div>
-              )}
 
               <div className="p-6 border-t border-border-strong bg-bg-deep/50">
                 {user ? (
@@ -220,18 +188,18 @@ export default function Navbar({ user, profile }: NavbarProps) {
                     className="w-full py-4 bg-red-500 text-white font-black uppercase tracking-widest text-[10px] rounded-xl shadow-lg shadow-red-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
                     <LogOut className="h-4 w-4" />
-                    Terminate Session
+                    Sign Out
                   </button>
                 ) : (
                   <button
                     onClick={() => {
                       setIsOpen(false); 
-                      setIsAuthOpen(true); // ✅ Fix 4: Mobile menu click now triggers the popup
+                      setIsAuthOpen(true); 
                     }}
                     className="w-full py-4 bg-brand text-white font-black uppercase tracking-widest text-[10px] rounded-xl shadow-lg shadow-brand/20 active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
                     <UserIcon className="h-4 w-4" />
-                    Initialize Link
+                    Log In / Sign Up
                   </button>
                 )}
               </div>
@@ -240,7 +208,6 @@ export default function Navbar({ user, profile }: NavbarProps) {
         )}
       </AnimatePresence>
 
-      {/* ✅ Fix 5: Embedded the operational component container here */}
       <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
     </nav>
   );
