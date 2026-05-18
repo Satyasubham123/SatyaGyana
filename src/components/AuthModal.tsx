@@ -93,13 +93,12 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   if (!isOpen) return null;
 
   return (
-    /* 🚀 RESTORED: Semi-transparent backdrop (slate-950/60) so you can clearly see the landing page behind it! */
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 bg-slate-950/60 backdrop-blur-sm">
       
-      {/* 🚀 RESTORED: Floating Box with max-h-[85vh]. This leaves a nice gap at the top and bottom so it looks like a real pop-up! */}
+      {/* Outer Container: Sets the max height and hides the rounded corner overflow */}
       <div className="w-full max-w-md bg-slate-900 rounded-[32px] border border-slate-700 shadow-2xl flex flex-col overflow-hidden max-h-[85vh]">
         
-        {/* Header - Stays glued to the top of the box */}
+        {/* Header: shrink-0 guarantees this NEVER gets squished */}
         <div className="flex justify-between items-center p-6 border-b border-slate-800 bg-slate-900 shrink-0">
           <h3 className="text-xl font-black uppercase italic tracking-tighter text-white">
             {mode === 'login' ? 'SYSTEM LOGIN' : mode === 'signup' ? 'CREATE ACCESS NODE' : 'RECOVER PASSKEY'}
@@ -109,8 +108,9 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           </button>
         </div>
 
-        {/* Form Body - Scrolls neatly inside the floating box */}
-        <div className="p-6 sm:p-8 overflow-y-auto custom-scrollbar">
+        {/* 🚀 DEEP CAUSE FIX: Added `flex-1 min-h-0` here. This forces the scrollbar to appear inside the box instead of cutting off the bottom! */}
+        <div className="p-6 sm:p-8 overflow-y-auto flex-1 min-h-0 custom-scrollbar">
+          
           {error && (
             <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold uppercase tracking-widest rounded-xl flex items-center gap-3 text-left leading-relaxed">
               <ShieldAlert className="h-6 w-6 shrink-0" />
@@ -199,6 +199,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
               </p>
             )}
           </div>
+          
         </div>
       </div>
     </div>
