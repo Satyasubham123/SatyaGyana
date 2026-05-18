@@ -1,9 +1,9 @@
 import { User as FirebaseUser, signOut } from 'firebase/auth';
 import { useState, useEffect } from 'react';
-import { syncUserProfile, UserProfile, updateUserProfile } from '../services/userService';
+import { UserProfile, updateUserProfile } from '../services/userService';
 import { auth } from '../lib/firebase';
 import { useNavigate } from 'react-router-dom';
-import { User, Mail, GraduationCap, Crown, LogOut, ChevronRight, Languages, Settings, Bell, Sparkles } from 'lucide-react';
+import { User, Crown, LogOut, ChevronRight, Settings, Bell, Sparkles } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 export default function Profile({ user, profile: initialProfile }: { user: FirebaseUser, profile: UserProfile | null }) {
@@ -11,9 +11,13 @@ export default function Profile({ user, profile: initialProfile }: { user: Fireb
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
+  // FIX: Only sync from the parent when the actual user logs in/out. 
+  // This prevents the parent's stale data from overwriting our local changes!
   useEffect(() => {
-    setProfile(initialProfile);
-  }, [initialProfile]);
+    if (!profile && initialProfile) {
+      setProfile(initialProfile);
+    }
+  }, [initialProfile?.uid]);
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -24,8 +28,16 @@ export default function Profile({ user, profile: initialProfile }: { user: Fireb
 
   const handleUpdate = async (field: keyof UserProfile, value: string) => {
     if (!profile) return;
-    await updateUserProfile(user.uid, { [field]: value });
+    
+    // 1. Optimistically update the UI instantly so it doesn't snap back
     setProfile({ ...profile, [field]: value });
+    
+    // 2. Save it to the database in the background
+    try {
+      await updateUserProfile(user.uid, { [field]: value });
+    } catch (err) {
+      console.error("Failed to sync profile update to database", err);
+    }
   };
 
   if (isLoading) return null;
@@ -101,10 +113,12 @@ export default function Profile({ user, profile: initialProfile }: { user: Fireb
                  <div>
                     <label className="block text-[10px] font-black text-muted uppercase tracking-widest mb-2 italic">Sector (Class)</label>
                     <select 
-                      value={profile?.classLevel}
+                      value={profile?.classLevel || ''}
                       onChange={(e) => handleUpdate('classLevel', e.target.value)}
                       className="w-full p-4 bg-bg-deep border border-border-subtle rounded-xl text-main font-bold uppercase tracking-widest text-[11px] focus:border-brand outline-none appearance-none cursor-pointer"
                     >
+                      {/* FIX: Added a default empty option so it doesn't silently hide undefined status */}
+                      <option value="" disabled className="bg-bg-card text-muted">Select your class tier...</option>
                       {CLASSES.map(cls => <option key={cls} value={cls} className="bg-bg-card">{cls}</option>)}
                     </select>
                  </div>
