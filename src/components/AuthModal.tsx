@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Mail, Lock, User, ArrowRight, ShieldCheck } from 'lucide-react';
+import { X, Mail, Lock, User, ArrowRight, ShieldAlert } from 'lucide-react';
 import { 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
@@ -53,14 +53,27 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         // 2. Add their display name
         await updateProfile(userCredential.user, { displayName: name });
-        // 3. Send a verification email (OTP equivalent)
+        // 3. Send the verification link
         await sendEmailVerification(userCredential.user);
         
-        setMessage('Account created! Please check your email to verify your account.');
-        setTimeout(() => onClose(), 3000);
+        // 🔥 STRICT FIX: Sign them out immediately so they cannot access the app yet!
+        await auth.signOut();
+        
+        setMessage('Verification sent! Please check your email inbox and click the link to activate your account.');
+        setTimeout(() => switchMode('login'), 5000); // Switch to login screen after reading
 
       } else if (mode === 'login') {
-        await signInWithEmailAndPassword(auth, email, password);
+        // 1. Attempt to log them in
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        
+        // 🔥 STRICT FIX: Check if they actually clicked the email link!
+        if (!userCredential.user.emailVerified) {
+          await auth.signOut(); // Kick them back out
+          setError("Access Denied: Please verify your email address first. Check your inbox or spam folder!");
+          return; // Stop the login process here
+        }
+
+        // If verified, let them in!
         onClose();
 
       } else if (mode === 'forgot') {
@@ -69,7 +82,6 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
       }
     } catch (err: any) {
       console.error(err);
-      // Clean up Firebase error messages for the user
       let errorText = "An error occurred. Please try again.";
       if (err.code === 'auth/email-already-in-use') errorText = "This email is already registered.";
       if (err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') errorText = "Invalid email or password.";
@@ -112,8 +124,18 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           </div>
 
           <div className="p-8">
-            {error && <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold uppercase tracking-widest rounded-xl text-center">{error}</div>}
-            {message && <div className="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-widest rounded-xl text-center">{message}</div>}
+            {error && (
+              <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold uppercase tracking-widest rounded-xl flex items-center gap-3 text-left leading-relaxed">
+                <ShieldAlert className="h-6 w-6 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
+            
+            {message && (
+              <div className="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-widest rounded-xl text-center">
+                {message}
+              </div>
+            )}
 
             <form onSubmit={handleEmailAuth} className="space-y-5">
               {mode === 'signup' && (
