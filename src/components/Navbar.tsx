@@ -1,11 +1,12 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { User, signOut } from 'firebase/auth';
 import { auth } from '../lib/firebase';
-import { LogOut, Menu, X, Sparkles, ChevronRight, User as UserIcon } from 'lucide-react';
+import { User as UserIcon, LogOut, Menu, X, Sparkles, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react'; // Cleaned up and fixed!
+import { motion, AnimatePresence } from 'motion/react';
+import { cn } from '../lib/utils';
 import { UserProfile } from '../services/userService';
-import AuthModal from './AuthModal'; 
+import AuthModal from './AuthModal'; // ✅ Fix 1: Added modal connection link
 
 interface NavbarProps {
   user: User | null;
@@ -14,7 +15,7 @@ interface NavbarProps {
 
 export default function Navbar({ user, profile }: NavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [isAuthOpen, setIsAuthOpen] = useState(false); 
+  const [isAuthOpen, setIsAuthOpen] = useState(false); // ✅ Fix 2: Added state trigger toggle
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -107,7 +108,7 @@ export default function Navbar({ user, profile }: NavbarProps) {
                </div>
              ) : (
                <button
-                 onClick={() => setIsAuthOpen(true)} 
+                 onClick={() => setIsAuthOpen(true)} // ✅ Fix 3: Desktop click now triggers the popup
                  className="px-6 lg:px-8 py-3 bg-brand text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-xl shadow-brand/20 hover:bg-brand-dark transition-all active:scale-95 whitespace-nowrap"
                >
                  Initialize Link
@@ -225,7 +226,7 @@ export default function Navbar({ user, profile }: NavbarProps) {
                   <button
                     onClick={() => {
                       setIsOpen(false); 
-                      setIsAuthOpen(true); 
+                      setIsAuthOpen(true); // ✅ Fix 4: Mobile menu click now triggers the popup
                     }}
                     className="w-full py-4 bg-brand text-white font-black uppercase tracking-widest text-[10px] rounded-xl shadow-lg shadow-brand/20 active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
@@ -239,6 +240,7 @@ export default function Navbar({ user, profile }: NavbarProps) {
         )}
       </AnimatePresence>
 
+      {/* ✅ Fix 5: Embedded the operational component container here */}
       <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
     </nav>
   );
