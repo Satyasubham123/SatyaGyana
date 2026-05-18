@@ -103,7 +103,7 @@ export default function AITeacher({ user, profile: initialProfile }: AITeacherPr
 
     try {
       // 1. Grab the API key securely
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      const apiKey = (import.meta as Record<string, any>)['env']?.VITE_GEMINI_API_KEY;
       
       if (!apiKey) {
         throw new Error("API Key is missing!");
