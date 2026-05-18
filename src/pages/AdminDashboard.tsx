@@ -172,7 +172,7 @@ export default function AdminDashboard({ profile }: AdminDashboardProps) {
     if (profile?.role === 'admin') {
       fetchInitialData();
     }
-  }, [profile]);
+  }, [profile, activeTab]);
 
   useEffect(() => {
     if (selectedCourseId) {
