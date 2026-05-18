@@ -66,12 +66,20 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         // 1. Attempt to log them in
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         
-        // 🔥 STRICT FIX: Check if they actually clicked the email link!
+        // 2. Strict Check: If they haven't verified their email yet
         if (!userCredential.user.emailVerified) {
-          await auth.signOut(); // Kick them back out
-          setError("Access Denied: Please verify your email address first. Check your inbox or spam folder!");
-          return; // Stop the login process here
+          // 🔥 AUTOMATIC RESEND: Trigger a fresh verification link immediately!
+          await sendEmailVerification(userCredential.user);
+          
+          // 3. Log them back out so they can't browse the dashboard yet
+          await auth.signOut(); 
+          
+          setError("Your email is not verified yet. We have just dispatched a brand new activation link to your inbox! Please check your main inbox as well as your Spam folder.");
+          return; // Terminate login routine
         }
+
+        // If verified successfully, grant access!
+        onClose();
 
         // If verified, let them in!
         onClose();
