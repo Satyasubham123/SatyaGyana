@@ -102,39 +102,53 @@ export default function AITeacher({ user, profile: initialProfile }: AITeacherPr
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/ai/teacher', {
+      // 1. Grab the API key securely
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      
+      if (!apiKey) {
+        throw new Error("API Key is missing!");
+      }
+
+      // 2. Keep your custom student context!
+      const systemContext = `You are GyanMitra, an AI teacher. The student is in ${profile?.classLevel || "Class 10"} and learning in ${language}. Answer this query clearly and educationally: ${input}`;
+
+      // 3. Call Google Gemini DIRECTLY
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          prompt: input,
-          history: messages.slice(-10), // Context of last 10 messages
-          studentContext: {
-            classLevel: profile?.classLevel || "Class 10",
-            medium: language
-          }
+          contents: [{ parts: [{ text: systemContext }] }]
         })
       });
 
       if (!response.ok) {
-        throw new Error(`Server responded with ${response.status}`);
+        throw new Error(`Google API responded with ${response.status}`);
       }
 
       const data = await response.json();
       
+      // Extract the text from Google's data structure
+      const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || "I'm having a bit of trouble thinking right now. Could you try asking again?";
+      
       const assistantMessage: Message = {
         role: 'assistant',
-        content: data.response || "I'm having a bit of trouble thinking right now. Could you try asking again?",
+        content: aiText,
         timestamp: new Date().toISOString()
       };
 
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
       console.error('Chat Error:', error);
+      // Optional: Add a visual error message so you know if it fails
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: "Error connecting to AI. Please check the console.",
+        timestamp: new Date().toISOString()
+      }]);
     } finally {
       setIsLoading(false);
     }
   };
-
   const QUICK_PROMPTS = [
     "Explain Newton's 1st Law",
     "How to solve quadratic equations?",
