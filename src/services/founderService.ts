@@ -16,14 +16,14 @@ export interface FounderProfileData {
 }
 
 const DEFAULT_FOUNDER: FounderProfileData = {
-  name: 'Satyasubham Biswal',
+  name: 'Satya Subham Biswal',
   title: 'Founder & Creator of GyanMitra AI',
   mission: 'Empowering students with AI-driven personalized learning paths to achieve academic excellence.',
   bio: 'A visionary educator and developer dedicated to bridging the gap between artificial intelligence and classroom learning.',
-  photoURL: 'https://example.com/new_founder_photo.jpg',
+  photoURL: 'https://lh3.googleusercontent.com/d/10NsSMe5q9f4SzlPqzolp1BY33gmeC_Os',
   socialLinks: {
     linkedin: 'https://www.linkedin.com/in/satyasubham-biswal',
-    twitter: 'https://twitter.com'
+    twitter: 'https://x.com/SATYASUBHA53144'
   }
 };
 
