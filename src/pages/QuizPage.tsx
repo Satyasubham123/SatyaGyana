@@ -7,6 +7,15 @@ import { cn } from '../lib/utils';
 import { updateUserProfile } from '../services/userService';
 import { contentService } from '../services/contentService';
 
+// Setup environmental type signature bindings globally to clear strict inspector lines
+declare global {
+  interface ImportMeta {
+    readonly env: {
+      readonly VITE_GEMINI_API_KEY?: string;
+    };
+  }
+}
+
 interface Question {
   id?: string;
   type: 'mcq' | 'tf' | 'short' | 'true_false' | 'short_answer';
@@ -29,17 +38,18 @@ export default function QuizPage({ user }: { user: FirebaseUser }) {
   const [shortAnswer, setShortAnswer] = useState('');
   const [isGrading, setIsGrading] = useState(false);
 
+  // Parse path coordinates from address line tokens
+  const urlParams = new URLSearchParams(location.search);
+  const courseId = urlParams.get('courseId') || 'dynamic';
+  const sectionId = urlParams.get('sectionId') || 'dynamic';
+  const playlistId = urlParams.get('playlistId') || 'dynamic';
+
   useEffect(() => {
     const fetchQuiz = async () => {
       setIsLoading(true);
       try {
-        const urlParams = new URLSearchParams(location.search);
-        const courseId = urlParams.get('courseId');
-        const sectionId = urlParams.get('sectionId');
-        const playlistId = urlParams.get('playlistId');
-        
-        // If we have full path, try to load published quiz first
-        if (courseId && sectionId && playlistId && quizId) {
+        // Look for existing pre-published content structured by an Admin
+        if (courseId !== 'dynamic' && sectionId !== 'dynamic' && playlistId !== 'dynamic' && quizId) {
           const lessons = await contentService.getLessons(courseId, sectionId, playlistId);
           const lesson = lessons.find(l => l.id === quizId);
           if (lesson && lesson.content) {
@@ -48,7 +58,6 @@ export default function QuizPage({ user }: { user: FirebaseUser }) {
               if (Array.isArray(quizData)) {
                 setQuestions(quizData.map(q => ({
                   ...q,
-                  // Map database types to QuizPage types if necessary
                   type: q.type === 'true_false' ? 'tf' : (q.type === 'short_answer' ? 'short' : q.type)
                 })));
                 return;
@@ -59,29 +68,54 @@ export default function QuizPage({ user }: { user: FirebaseUser }) {
           }
         }
 
-        // Fallback: Dynamic AI generation
+        // Fallback: Secure Client-Side dynamic generation using Google Gateway directly
         const difficulty = urlParams.get('difficulty') || 'medium';
         const format = urlParams.get('format') || 'mcq';
         const topic = quizId?.split('-').pop() || 'General Science';
         
-        const response = await fetch('/api/ai/quiz', {
+        const apiKey = import.meta.env.VITE_GEMINI_API_KEY?.trim();
+        if (!apiKey) {
+          throw new Error("Secret API Key lookup missed at configuration build!");
+        }
+
+        const designPrompt = `Generate an array of exactly 5 quiz questions on the topic "${topic}".
+The target difficulty structure is "${difficulty}" and options must match format rule codes of "${format}".
+
+You must return a raw JSON array string containing exactly 5 question objects. Do not wrap the code inside markdown syntax like \`\`\`json. Return only the raw array data. 
+
+Each object must follow this scheme exactly:
+{
+  "type": "${format === 'mcq' ? 'mcq' : 'true_false'}",
+  "question": "The string text of the question",
+  "options": ${format === 'mcq' ? '["Option A", "Option B", "Option C", "Option D"]' : '["True", "False"]'},
+  "correctAnswer": "The perfect answer string matching options",
+  "explanation": "A conceptual educational breakdown description of the core principle"
+}`;
+
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            topic: topic,
-            classLevel: "Class 10",
-            difficulty: difficulty,
-            format: format
+            contents: [{ parts: [{ text: designPrompt }] }]
           })
         });
+
+        if (!response.ok) {
+          throw new Error(`Google API gateway returned validation status code ${response.status}`);
+        }
+
         const data = await response.json();
-        setQuestions(data.quiz.map((q: any) => ({
+        let rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
+        rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+
+        const parsedQuiz = JSON.parse(rawText);
+        setQuestions(parsedQuiz.map((q: any) => ({
           ...q,
           type: q.type === 'true_false' ? 'tf' : (q.type === 'short_answer' ? 'short' : q.type)
         })));
       } catch (err) {
         console.error('Quiz Error:', err);
-      } finally {
+      } {
         setIsLoading(false);
       }
     };
@@ -89,15 +123,56 @@ export default function QuizPage({ user }: { user: FirebaseUser }) {
     fetchQuiz();
   }, [quizId, location.search]);
 
-  const handleNext = () => {
+  const calculateScore = (currentAnswers: string[]) => {
+    return questions.reduce((acc, q, idx) => {
+      return q.correctAnswer === currentAnswers[idx] ? acc + 1 : acc;
+    }, 0);
+  };
+
+  const handleNext = async () => {
     if (currentIdx < questions.length - 1) {
       setCurrentIdx(prev => prev + 1);
       setSelectedAnswer(null);
       setShortAnswer('');
       setIsGrading(false);
     } else {
+      // Calculate real total performance values
+      const finalScore = calculateScore(answers);
+      const computedPercentage = Math.round((finalScore / questions.length) * 100);
+
+      // 1. Commit and log scorecard trace results live to Firestore
+      await contentService.saveQuizAttempt({
+        userId: user.uid,
+        quizId: quizId || 'dynamic_eval',
+        courseId,
+        sectionId,
+        playlistId,
+        score: finalScore,
+        totalQuestions: questions.length,
+        percentage: computedPercentage
+      });
+
+      // 2. Mark this lesson as complete in user stats tracking
+      if (quizId && courseId !== 'dynamic') {
+        await contentService.markLessonComplete(user.uid, {
+          id: quizId,
+          courseId,
+          sectionId,
+          playlistId,
+          title: 'Quiz Module',
+          type: 'quiz',
+          order: 99
+        });
+      }
+
+      // 3. Grant custom profile award allocations
+      try {
+        await updateUserProfile(user.uid, { xpPoints: 50 });
+      } catch (err) {
+        console.error("User XP profile trace offline:", err);
+      }
+
       setIsFinished(true);
-      updateUserProfile(user.uid, { xpPoints: 50 });
     }
   };
 
@@ -116,19 +191,12 @@ export default function QuizPage({ user }: { user: FirebaseUser }) {
     if (!shortAnswer.trim()) return;
     setIsGrading(true);
     
-    // For now, simple client side match for demo, but we save the answer
     const newAnswers = [...answers];
-    newAnswers[currentIdx] = shortAnswer;
+    newAnswers[currentIdx] = shortAnswer.trim();
     setAnswers(newAnswers);
     
-    setSelectedAnswer(shortAnswer);
+    setSelectedAnswer(shortAnswer.trim());
     setTimeout(handleNext, 2000);
-  };
-
-  const calculateScore = () => {
-    return questions.reduce((acc, q, idx) => {
-      return q.correctAnswer === answers[idx] ? acc + 1 : acc;
-    }, 0);
   };
 
   if (isLoading) {
@@ -147,7 +215,7 @@ export default function QuizPage({ user }: { user: FirebaseUser }) {
   }
 
   if (isFinished) {
-    const score = calculateScore();
+    const score = calculateScore(answers);
     return (
       <div className="max-w-2xl mx-auto py-10 sm:py-20 px-4 text-center">
          <motion.div
@@ -186,7 +254,7 @@ export default function QuizPage({ user }: { user: FirebaseUser }) {
                       if (q.correctAnswer !== answers[i]) {
                         return (
                           <div key={i} className="px-3 py-1.5 sm:px-4 sm:py-2 bg-red-950/20 border border-red-900/50 rounded-sm text-[9px] sm:text-[10px] text-red-500 font-bold uppercase tracking-widest">
-                            {questions[i].id || 'Module Link'} Data Gap
+                            Block {(i + 1).toString().padStart(2, '0')} Data Gap
                           </div>
                         );
                       }

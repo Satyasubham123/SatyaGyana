@@ -109,7 +109,33 @@ export interface UserHistory {
   lastViewedAt: any;
 }
 
+export interface QuizAttemptRecord {
+  id?: string;
+  userId: string;
+  quizId: string;
+  courseId: string;
+  sectionId: string;
+  playlistId: string;
+  score: number;
+  totalQuestions: number;
+  percentage: number;
+  completedAt: any;
+}
+
 export const contentService = {
+  // Save Student Quiz Attempts directly to Firestore permanently
+  async saveQuizAttempt(record: Omit<QuizAttemptRecord, 'completedAt'>) {
+    try {
+      const attemptRef = collection(db, 'quizAttempts');
+      await addDoc(attemptRef, {
+        ...record,
+        completedAt: serverTimestamp()
+      });
+    } catch (error) {
+      console.error("Error logging database quiz metrics entry node:", error);
+    }
+  },
+
   // User Progress & History
   async markLessonComplete(userId: string, lesson: Lesson) {
     const progressRef = doc(db, 'userProgress', `${userId}_${lesson.id}`);
@@ -199,7 +225,6 @@ export const contentService = {
     if (!courseSnap.exists()) return null;
     const data = courseSnap.data();
     
-    // Copy main course doc
     const newCourseId = await this.addCourse({
       ...data,
       title: `${data.title} (Copy)`,
@@ -207,19 +232,16 @@ export const contentService = {
       isArchived: false
     } as any);
 
-    // Deep copy sections
     const sections = await this.getSections(courseId);
     for (const sec of sections) {
       const { id: oldSecId, ...secData } = sec;
       const newSecId = await this.addSection(newCourseId, secData);
       
-      // Deep copy playlists
       const playlists = await this.getPlaylists(courseId, oldSecId);
       for (const pl of playlists) {
         const { id: oldPlId, ...plData } = pl;
         const newPlId = await this.addPlaylist(newCourseId, newSecId, plData);
         
-        // Deep copy lessons
         const lessons = await this.getLessons(courseId, oldSecId, oldPlId);
         for (const lesson of lessons) {
           const { id: oldLessonId, ...lessonData } = lesson;
@@ -325,19 +347,16 @@ export const contentService = {
     sourceCourseId: string, sourceSectionId: string, sourcePlaylistId: string, lessonId: string,
     targetCourseId: string, targetSectionId: string, targetPlaylistId: string
   ) {
-    // 1. Get original lesson data
     const lessonRef = doc(db, `courses/${sourceCourseId}/sections/${sourceSectionId}/playlists/${sourcePlaylistId}/lessons`, lessonId);
     const lessonSnap = await getDoc(lessonRef);
     if (!lessonSnap.exists()) throw new Error("Source lesson not found.");
     const lessonData = lessonSnap.data();
 
-    // 2. Create in target
     await this.addLesson(targetCourseId, targetSectionId, targetPlaylistId, {
       ...lessonData,
-      order: 99 // Default to end, can be reordered after
+      order: 99 
     } as any);
 
-    // 3. Delete from source
     await this.deleteLesson(sourceCourseId, sourceSectionId, sourcePlaylistId, lessonId);
   },
 
