@@ -44,7 +44,7 @@ import { cn } from '../lib/utils';
 import { founderService, FounderProfileData } from '../services/founderService';
 import { FounderProfile } from '../components/FounderProfile';
 
-// Declare environmental types globally to avoid any strict TypeScript inspector flags
+// This explicit declaration registers 'env' on import.meta globally, removing all red underlines!
 declare global {
   interface ImportMeta {
     readonly env: {
@@ -146,7 +146,6 @@ export default function AdminDashboard({ profile }: AdminDashboardProps) {
   const [targetSections, setTargetSections] = useState<Section[]>([]);
   const [targetPlaylists, setTargetPlaylists] = useState<Playlist[]>([]);
 
-  // Trigger content loading hooks
   useEffect(() => {
     if (quizGenForm.targetCourseId || moveTarget.courseId) {
       contentService.getSections(quizGenForm.targetCourseId || moveTarget.courseId).then(setTargetSections);
@@ -201,7 +200,6 @@ export default function AdminDashboard({ profile }: AdminDashboardProps) {
     }
   }, [selectedPlaylistId]);
 
-  // Data Actions Suite
   const fetchInitialData = async () => {
     setIsLoading(true);
     try {
@@ -481,8 +479,7 @@ export default function AdminDashboard({ profile }: AdminDashboardProps) {
     setIsGeneratingQuiz(true);
     setGeneratedQuiz(null);
     try {
-      const looseMeta = import.meta as unknown as any;
-      const apiKey = looseMeta.env?.VITE_GEMINI_API_KEY?.trim();
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY?.trim();
       
       if (!apiKey) {
         throw new Error("VITE_GEMINI_API_KEY configuration is missing!");
@@ -589,7 +586,6 @@ Each object must follow this scheme exactly:
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Clear Administrative Level Checks
   if (profile?.role !== 'admin') {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-bg-deep">
@@ -604,7 +600,6 @@ Each object must follow this scheme exactly:
     );
   }
 
-  // Segment Display Controllers
   const renderOverview = () => (
     <div className="space-y-8">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
@@ -1273,7 +1268,7 @@ Each object must follow this scheme exactly:
                              value={lessonForm.videoUrl} onChange={e => setLessonForm({...lessonForm, videoUrl: e.target.value})}
                              className="w-full bg-slate-800 border border-border-strong p-4 rounded-2xl text-white font-bold outline-none focus:border-brand"
                              required
-                           />
+                        />
                         </div>
                      )}
 
@@ -1485,7 +1480,7 @@ Each object must follow this scheme exactly:
                              name="score" type="number" min="0" max="100" defaultValue={selectedSubmission.score || 0}
                              className="w-full bg-slate-800 border border-border-strong p-4 rounded-xl text-white font-black text-sm"
                              required
-                        />
+                           />
                         </div>
                         <div className="space-y-2">
                            <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Evaluator Feedback</label>
@@ -1572,7 +1567,7 @@ Each object must follow this scheme exactly:
                       <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Founder Biography</label>
                       <textarea 
                         value={founderForm.bio} onChange={e => setFounderForm({...founderForm, bio: e.target.value})}
-                        className="w-full bg-slate-800 border border-border-strong p-4 sm:p-5 rounded-xl sm:rounded-2xl text-white font-medium text-sm h-32 resize-none outline-none focus-border-brand"
+                        className="w-full bg-slate-800 border border-border-strong p-4 sm:p-5 rounded-xl sm:rounded-2xl text-white font-medium text-sm h-32 resize-none outline-none focus:border-brand"
                         required
                       />
                    </div>
@@ -1580,7 +1575,7 @@ Each object must follow this scheme exactly:
              </div>
 
              <div className="bg-slate-800/50 p-6 sm:p-8 rounded-[24px] sm:rounded-[32px] border border-border-strong">
-                <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-6 block">Neural Social Nodes</span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-6 block">Neural Social Nodes</span>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                    <div className="space-y-2">
                       <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-4">LinkedIn</label>
@@ -1653,7 +1648,7 @@ Each object must follow this scheme exactly:
                   <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Target Sector</label>
                   <select 
                     value={quizGenForm.classLevel} onChange={e => setQuizGenForm({...quizGenForm, classLevel: e.target.value})}
-                    className="w-full bg-slate-800 border border-border-strong p-5 sm:p-6 rounded-2xl text-white font-bold text-xs sm:text-sm outline-none focus:border-brand appearance-none"
+                    className="w-full bg-slate-800 border border-border-strong p-5 rounded-2xl text-white font-bold text-xs sm:text-sm outline-none focus:border-brand appearance-none"
                   >
                     {['Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12'].map(c => (
                       <option key={c} value={c}>{c}</option>
@@ -2004,7 +1999,6 @@ Each object must follow this scheme exactly:
     </AnimatePresence>
   );
 
-  // Core Render Block
   return (
     <div className="min-h-screen bg-bg-deep py-12 md:py-20 px-4">
       {renderModals()}
