@@ -155,6 +155,17 @@ service cloud.firestore {
       allow write: if false; // Set manually in console
     }
 
+    // Submissions & Assignments
+    match /submissions/{submissionId} {
+      // Students can view their own submissions; Admins can view all
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      // Students can create new submissions
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid;
+      // Only admins are allowed to update/grade a submission
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
     // Connection test heartbeat
     match /test/connection {
       allow read: if true;
