@@ -111,7 +111,7 @@ export default function Navbar({ user, profile }: NavbarProps) {
                  onClick={() => setIsAuthOpen(true)} // 🔥 FIX: Desktop trigger launches modal framework
                  className="px-6 lg:px-8 py-3 bg-brand text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-xl shadow-brand/20 hover:bg-brand-dark transition-all active:scale-95 whitespace-nowrap"
                >
-                 Initialize Link
+                 Secure Access Link
                </button>
              )}
           </div>
