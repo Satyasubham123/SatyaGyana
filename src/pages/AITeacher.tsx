@@ -110,16 +110,17 @@ export default function AITeacher({ user, profile: initialProfile }: AITeacherPr
     setIsLoading(true);
 
     try {
-      // Vite requires this EXACT literal format to replace your key during deployment
+      // 1. Fetch your API Key securely from the env object
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY?.trim();
       
       if (!apiKey) {
-        throw new Error("API Key compilation missing on build server!");
+        throw new Error("API Key configuration missing on build server!");
       }
 
       const systemContext = `You are GyanMitra, an AI teacher. The student is in ${profile?.classLevel || "Class 10"} and learning in ${language}. Answer this query clearly and educationally: ${input}`;
 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+      // 2. Direct connection to Google's current active stable model gateway (gemini-2.5-flash)
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -287,7 +288,7 @@ export default function AITeacher({ user, profile: initialProfile }: AITeacherPr
             </button>
           </div>
           <p className="text-[10px] text-center text-muted mt-4 uppercase tracking-[0.2em] font-black italic">
-            Telemetry Secure • AI Model: Gemini 2.0 High-Thinking
+            Telemetry Secure • AI Model: Gemini 2.5 Active
           </p>
         </div>
       </div>
