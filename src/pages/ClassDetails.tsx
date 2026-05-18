@@ -122,7 +122,7 @@ export default function ClassDetails({ user }: { user: FirebaseUser }) {
     try {
       // Record partial progress/view
       await contentService.markLessonComplete(user.uid, lesson);
-      // Update local state to show as completed (since we treat view as progress for now)
+      // Update local state to show as completed
       setSections(prev => prev.map(s => ({
         ...s,
         playlists: s.playlists.map(p => ({
@@ -390,7 +390,7 @@ export default function ClassDetails({ user }: { user: FirebaseUser }) {
                </p>
                
                <Link 
-                 to={`/quiz/${activeLesson.id}?courseId=${activeLesson.courseId}&sectionId=${activeLesson.sectionId}&playlistId=${activeLesson.playlistId}`}
+                 to={`/quiz/${activeLesson.id}?courseId=${activeLesson.courseId}&sectionId=${activeLesson.sectionId}&playlistId=${activeLesson.playlistId}&difficulty=${difficulty}&format=${format}`}
                  className="block w-full py-5 bg-brand text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-brand/20 hover:scale-[1.02] active:scale-95 transition-all"
                >
                  Execute Intelligence Sync
@@ -576,7 +576,7 @@ export default function ClassDetails({ user }: { user: FirebaseUser }) {
                      <h5 className="text-white font-black uppercase italic tracking-tighter text-xl sm:text-2xl mb-3 sm:mb-4 relative z-10">Neural Pulse Test</h5>
                      <p className="text-white/70 text-[9px] sm:text-[10px] font-black uppercase tracking-widest mb-6 sm:mb-8 leading-none relative z-10">Instant intelligence verification module.</p>
                      <Link 
-                       to={`/quiz/${activeLesson.id}?difficulty=${difficulty}&format=${format}`}
+                       to={`/quiz/${activeLesson.id}?courseId=${activeLesson.courseId}&sectionId=${activeLesson.sectionId}&playlistId=${activeLesson.playlistId}&difficulty=${difficulty}&format=${format}`}
                        className="block w-full py-4 sm:py-5 bg-white text-brand rounded-2xl font-black uppercase tracking-widest text-[10px] sm:text-xs shadow-xl active:scale-[1.02] transition-all relative z-10"
                      >
                        Begin Analysis Stream
