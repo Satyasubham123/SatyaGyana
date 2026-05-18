@@ -9,7 +9,6 @@ import {
   sendEmailVerification
 } from 'firebase/auth';
 import { auth, signInWithGoogle } from '../lib/firebase';
-import { cn } from '../lib/utils';
 
 type AuthMode = 'login' | 'signup' | 'forgot';
 
@@ -49,41 +48,24 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
     try {
       if (mode === 'signup') {
-        // 1. Create the user
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        // 2. Add their display name
         await updateProfile(userCredential.user, { displayName: name });
-        // 3. Send the verification link
         await sendEmailVerification(userCredential.user);
-        
-        // 🔥 STRICT FIX: Sign them out immediately so they cannot access the app yet!
         await auth.signOut();
         
         setMessage('Verification sent! Please check your email inbox and click the link to activate your account.');
-        setTimeout(() => switchMode('login'), 5000); // Switch to login screen after reading
+        setTimeout(() => switchMode('login'), 5000);
 
       } else if (mode === 'login') {
-        // 1. Attempt to log them in
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         
-        // 2. Strict Check: If they haven't verified their email yet
         if (!userCredential.user.emailVerified) {
-          // 🔥 AUTOMATIC RESEND: Trigger a fresh verification link immediately!
           await sendEmailVerification(userCredential.user);
-          
-          // 3. Log them back out so they can't browse the dashboard yet
           await auth.signOut(); 
-          
-          setError("Your email is not verified yet. We have just dispatched a brand new activation link to your inbox! Please check your main inbox as well as your Spam folder.");
-          return; // Terminate login routine
+          setError("Your email is not verified yet. We have sent a new activation link to your inbox!");
+          return;
         }
-
-        // If verified successfully, grant access!
         onClose();
-
-        // If verified, let them in!
-        onClose();
-
       } else if (mode === 'forgot') {
         await sendPasswordResetEmail(auth, email);
         setMessage('Password reset email sent! Check your inbox.');
@@ -115,14 +97,14 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     <AnimatePresence>
       <motion.div 
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto"
       >
         <motion.div 
           initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
-          className="bg-slate-900 w-full max-w-md rounded-[32px] border border-border-strong shadow-2xl relative overflow-hidden"
+          className="bg-slate-900 w-full max-w-md rounded-[32px] border border-border-strong shadow-2xl relative flex flex-col max-h-[calc(100vh-2rem)] overflow-hidden"
         >
-          {/* Header */}
-          <div className="flex justify-between items-center p-6 border-b border-border-strong">
+          {/* Sticky Header */}
+          <div className="flex justify-between items-center p-6 border-b border-border-strong bg-slate-900 shrink-0">
             <h3 className="text-xl font-black uppercase italic tracking-tighter text-white">
               {mode === 'login' ? 'System Login' : mode === 'signup' ? 'Create Access Node' : 'Recover Password'}
             </h3>
@@ -131,7 +113,8 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             </button>
           </div>
 
-          <div className="p-8">
+          {/* Scrollable Form Body */}
+          <div className="p-8 overflow-y-auto flex-1 custom-scrollbar">
             {error && (
               <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold uppercase tracking-widest rounded-xl flex items-center gap-3 text-left leading-relaxed">
                 <ShieldAlert className="h-6 w-6 shrink-0" />

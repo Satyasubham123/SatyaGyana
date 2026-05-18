@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import AuthModal from '../components/AuthModal';
 import { User as FirebaseUser } from 'firebase/auth';
-import { signInWithGoogle } from '../lib/firebase';
+
 import { motion } from 'motion/react';
 import { Sparkles, Brain, BookOpen, Clock, Target, Languages, ArrowRight, ShieldCheck, Zap } from 'lucide-react';
 import { Link } from 'react-router-dom';
