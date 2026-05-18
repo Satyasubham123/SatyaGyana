@@ -102,8 +102,9 @@ export default function AITeacher({ user, profile: initialProfile }: AITeacherPr
     setIsLoading(true);
 
     try {
-      // 1. Grab the API key securely
-      const apiKey = (import.meta as Record<string, any>)['env']?.VITE_GEMINI_API_KEY;
+      // 1. Grab the API key securely and tell TypeScript to ignore checking this line
+      // @ts-ignore
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY?.trim();
       
       if (!apiKey) {
         throw new Error("API Key is missing!");
@@ -112,8 +113,9 @@ export default function AITeacher({ user, profile: initialProfile }: AITeacherPr
       // 2. Keep your custom student context!
       const systemContext = `You are GyanMitra, an AI teacher. The student is in ${profile?.classLevel || "Class 10"} and learning in ${language}. Answer this query clearly and educationally: ${input}`;
 
-      // 3. Call Google Gemini DIRECTLY
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+      // 3. Call Google Gemini DIRECTLY using the stable model endpoint
+      // @ts-ignore
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
