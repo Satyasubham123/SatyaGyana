@@ -90,115 +90,119 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     }
   };
 
-  // If the switch is off, render absolutely nothing.
   if (!isOpen) return null;
 
-  // If the switch is on, render standard, unbreakable HTML blocks.
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div className="w-full max-w-md bg-slate-900 rounded-[32px] border border-slate-800 shadow-2xl flex flex-col overflow-hidden max-h-[90vh]">
+    /* 🚀 Holy Grail Layout: Outer wrapper scrolls, inner wrapper is forced to be at least screen-height */
+    <div className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-md overflow-y-auto">
+      <div className="flex min-h-screen items-center justify-center p-4 sm:p-8">
         
-        {/* Header - Stays glued to the top */}
-        <div className="flex justify-between items-center p-6 border-b border-slate-800 bg-slate-900 shrink-0">
-          <h3 className="text-xl font-black uppercase italic tracking-tighter text-white">
-            {mode === 'login' ? 'SYSTEM LOGIN' : mode === 'signup' ? 'CREATE ACCESS NODE' : 'RECOVER PASSKEY'}
-          </h3>
-          <button onClick={onClose} className="p-2 bg-slate-800 rounded-full text-slate-400 hover:text-white transition-all">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
-        {/* Form Body - Scrolls internally ONLY if the screen is super small */}
-        <div className="p-8 overflow-y-auto">
-          {error && (
-            <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold uppercase tracking-widest rounded-xl flex items-center gap-3 text-left leading-relaxed">
-              <ShieldAlert className="h-6 w-6 shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
+        {/* 🚀 Rigid Block Container: No flex-col, no max-h, no hidden overflow. It CANNOT collapse. */}
+        <div className="w-full max-w-md bg-slate-900 rounded-[32px] border border-slate-700 shadow-2xl pb-2">
           
-          {message && (
-            <div className="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-widest rounded-xl text-center">
-              {message}
-            </div>
-          )}
-
-          <form onSubmit={handleEmailAuth} className="space-y-5">
-            {mode === 'signup' && (
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Full Name</label>
-                <div className="relative">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-                  <input 
-                    type="text" required value={name} onChange={e => setName(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 p-4 pl-12 rounded-2xl text-white font-bold outline-none focus:border-brand transition-all"
-                  />
-                </div>
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Email Address</label>
-              <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-                <input 
-                  type="email" required value={email} onChange={e => setEmail(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 p-4 pl-12 rounded-2xl text-white font-bold outline-none focus:border-brand transition-all"
-                />
-              </div>
-            </div>
-
-            {mode !== 'forgot' && (
-              <div className="space-y-2">
-                <div className="flex justify-between items-center ml-4">
-                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Password</label>
-                  {mode === 'login' && (
-                    <button type="button" onClick={() => switchMode('forgot')} className="text-[9px] font-black uppercase text-brand hover:underline tracking-widest">
-                      FORGOT?
-                    </button>
-                  )}
-                </div>
-                <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-                  <input 
-                    type="password" required value={password} onChange={e => setPassword(e.target.value)} minLength={6}
-                    className="w-full bg-slate-800 border border-slate-700 p-4 pl-12 rounded-2xl text-white font-bold outline-none focus:border-brand transition-all"
-                  />
-                </div>
-              </div>
-            )}
-
-            <button 
-              type="submit" disabled={isLoading}
-              className="w-full py-4 mt-4 bg-[#2563EB] text-white rounded-2xl font-black uppercase tracking-[0.1em] text-xs shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2"
-            >
-              {isLoading ? 'PROCESSING...' : mode === 'login' ? 'AUTHENTICATE' : mode === 'signup' ? 'INITIALIZE NODE' : 'DISPATCH LINK'} 
-              {!isLoading && <ArrowRight className="h-4 w-4" />}
-            </button>
-          </form>
-
-          <div className="mt-8 pt-6 border-t border-slate-800">
-            <button 
-              onClick={handleGoogleAuth} type="button"
-              className="w-full py-4 bg-white text-slate-900 rounded-2xl font-black uppercase tracking-[0.1em] text-xs shadow-xl active:scale-95 transition-all flex items-center justify-center gap-3"
-            >
-              <img src="https://www.google.com/favicon.ico" alt="Google" className="h-4 w-4" />
-              CONTINUE WITH GOOGLE
+          {/* Header */}
+          <div className="flex justify-between items-center p-6 border-b border-slate-800">
+            <h3 className="text-xl font-black uppercase italic tracking-tighter text-white">
+              {mode === 'login' ? 'SYSTEM LOGIN' : mode === 'signup' ? 'CREATE ACCESS NODE' : 'RECOVER PASSKEY'}
+            </h3>
+            <button onClick={onClose} className="p-2 bg-slate-800 rounded-full text-slate-400 hover:text-white transition-all">
+              <X className="h-4 w-4" />
             </button>
           </div>
 
-          <div className="mt-6 text-center">
-            {mode === 'login' ? (
-              <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest">
-                NO ACCESS NODE? <button onClick={() => switchMode('signup')} className="text-[#2563EB] hover:underline">Create One</button>
-              </p>
-            ) : (
-              <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest">
-                RETURN TO <button onClick={() => switchMode('login')} className="text-[#2563EB] hover:underline">System Login</button>
-              </p>
+          {/* Form Body - Unrestricted height block */}
+          <div className="p-8">
+            {error && (
+              <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold uppercase tracking-widest rounded-xl flex items-center gap-3 text-left leading-relaxed">
+                <ShieldAlert className="h-6 w-6 shrink-0" />
+                <span>{error}</span>
+              </div>
             )}
+            
+            {message && (
+              <div className="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-widest rounded-xl text-center">
+                {message}
+              </div>
+            )}
+
+            <form onSubmit={handleEmailAuth} className="space-y-5 block">
+              {mode === 'signup' && (
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4 block">Full Name</label>
+                  <div className="relative">
+                    <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                    <input 
+                      type="text" required value={name} onChange={e => setName(e.target.value)}
+                      className="w-full bg-slate-800 border border-slate-700 p-4 pl-12 rounded-2xl text-white font-bold outline-none focus:border-brand transition-all block"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4 block">Email Address</label>
+                <div className="relative">
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                  <input 
+                    type="email" required value={email} onChange={e => setEmail(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 p-4 pl-12 rounded-2xl text-white font-bold outline-none focus:border-brand transition-all block"
+                  />
+                </div>
+              </div>
+
+              {mode !== 'forgot' && (
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center ml-4">
+                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest block">Password</label>
+                    {mode === 'login' && (
+                      <button type="button" onClick={() => switchMode('forgot')} className="text-[9px] font-black uppercase text-brand hover:underline tracking-widest">
+                        FORGOT?
+                      </button>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                    <input 
+                      type="password" required value={password} onChange={e => setPassword(e.target.value)} minLength={6}
+                      className="w-full bg-slate-800 border border-slate-700 p-4 pl-12 rounded-2xl text-white font-bold outline-none focus:border-brand transition-all block"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <button 
+                type="submit" disabled={isLoading}
+                className="w-full py-4 mt-6 bg-[#2563EB] text-white rounded-2xl font-black uppercase tracking-[0.1em] text-xs shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2"
+              >
+                {isLoading ? 'PROCESSING...' : mode === 'login' ? 'AUTHENTICATE' : mode === 'signup' ? 'INITIALIZE NODE' : 'DISPATCH LINK'} 
+                {!isLoading && <ArrowRight className="h-4 w-4" />}
+              </button>
+            </form>
+
+            <div className="mt-8 pt-6 border-t border-slate-800 block">
+              <button 
+                onClick={handleGoogleAuth} type="button"
+                className="w-full py-4 bg-white text-slate-900 rounded-2xl font-black uppercase tracking-[0.1em] text-xs shadow-xl active:scale-95 transition-all flex items-center justify-center gap-3"
+              >
+                <img src="https://www.google.com/favicon.ico" alt="Google" className="h-4 w-4" />
+                CONTINUE WITH GOOGLE
+              </button>
+            </div>
+
+            <div className="mt-6 text-center block">
+              {mode === 'login' ? (
+                <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest">
+                  NO ACCESS NODE? <button onClick={() => switchMode('signup')} className="text-[#2563EB] hover:underline">Create One</button>
+                </p>
+              ) : (
+                <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest">
+                  RETURN TO <button onClick={() => switchMode('login')} className="text-[#2563EB] hover:underline">System Login</button>
+                </p>
+              )}
+            </div>
           </div>
         </div>
+
       </div>
     </div>
   );
