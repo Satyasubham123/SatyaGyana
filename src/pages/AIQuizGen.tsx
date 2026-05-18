@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { User as FirebaseUser } from 'firebase/auth';
-import { UserProfile, updateUserProfile } from '../services/userService';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   BrainCircuit, 
@@ -14,6 +13,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { updateUserProfile, UserProfile } from '../services/userService';
 import { cn } from '../lib/utils';
 
 declare global {
