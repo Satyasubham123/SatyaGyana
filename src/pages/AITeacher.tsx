@@ -7,6 +7,15 @@ import { doc, getDoc, updateDoc, arrayUnion, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { syncUserProfile, UserProfile, handleFirestoreError, OperationType } from '../services/userService';
 
+// This block tells TypeScript that 'env' exists on import.meta globally, removing all red underlines!
+declare global {
+  interface ImportMeta {
+    readonly env: {
+      readonly VITE_GEMINI_API_KEY?: string;
+    };
+  }
+}
+
 interface AITeacherProps {
   user: FirebaseUser;
   profile: UserProfile | null;
@@ -69,7 +78,6 @@ export default function AITeacher({ user, profile: initialProfile }: AITeacherPr
       }
     };
 
-    // Debounce syncing to avoid too many writes
     const timer = setTimeout(() => {
       syncChatHistory();
     }, 1000);
@@ -102,19 +110,16 @@ export default function AITeacher({ user, profile: initialProfile }: AITeacherPr
     setIsLoading(true);
 
     try {
-      // 1. Force TypeScript to completely drop its strict lookup rules with a double-cast
-      const looseMeta = import.meta as unknown as any;
-      const apiKey = looseMeta.env?.VITE_GEMINI_API_KEY?.trim();
+      // Vite requires this EXACT literal format to replace your key during deployment
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY?.trim();
       
       if (!apiKey) {
-        throw new Error("API Key is missing!");
+        throw new Error("API Key compilation missing on build server!");
       }
 
-      // 2. Keep your custom student context!
       const systemContext = `You are GyanMitra, an AI teacher. The student is in ${profile?.classLevel || "Class 10"} and learning in ${language}. Answer this query clearly and educationally: ${input}`;
 
-      // 3. Call Google Gemini DIRECTLY using the stable model endpoint to prevent 404s
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`, {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -123,12 +128,12 @@ export default function AITeacher({ user, profile: initialProfile }: AITeacherPr
       });
 
       if (!response.ok) {
-        throw new Error(`Google API responded with ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        const googleReason = errorData.error?.message || `Status Code ${response.status}`;
+        throw new Error(`Google API Reject: ${googleReason}`);
       }
 
       const data = await response.json();
-      
-      // Extract the text from Google's data structure
       const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || "I'm having a bit of trouble thinking right now. Could you try asking again?";
       
       const assistantMessage: Message = {
@@ -138,18 +143,18 @@ export default function AITeacher({ user, profile: initialProfile }: AITeacherPr
       };
 
       setMessages(prev => [...prev, assistantMessage]);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Chat Error:', error);
-      // Visual feedback if the connection fails
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: "Error connecting to AI. Please check the console.",
+        content: `System Diagnostics: ${error.message || "Failed to parse stream."}`,
         timestamp: new Date().toISOString()
       }]);
     } finally {
       setIsLoading(false);
     }
   };
+
   const QUICK_PROMPTS = [
     "Explain Newton's 1st Law",
     "How to solve quadratic equations?",
