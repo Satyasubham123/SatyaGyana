@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc, updateDoc, collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, collection, getDocs, query, orderBy, limit, addDoc } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../lib/firebase';
 import { User } from 'firebase/auth';
@@ -31,7 +31,7 @@ export interface UserProfile {
 
   // Analytics
   xpPoints: number;
-  totalXP: number; // Added for global ranking compatibility
+  totalXP?: number; // 🚀 THIS IS WHAT GITHUB WAS LOOKING FOR!
   level: number;
   streakCount: number;
   badges: string[];
@@ -49,7 +49,6 @@ export interface ActivitySignal {
   read: boolean;
 }
 
-// Existing sync function...
 export async function syncUserProfile(user: User): Promise<UserProfile> {
   const userRef = doc(db, 'users', user.uid);
   const snap = await getDoc(userRef);
@@ -82,10 +81,7 @@ export async function updateUserProfile(uid: string, data: Partial<UserProfile>)
   await updateDoc(userRef, { ...data, updatedAt: new Date() });
 }
 
-// --- NEW CAPABILITIES ---
-
 export async function uploadProfileImage(uid: string, file: File, type: 'avatar' | 'banner'): Promise<string> {
-  // 1. Compress Image
   const options = {
     maxSizeMB: type === 'avatar' ? 0.5 : 1,
     maxWidthOrHeight: type === 'avatar' ? 800 : 1920,
@@ -93,12 +89,10 @@ export async function uploadProfileImage(uid: string, file: File, type: 'avatar'
   };
   const compressedFile = await imageCompression(file, options);
 
-  // 2. Upload to Storage
   const fileExt = compressedFile.name.split('.').pop();
   const storageRef = ref(storage, `users/${uid}/${type}_${Date.now()}.${fileExt}`);
   const uploadTask = await uploadBytesResumable(storageRef, compressedFile);
   
-  // 3. Get URL and update DB
   const downloadURL = await getDownloadURL(uploadTask.ref);
   await updateUserProfile(uid, { [type === 'avatar' ? 'avatarUrl' : 'bannerUrl']: downloadURL });
   
@@ -117,9 +111,6 @@ export async function getUserSignals(uid: string): Promise<ActivitySignal[]> {
   })) as ActivitySignal[];
 }
 
-import { addDoc } from 'firebase/firestore'; // Make sure addDoc is in your imports at the top!
-
-// Add this to the bottom of userService.ts
 export async function addActivitySignal(
   uid: string, 
   title: string, 
