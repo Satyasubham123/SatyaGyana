@@ -4,7 +4,32 @@ import { Check, Sparkles, Zap, Shield, Crown, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast, Toaster } from 'react-hot-toast';
 import { auth } from '../lib/firebase';
-import { updateUserProfile, UserProfile } from '../services/userService';
+
+type RazorpayCheckout = {
+  open: () => void;
+  on: (event: 'payment.failed', callback: (response: any) => void) => void;
+};
+
+declare global {
+  interface Window {
+    Razorpay?: new (options: Record<string, any>) => RazorpayCheckout;
+  }
+}
+
+function loadRazorpayCheckout() {
+  return new Promise<void>((resolve, reject) => {
+    if (window.Razorpay) {
+      resolve();
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('Unable to load Razorpay checkout.'));
+    document.body.appendChild(script);
+  });
+}
 
 const PLANS = [
   {
@@ -55,32 +80,93 @@ export default function Subscription() {
 
     setIsProcessing(true);
     toast.loading("Connecting to secure payment gateway...", { id: 'payment' });
-    
-    setTimeout(async () => {
-      try {
-        const nextMonth = new Date();
-        nextMonth.setMonth(nextMonth.getMonth() + 1);
 
-        // 🚀 FIXED: Added 'as Partial<UserProfile>' to satisfy the compiler
-        await updateUserProfile(user.uid, {
-          isPremium: true,
-          subscriptionPlan: 'active',
-          subscriptionEndsAt: nextMonth
-        } as Partial<UserProfile>);
+    try {
+      const idToken = await user.getIdToken();
+      const orderResponse = await fetch('/api/payments/order', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${idToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ plan: 'premium_monthly' })
+      });
 
-        toast.success("Payment Successful! Welcome to Premium.", { id: 'payment' });
-        
-        setTimeout(() => {
-          navigate('/dashboard');
-          window.location.reload();
-        }, 2000);
-
-      } catch (error) {
-        console.error(error);
-        toast.error("Payment failed. Please try again.", { id: 'payment' });
-        setIsProcessing(false);
+      if (!orderResponse.ok) {
+        const detail = await orderResponse.json().catch(() => ({}));
+        throw new Error(detail.error || 'Secure payment server is not configured for this deployment.');
       }
-    }, 2500);
+
+      const { order, keyId } = await orderResponse.json();
+      const env = import.meta.env as { readonly VITE_RAZORPAY_KEY_ID?: string };
+      const checkoutKey = keyId || env.VITE_RAZORPAY_KEY_ID?.trim();
+
+      if (!checkoutKey) {
+        throw new Error('Razorpay public key is missing.');
+      }
+
+      await loadRazorpayCheckout();
+
+      const checkout = new window.Razorpay!({
+        key: checkoutKey,
+        amount: order.amount,
+        currency: order.currency,
+        name: 'GyanMitra',
+        description: 'Premium Lock-in',
+        order_id: order.id,
+        prefill: {
+          name: user.displayName || '',
+          email: user.email || ''
+        },
+        modal: {
+          ondismiss: () => {
+            toast.dismiss('payment');
+            setIsProcessing(false);
+          }
+        },
+        handler: async (payment: any) => {
+          try {
+            toast.loading('Verifying payment...', { id: 'payment' });
+            const freshToken = await user.getIdToken(true);
+            const verifyResponse = await fetch('/api/payments/verify', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${freshToken}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(payment)
+            });
+
+            if (!verifyResponse.ok) {
+              const detail = await verifyResponse.json().catch(() => ({}));
+              throw new Error(detail.error || 'Payment verification failed.');
+            }
+
+            toast.success("Payment verified. Welcome to Premium.", { id: 'payment' });
+            setTimeout(() => {
+              navigate('/dashboard');
+              window.location.reload();
+            }, 1200);
+          } catch (error: any) {
+            console.error(error);
+            toast.error(error.message || "Payment verification failed.", { id: 'payment' });
+            setIsProcessing(false);
+          }
+        }
+      });
+
+      checkout.on('payment.failed', (response: any) => {
+        console.error(response);
+        toast.error(response.error?.description || 'Payment failed. Please try again.', { id: 'payment' });
+        setIsProcessing(false);
+      });
+
+      checkout.open();
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error.message || "Payment failed. Please try again.", { id: 'payment' });
+      setIsProcessing(false);
+    }
   };
 
   return (

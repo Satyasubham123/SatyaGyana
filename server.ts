@@ -1,33 +1,91 @@
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import crypto from 'crypto';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
 import Razorpay from 'razorpay';
+import { applicationDefault, cert, getApps, initializeApp } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
+import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import * as dotenv from 'dotenv';
 
+dotenv.config({ path: '.env.local' });
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-async function startServer() {
-  const app = express();
-  const PORT = 3000;
+function getFirebaseAdminApp() {
+  const existingApps = getApps();
+  if (existingApps.length > 0) return existingApps[0];
 
-  app.use(express.json());
+  const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT;
+  if (serviceAccountJson) {
+    const serviceAccount = JSON.parse(serviceAccountJson);
+    if (typeof serviceAccount.private_key === 'string') {
+      serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+    }
+    return initializeApp({ credential: cert(serviceAccount) });
+  }
 
-  // Initialize Gemini
-  const genAI = new GoogleGenAI({
-    apiKey: process.env.GEMINI_API_KEY || '',
+  return initializeApp({ credential: applicationDefault() });
+}
+
+async function verifyFirebaseUser(req: express.Request) {
+  const header = req.headers.authorization;
+  const authHeader = Array.isArray(header) ? header[0] : header;
+
+  if (!authHeader?.startsWith('Bearer ')) {
+    const error = new Error('Missing Firebase auth token.');
+    (error as any).statusCode = 401;
+    throw error;
+  }
+
+  getFirebaseAdminApp();
+  return getAuth().verifyIdToken(authHeader.slice('Bearer '.length));
+}
+
+function getRazorpayClient() {
+  const keyId = process.env.RAZORPAY_KEY_ID;
+  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+
+  if (!keyId || !keySecret) {
+    const error = new Error('Razorpay is not configured on the server.');
+    (error as any).statusCode = 503;
+    throw error;
+  }
+
+  return new Razorpay({
+    key_id: keyId,
+    key_secret: keySecret,
+  });
+}
+
+function getGeminiClient() {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    const error = new Error('Gemini API key is not configured on the server.');
+    (error as any).statusCode = 503;
+    throw error;
+  }
+
+  return new GoogleGenAI({
+    apiKey,
     httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
   });
+}
 
-  // Initialize Razorpay (Publicly visible test keys or env)
-  const razorpay = new Razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_placeholder',
-    key_secret: process.env.RAZORPAY_KEY_SECRET || 'placeholder_secret',
-  });
+function sendApiError(res: express.Response, error: any) {
+  console.error(error);
+  res.status(error.statusCode || 500).json({ error: error.message || 'Internal server error' });
+}
+
+async function startServer() {
+  const app = express();
+  const PORT = Number(process.env.PORT || 3000);
+
+  app.use(express.json());
 
   // --- API Routes ---
 
@@ -39,6 +97,7 @@ async function startServer() {
   // AI Teacher Endpoint
   app.post('/api/ai/teacher', async (req, res) => {
     try {
+      const genAI = getGeminiClient();
       const { prompt, history, studentContext } = req.body;
       
       const systemInstruction = `You are GyanMitra, a friendly and motivational AI teacher for Indian students. 
@@ -75,6 +134,7 @@ async function startServer() {
   // AI Quiz Generator
   app.post('/api/ai/quiz', async (req, res) => {
     try {
+      const genAI = getGeminiClient();
       const { topic, classLevel, difficulty = 'medium', format = 'mcq', sourceMaterial } = req.body;
       
       let formatGuide = '';
@@ -120,6 +180,7 @@ async function startServer() {
   // AI Study Plan Generator
   app.post('/api/ai/study-plan', async (req, res) => {
     try {
+      const genAI = getGeminiClient();
       const { studentProfile, performanceData, examDate } = req.body;
 
       const prompt = `Act as an expert academic counselor. Create a personalized weekly study plan for a student.
@@ -154,6 +215,7 @@ async function startServer() {
   // AI Summary Generator
   app.post('/api/ai/summary', async (req, res) => {
     try {
+      const genAI = getGeminiClient();
       const { content, classLevel } = req.body;
       
       const prompt = `Summarize the following educational content for a ${classLevel} student in simple language. 
@@ -175,6 +237,7 @@ async function startServer() {
   // AI Flashcard Generator
   app.post('/api/ai/flashcards', async (req, res) => {
     try {
+      const genAI = getGeminiClient();
       const { topic, content, classLevel } = req.body;
 
       const prompt = `Generate 10 flashcards for the topic "${topic}" suitable for a ${classLevel} student.
@@ -199,17 +262,82 @@ async function startServer() {
   // Payment: Create Order
   app.post('/api/payments/order', async (req, res) => {
     try {
-      const { amount, currency = 'INR', receipt } = req.body;
+      const decodedToken = await verifyFirebaseUser(req);
+      const razorpay = getRazorpayClient();
+      const amountInRupees = Number(process.env.PREMIUM_PRICE_INR || '19');
+      const receipt = `premium_${decodedToken.uid.slice(0, 18)}_${Date.now()}`.slice(0, 40);
       const options = {
-        amount: amount * 100, // amount in the smallest currency unit
-        currency,
+        amount: amountInRupees * 100,
+        currency: 'INR',
         receipt,
+        notes: {
+          userId: decodedToken.uid,
+          plan: req.body?.plan || 'premium_monthly'
+        }
       };
       const order = await razorpay.orders.create(options);
-      res.json(order);
+      res.json({ order, keyId: process.env.RAZORPAY_KEY_ID });
     } catch (error: any) {
-      console.error('Payment Order Error:', error);
-      res.status(500).json({ error: error.message });
+      sendApiError(res, error);
+    }
+  });
+
+  // Payment: Verify Razorpay signature and activate the subscription.
+  app.post('/api/payments/verify', async (req, res) => {
+    try {
+      const decodedToken = await verifyFirebaseUser(req);
+      const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body || {};
+
+      if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+        const error = new Error('Missing Razorpay verification fields.');
+        (error as any).statusCode = 400;
+        throw error;
+      }
+
+      const keySecret = process.env.RAZORPAY_KEY_SECRET;
+      if (!keySecret) {
+        const error = new Error('Razorpay is not configured on the server.');
+        (error as any).statusCode = 503;
+        throw error;
+      }
+
+      const expectedSignature = crypto
+        .createHmac('sha256', keySecret)
+        .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+        .digest('hex');
+
+      if (expectedSignature !== razorpay_signature) {
+        const error = new Error('Invalid Razorpay payment signature.');
+        (error as any).statusCode = 400;
+        throw error;
+      }
+
+      getFirebaseAdminApp();
+      const db = getFirestore();
+      const subscriptionEndsAt = new Date();
+      subscriptionEndsAt.setMonth(subscriptionEndsAt.getMonth() + 1);
+
+      await db.doc(`users/${decodedToken.uid}`).set({
+        isPremium: true,
+        subscriptionPlan: 'active',
+        subscriptionEndsAt,
+        updatedAt: FieldValue.serverTimestamp()
+      }, { merge: true });
+
+      await db.collection('payments').add({
+        userId: decodedToken.uid,
+        razorpayOrderId: razorpay_order_id,
+        razorpayPaymentId: razorpay_payment_id,
+        amount: Number(process.env.PREMIUM_PRICE_INR || '19'),
+        currency: 'INR',
+        status: 'paid',
+        planType: 'premium_monthly',
+        createdAt: FieldValue.serverTimestamp()
+      });
+
+      res.json({ success: true, subscriptionEndsAt: subscriptionEndsAt.toISOString() });
+    } catch (error: any) {
+      sendApiError(res, error);
     }
   });
 
@@ -222,7 +350,7 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(process.cwd(), 'dist');
+    const distPath = path.join(process.cwd(), 'dist', 'client');
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));

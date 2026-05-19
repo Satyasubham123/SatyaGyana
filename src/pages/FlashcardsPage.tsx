@@ -31,6 +31,7 @@ export default function FlashcardsPage({ user }: { user: FirebaseUser }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [hasSaved, setHasSaved] = useState(false);
+  const [generationError, setGenerationError] = useState<string | null>(null);
 
   const topicName = topicId?.split('-').pop()?.replace(/^\w/, (c) => c.toUpperCase()) || 'Study Material';
 
@@ -55,18 +56,37 @@ export default function FlashcardsPage({ user }: { user: FirebaseUser }) {
         }
 
         // Otherwise generate new ones
-        const response = await fetch('/api/ai/flashcards', {
+        const env = import.meta.env as { readonly VITE_GEMINI_API_KEY?: string };
+        const apiKey = env.VITE_GEMINI_API_KEY?.trim();
+        if (!apiKey) {
+          throw new Error('Gemini API key is missing from the deployed environment.');
+        }
+
+        const prompt = `Generate 10 flashcards for the topic "${topicName}" suitable for a Class 10 student.
+        Use standard NCERT curriculum knowledge.
+        Return strictly as a raw JSON array with this schema:
+        [{ "id": "string", "front": "string", "back": "string" }]`;
+
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            topic: topicName,
-            classLevel: 'Class 10' // Should come from profile
-          })
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
         });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error?.message || 'Failed to generate flashcards.');
+        }
+
         const data = await response.json();
-        setCards(data.cards);
-      } catch (err) {
+        const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
+        const parsedCards = JSON.parse(rawText.replace(/```json/g, '').replace(/```/g, '').trim());
+        setCards(parsedCards);
+        setGenerationError(null);
+      } catch (err: any) {
         console.error(err);
+        setCards([]);
+        setGenerationError(err.message || 'Unable to generate flashcards.');
       } finally {
         setIsLoading(false);
       }
@@ -116,6 +136,27 @@ export default function FlashcardsPage({ user }: { user: FirebaseUser }) {
         </div>
         <h2 className="text-3xl font-black uppercase italic tracking-tighter text-slate-900 dark:text-slate-50 mb-4">Extracting Key Concepts</h2>
         <p className="text-slate-500 dark:text-slate-400 text-xs uppercase font-black tracking-widest">GyanMitra AI is generating neural flashcards...</p>
+      </div>
+    );
+  }
+
+  if (generationError || cards.length === 0) {
+    return (
+      <div className="min-h-[80vh] flex flex-col items-center justify-center bg-bg-deep px-6 text-center">
+        <div className="w-20 h-20 bg-red-500/10 rounded-3xl mb-8 border border-red-500/20 flex items-center justify-center">
+          <Sparkles className="h-10 w-10 text-red-500" />
+        </div>
+        <h2 className="text-3xl font-black uppercase italic tracking-tighter text-slate-900 dark:text-slate-50 mb-4">Flashcards Unavailable</h2>
+        <p className="text-slate-500 dark:text-slate-400 text-xs uppercase font-black tracking-widest max-w-lg leading-relaxed">
+          {generationError || 'No flashcards were returned for this topic.'}
+        </p>
+        <button
+          onClick={() => navigate(-1)}
+          className="mt-8 inline-flex items-center gap-2 px-6 py-3 bg-brand text-white rounded-xl font-black uppercase tracking-widest text-xs hover:bg-brand-dark transition-all"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Return
+        </button>
       </div>
     );
   }
