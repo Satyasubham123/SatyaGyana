@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import AuthModal from '../components/AuthModal';
 import { User as FirebaseUser } from 'firebase/auth';
-
 import { motion } from 'motion/react';
-import { Sparkles, Brain, BookOpen, Clock, Target, Languages, ArrowRight, ShieldCheck, Zap } from 'lucide-react';
+import { Sparkles, Brain, BookOpen, Target, ArrowRight, ShieldCheck, Zap } from 'lucide-react';
 import { Link } from 'react-router-dom';
-
 import { FounderProfile } from '../components/FounderProfile';
+import StatsSummary from '../components/StatsSummary'; // 🚀 THIS IMPORTS YOUR NEW FILE
 
 interface LandingPageProps {
   user: FirebaseUser | null;
@@ -41,7 +40,6 @@ export default function LandingPage({ user }: LandingPageProps) {
     <div className="overflow-x-hidden bg-bg-deep">
       {/* Hero Section */}
       <section className="relative pt-24 pb-44 px-4 overflow-hidden">
-        {/* Ambient Glow */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-brand/10 blur-[120px] rounded-full -z-10 opacity-30"></div>
         
         <div className="max-w-7xl mx-auto text-center">
@@ -91,25 +89,8 @@ export default function LandingPage({ user }: LandingPageProps) {
         </div>
       </section>
 
-      {/* Stats Summary Mockup */}
-      <section className="py-24 border-y border-border-strong bg-slate-50 dark:bg-slate-900/50">
-        <div className="max-w-7xl mx-auto px-4">
-           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div className="bg-bg-card border border-border-strong p-8 rounded-3xl shadow-xl shadow-slate-200/60 dark:shadow-none transition-transform hover:scale-[1.02]">
-                <p className="text-[10px] uppercase font-bold text-slate-500 mb-2 tracking-widest">XP Points Accumulation</p>
-                <p className="text-5xl font-black italic text-slate-900 dark:text-slate-100">4,250 <span className="text-xs text-brand not-italic ml-2">+150 today</span></p>
-              </div>
-              <div className="bg-bg-card border border-border-strong p-8 rounded-3xl shadow-xl shadow-slate-200/60 dark:shadow-none transition-transform hover:scale-[1.02]">
-                <p className="text-[10px] uppercase font-bold text-slate-500 mb-2 tracking-widest">Next Milestone</p>
-                <p className="text-5xl font-black italic text-slate-900 dark:text-slate-100">12 Days <span className="text-xs text-orange-600 not-italic ml-2">Physics Finals</span></p>
-              </div>
-              <div className="bg-bg-card border border-border-strong p-8 rounded-3xl shadow-xl shadow-slate-200/60 dark:shadow-none transition-transform hover:scale-[1.02]">
-                <p className="text-[10px] uppercase font-bold text-slate-500 mb-2 tracking-widest">Efficiency Percentile</p>
-                <p className="text-5xl font-black italic text-slate-900 dark:text-slate-100">Top 5% <span className="text-xs text-blue-600 not-italic ml-2">Global Rank</span></p>
-              </div>
-           </div>
-        </div>
-      </section>
+      {/* 🚀 THIS PLACES THE NEW LIVE DASHBOARD COMPONENT HERE 🚀 */}
+      <StatsSummary user={user} />
 
       {/* Features Grid */}
       <section id="features" className="py-24">
@@ -173,14 +154,12 @@ export default function LandingPage({ user }: LandingPageProps) {
         </div>
       </section>
 
-      {/* Founder Section */}
       <section className="py-24 bg-bg-deep relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4">
           <FounderProfile />
         </div>
       </section>
 
-      {/* Disclaimer Section */}
       <section className="py-20 bg-bg-deep border-t border-border-strong px-4">
         <div className="max-w-4xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 border border-border-strong text-slate-500 text-[10px] uppercase font-black tracking-widest mb-8">
@@ -202,7 +181,6 @@ export default function LandingPage({ user }: LandingPageProps) {
         </div>
       </section>
 
-      {/* Footer */}
       <footer className="py-12 border-t border-border-subtle bg-bg-deep">
         <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center text-muted text-[10px] font-black uppercase tracking-[0.2em]">
           <p>© 2026 GyanMitra AI • Future of Education</p>
@@ -214,7 +192,6 @@ export default function LandingPage({ user }: LandingPageProps) {
           </div>
         </div>
       </footer>
-      {/* Auth Modal Integration */}
       <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
     </div>
   );
