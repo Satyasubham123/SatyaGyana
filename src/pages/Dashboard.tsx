@@ -24,6 +24,7 @@ declare global {
 interface DashboardProps {
   user: FirebaseUser;
   profile: UserProfile | null;
+  setProfile: React.Dispatch<React.SetStateAction<UserProfile | null>>;
 }
 
 const CLASSES = ["Class 6", "Class 7", "Class 8", "Class 9", "Class 10"];
@@ -36,7 +37,7 @@ const SUBJECTS = [
   { id: 'cs', name: 'Computer Science', icon: <Cpu />, color: 'bg-slate-700', textColor: 'text-slate-700' },
 ];
 
-export default function Dashboard({ user, profile }: DashboardProps) {
+export default function Dashboard({ user, profile, setProfile }: DashboardProps) {
   const [loading, setLoading] = useState(false);
   const [studyPlan, setStudyPlan] = useState<any>(null);
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
@@ -122,7 +123,10 @@ export default function Dashboard({ user, profile }: DashboardProps) {
     setLoading(true);
     try {
       await updateUserProfile(user.uid, { classLevel: className });
-      window.location.reload(); 
+
+setProfile(prev =>
+  prev ? { ...prev, classLevel: className } : prev
+);
     } catch (err) {
       console.error(err);
     } finally {

@@ -82,13 +82,11 @@ export default function App() {
         <main>
           <Routes>
             <Route path="/" element={<LandingPage user={user} />} />
-            <Route path="/dashboard" element={user ? <Dashboard user={user} profile={profile} /> : <Navigate to="/" />} />
-            <Route path="/class/:classId" element={user ? <ClassDetails user={user} /> : <Navigate to="/" />} />
+            <Route path="/dashboard" element={user ? <Dashboard user={user} profile={profile} setProfile={setProfile} /> : <Navigate to="/" />} />           <Route path="/class/:classId" element={user ? <ClassDetails user={user} /> : <Navigate to="/" />} />
             <Route path="/quiz/:quizId" element={user ? <QuizPage user={user} /> : <Navigate to="/" />} />
             <Route path="/ai-teacher" element={user ? <AITeacher user={user} profile={profile} /> : <Navigate to="/" />} />
             <Route path="/ai-quiz" element={user ? <AIQuizGen user={user} profile={profile} /> : <Navigate to="/" />} />
-            <Route path="/profile" element={user ? <Profile user={user} profile={profile} /> : <Navigate to="/" />} />
-            <Route path="/payment-success" element={user ? <PaymentSuccess /> : <Navigate to="/" />} />
+            <Route path="/profile" element={user ? <Profile user={user} profile={profile} setProfile={setProfile} /> : <Navigate to="/" />} />            <Route path="/payment-success" element={user ? <PaymentSuccess /> : <Navigate to="/" />} />
             <Route path="/flashcards/:topicId" element={user ? <FlashcardsPage user={user} /> : <Navigate to="/" />} />
             <Route path="/subscription" element={user ? <Subscription /> : <Navigate to="/dashboard" />} />
             <Route path="/admin" element={user && profile?.role === 'admin' ? <AdminDashboard user={user} profile={profile} /> : <Navigate to="/dashboard" />} />

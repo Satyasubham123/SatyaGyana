@@ -14,12 +14,12 @@ import {
 interface ProfileProps {
   user: FirebaseUser;
   profile: UserProfile | null;
+  setProfile: React.Dispatch<React.SetStateAction<UserProfile | null>>;
 }
-
 type TabType = 'overview' | 'edit' | 'settings';
 
-export default function Profile({ user, profile: initialProfile }: ProfileProps) {
-  const [profile, setProfile] = useState<UserProfile | null>(initialProfile);
+export default function Profile({ user, profile: initialProfile, setProfile }: ProfileProps) {
+  const [profile, setLocalProfile] = useState<UserProfile | null>(initialProfile);
   const [signals, setSignals] = useState<ActivitySignal[]>([]);
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [isLoading, setIsLoading] = useState(!initialProfile);
@@ -35,7 +35,7 @@ export default function Profile({ user, profile: initialProfile }: ProfileProps)
           syncUserProfile(user),
           getUserSignals(user.uid)
         ]);
-        setProfile(userData);
+        setLocalProfile(userData);
         setFormData(userData);
         setSignals(userSignals);
       } catch (error) {
@@ -64,7 +64,12 @@ export default function Profile({ user, profile: initialProfile }: ProfileProps)
 
     try {
       await savePromise;
-      setProfile({ ...profile, ...formData } as UserProfile);
+      const updatedProfile = {
+  ...profile,
+  ...formData
+} as UserProfile;
+
+      setProfile(updatedProfile);
       setActiveTab('overview');
     } finally {
       setIsSaving(false);
