@@ -4,28 +4,15 @@ import { syncUserProfile, UserProfile, updateUserProfile } from '../services/use
 import { contentService } from '../services/contentService';
 import { motion } from 'motion/react';
 import { 
-  BookMarked, 
-  Trophy, 
-  Flame, 
-  MessageSquare, 
-  ArrowRight, 
-  Calculator, 
-  Atom, 
-  BookText, 
-  History, 
-  Cpu,
-  GraduationCap,
-  Sparkles,
-  Calendar,
-  Play,
-  CheckCircle,
-  ChevronRight
+  BookMarked, Trophy, Flame, MessageSquare, ArrowRight, Calculator, 
+  Atom, BookText, History, Cpu, GraduationCap, Sparkles, Calendar, 
+  Play, CheckCircle, ChevronRight
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { BadgeIcon } from '../components/BadgeIcon';
 import { FounderProfile } from '../components/FounderProfile';
+import StatsSummary from '../components/StatsSummary';
 
-// Add this right below your imports
 declare global {
   interface ImportMeta {
     readonly env: {
@@ -87,13 +74,12 @@ export default function Dashboard({ user, profile }: DashboardProps) {
 
   const getCourseProgress = (courseId: string) => {
     const courseProgress = userProgress.filter(p => p.courseId === courseId && p.completed);
-    // This is simplified; ideally we'd know the total lessons in the course
-    // For now we'll just show the count of completed lessons
     return courseProgress.length;
   };
 
   const lastViewedCourse = userHistory[0] ? dbCourses.find(c => c.id === userHistory[0].courseId) : null;
   const recentHistory = userHistory.slice(1, 4).map(h => dbCourses.find(c => c.id === h.courseId)).filter(Boolean);
+  
   const generateStudyPlan = async () => {
     if (!profile) return;
     setIsGeneratingPlan(true);
@@ -136,7 +122,6 @@ export default function Dashboard({ user, profile }: DashboardProps) {
     setLoading(true);
     try {
       await updateUserProfile(user.uid, { classLevel: className });
-      // Reload is a bit harsh, but update local state or let parent handle
       window.location.reload(); 
     } catch (err) {
       console.error(err);
@@ -156,11 +141,10 @@ export default function Dashboard({ user, profile }: DashboardProps) {
     );
   }
 
-  // If no class selected, show class selector
   if (profile && !profile.classLevel) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-20 text-center">
-        <h2 className="text-4xl md:text-6xl font-black uppercase italic tracking-tighter mb-4 text-main">Welcome, {user.displayName}! 👋</h2>
+        <h2 className="text-4xl md:text-6xl font-black uppercase italic tracking-tighter mb-4 text-main">Welcome, {user.displayName}! 窓</h2>
         <p className="text-secondary font-medium mb-12 uppercase tracking-widest text-sm">Select your current sector to initialize data stream.</p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {CLASSES.map((cls) => (
@@ -185,7 +169,7 @@ export default function Dashboard({ user, profile }: DashboardProps) {
       <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 sm:gap-8 mb-10 sm:mb-16 text-center sm:text-left">
         <div>
           <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-black uppercase italic tracking-tighter mb-4 text-main leading-tight">
-            Namaste, {user.displayName?.split(' ')[0]}! 👋
+            Namaste, {user.displayName?.split(' ')[0]}! 窓
           </h1>
           <p className="text-secondary text-sm sm:text-base md:text-lg font-medium">
             You are at <span className="text-brand font-black underline decoration-brand/30 underline-offset-8 tracking-widest text-[10px] sm:text-xs uppercase">{profile?.classLevel || 'Unspecified'}</span>. Initializing adaptive session.
@@ -200,6 +184,10 @@ export default function Dashboard({ user, profile }: DashboardProps) {
             AI Mentor
           </Link>
         </div>
+      </div>
+
+      <div className="mb-12 -mx-4 sm:mx-0">
+         <StatsSummary user={user} />
       </div>
 
       <div className="grid grid-cols-12 gap-8">
@@ -306,28 +294,9 @@ export default function Dashboard({ user, profile }: DashboardProps) {
                  <div className="sm:col-span-2 py-12 sm:py-20 text-center bg-bg-card border-2 border-dashed border-border-strong rounded-3xl mx-2 sm:mx-0 px-4">
                     <Sparkles className="h-8 w-8 sm:h-10 sm:w-10 text-brand mx-auto mb-4 opacity-20" />
                     <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-muted">No Curriculum Clusters Detected for {profile.classLevel}</p>
-                    <p className="text-[10px] sm:text-[11px] text-secondary font-medium mt-2">Connecting with Admin stream for data injection...</p>
                  </div>
                )}
             </div>
-
-            <div className="bg-brand p-6 sm:p-10 rounded-2xl sm:rounded-[32px] flex flex-col md:flex-row items-center justify-between gap-6 sm:gap-8 shadow-2xl shadow-brand/20 relative overflow-hidden group mx-2 sm:mx-0">
-               <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-32 -mt-32"></div>
-               <div className="flex items-center gap-4 sm:gap-8 relative z-10 w-full sm:w-auto">
-                 <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white/20 backdrop-blur-md rounded-2xl sm:rounded-3xl flex items-center justify-center text-3xl sm:text-4xl rotate-12 shadow-inner border border-white/30 group-hover:rotate-0 transition-transform shrink-0">🎯</div>
-                 <div>
-                    <h5 className="text-white font-black text-xl sm:text-2xl leading-tight uppercase tracking-tighter italic mb-1 sm:mb-2 text-center sm:text-left">Primary Objective: Complete Chapter 5</h5>
-                    <p className="text-white/80 text-[10px] sm:text-xs font-bold uppercase tracking-widest mt-1 text-center sm:text-left">Recommended for state board exam preparation</p>
-                 </div>
-               </div>
-               <button className="w-full md:w-auto px-8 sm:px-10 py-4 sm:py-5 bg-white text-brand text-xs sm:text-sm font-black uppercase tracking-tighter rounded-xl sm:rounded-2xl hover:bg-slate-50 transition-all shadow-xl shadow-black/10 active:scale-95 relative z-10">
-                 Execute Mission
-               </button>
-            </div>
-
-           <div className="pt-12">
-              <FounderProfile />
-           </div>
         </div>
 
         <div className="col-span-12 lg:col-span-4 space-y-6">
@@ -343,98 +312,22 @@ export default function Dashboard({ user, profile }: DashboardProps) {
                        <span>Tier {profile?.level || 1}</span>
                     </div>
                     <div className="h-2 bg-border-subtle rounded-sm overflow-hidden">
-                       <div className="h-full bg-brand" style={{ width: `${(profile?.xpPoints || 0) % 100}%` }}></div>
+                       {/* @ts-ignore */}
+                       <div className="h-full bg-brand" style={{ width: `${(profile?.totalXP || profile?.xpPoints || 0) % 100}%` }}></div>
                     </div>
                  </div>
                  
                  <div className="grid grid-cols-2 gap-4">
                     <div className="bg-bg-deep p-4 border border-border-subtle rounded-xl">
                        <p className="text-[10px] font-black text-muted uppercase mb-1">XP Gain</p>
-                       <p className="text-2xl font-black italic text-main">{profile?.xpPoints || 0}</p>
+                       {/* @ts-ignore */}
+                       <p className="text-2xl font-black italic text-main">{profile?.totalXP || profile?.xpPoints || 0}</p>
                     </div>
                     <div className="bg-bg-deep p-4 border border-border-subtle rounded-xl">
                        <p className="text-[10px] font-black text-muted uppercase mb-1">Streak</p>
                        <p className="text-2xl font-black italic text-main">{profile?.streakCount || 0}d</p>
                     </div>
                  </div>
-
-                 {profile?.badges && profile.badges.length > 0 && (
-                   <div className="space-y-3">
-                      <p className="text-[10px] font-black text-muted uppercase tracking-widest">Achieved Milestones</p>
-                      <div className="flex flex-wrap gap-2">
-                         {profile.badges.map(badge => (
-                           <BadgeIcon key={badge} name={badge} />
-                         ))}
-                      </div>
-                   </div>
-                 )}
-              </div>
-           </div>
-
-           <div className="bg-gradient-to-br from-brand/10 to-bg-surface border border-brand/20 rounded-2xl p-8 relative overflow-hidden group">
-              <div className="absolute -bottom-4 -right-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                 <Trophy className="h-32 w-32 text-brand" />
-              </div>
-              <h4 className="text-lg font-black uppercase italic tracking-tighter mb-2 text-brand">Neural Pro Access</h4>
-              <p className="text-secondary text-xs font-medium mb-6 leading-relaxed uppercase tracking-wide">
-                 Enhance cognition with priority AI processing and unlimited dataset access.
-              </p>
-              <Link to="/subscription" className="inline-block w-full text-center bg-brand text-black py-4 rounded-sm font-black text-xs uppercase tracking-[0.2em] transition-all hover:bg-white">
-                 Upgrade System
-              </Link>
-           </div>
-
-           <div className="bg-bg-surface border border-border-strong rounded-2xl overflow-hidden shadow-2xl">
-              <div className="p-4 bg-bg-card border-b border-border-subtle flex items-center justify-between">
-                 <span className="font-black text-xs uppercase tracking-widest text-brand">Adaptive Plan</span>
-                 <Calendar className="h-4 w-4 text-white/40" />
-              </div>
-              <div className="p-6">
-                 {studyPlan ? (
-                    <div className="space-y-4">
-                       <h5 className="text-xs font-black uppercase italic text-main">{studyPlan.objective}</h5>
-                       <div className="space-y-2">
-                          {studyPlan.weeklySchedule?.slice(0, 3).map((day: any) => (
-                            <div key={day.day} className="p-3 bg-bg-deep border border-border-subtle rounded-lg">
-                               <p className="text-[10px] font-black text-brand uppercase mb-1">{day.day}</p>
-                               {day.tasks.map((t: any, i: number) => (
-                                 <p key={i} className="text-[11px] text-secondary font-medium">
-                                   • {t.subject}: {t.topic} ({t.action})
-                                 </p>
-                               ))}
-                            </div>
-                          ))}
-                       </div>
-
-                       {studyPlan.motivation && (
-                         <div className="p-4 bg-brand/5 border-l-2 border-brand rounded-r-lg">
-                           <p className="text-[9px] font-black uppercase text-brand/60 mb-1">Sage Note</p>
-                           <p className="text-[11px] font-medium italic text-main/80 leading-relaxed">
-                             "{studyPlan.motivation}"
-                           </p>
-                         </div>
-                       )}
-
-                       <button 
-                        onClick={() => setStudyPlan(null)}
-                        className="w-full py-2 text-[10px] font-black uppercase text-muted hover:text-main transition-colors"
-                       >
-                         Reset Plan
-                       </button>
-                    </div>
-                 ) : (
-                    <div className="text-center py-4">
-                       <Sparkles className="h-8 w-8 text-brand mx-auto mb-4 opacity-50" />
-                       <p className="text-[10px] font-black text-muted uppercase tracking-widest mb-6">No active strategy found</p>
-                       <button 
-                        onClick={generateStudyPlan}
-                        disabled={isGeneratingPlan}
-                        className="w-full py-4 bg-bg-card border border-border-strong text-main text-[10px] font-black uppercase tracking-widest rounded-sm hover:border-brand transition-all disabled:opacity-50"
-                       >
-                         {isGeneratingPlan ? 'Processing...' : 'Generate New Protocol'}
-                       </button>
-                    </div>
-                 )}
               </div>
            </div>
         </div>
