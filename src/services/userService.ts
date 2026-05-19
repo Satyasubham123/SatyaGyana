@@ -1,143 +1,141 @@
-import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { db, auth } from '../lib/firebase';
-import { User as FirebaseUser } from 'firebase/auth';
-
-export enum OperationType {
-  CREATE = 'create',
-  UPDATE = 'update',
-  DELETE = 'delete',
-  LIST = 'list',
-  GET = 'get',
-  WRITE = 'write',
-}
-
-interface FirestoreErrorInfo {
-  error: string;
-  operationType: OperationType;
-  path: string | null;
-  authInfo: {
-    userId?: string | null;
-    email?: string | null;
-    emailVerified?: boolean | null;
-    isAnonymous?: boolean | null;
-    tenantId?: string | null;
-    providerInfo?: {
-      providerId?: string | null;
-      email?: string | null;
-    }[];
-  }
-}
-
-export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
-  const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
-    authInfo: {
-      userId: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
-      emailVerified: auth.currentUser?.emailVerified,
-      isAnonymous: auth.currentUser?.isAnonymous,
-      tenantId: auth.currentUser?.tenantId,
-      providerInfo: auth.currentUser?.providerData?.map(provider => ({
-        providerId: provider.providerId,
-        email: provider.email,
-      })) || []
-    },
-    operationType,
-    path
-  }
-  const errorJson = JSON.stringify(errInfo);
-  console.error('Firestore Error: ', errorJson);
-  throw new Error(errorJson);
-}
+import { doc, getDoc, setDoc, updateDoc, collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { db, storage } from '../lib/firebase';
+import { User } from 'firebase/auth';
+import imageCompression from 'browser-image-compression';
 
 export interface UserProfile {
   uid: string;
-  email: string;
+  email: string | null;
   displayName: string | null;
-  photoURL: string | null;
-  role: 'admin' | 'student';
+  role: 'student' | 'admin' | 'teacher';
+  createdAt: Date;
+  updatedAt: Date;
+  
+  // Academic Data
   classLevel?: string;
-  medium?: 'English' | 'Hindi' | 'Odia';
-  isPremium: boolean;
+  school?: string;
+  medium?: string;
+  learningGoals?: string[];
+  
+  // Personalization & Identity
+  username?: string;
+  bio?: string;
+  interests?: string[];
+  timezone?: string;
+  state?: string;
+  mood?: string;
+  themeColor?: string;
+  avatarUrl?: string;
+  bannerUrl?: string;
+
+  // Analytics
   xpPoints: number;
+  totalXP: number; // Added for global ranking compatibility
   level: number;
-  badges: string[];
   streakCount: number;
-  weakTopics: string[];
-  lastLoginAt: any;
-  createdAt: any;
+  badges: string[];
+  studyHours?: number;
+  accuracy?: number;
+  weakTopics?: string[];
 }
 
-export const syncUserProfile = async (user: FirebaseUser): Promise<UserProfile> => {
+export interface ActivitySignal {
+  id: string;
+  title: string;
+  description: string;
+  type: 'achievement' | 'learning' | 'system';
+  timestamp: Date;
+  read: boolean;
+}
+
+// Existing sync function...
+export async function syncUserProfile(user: User): Promise<UserProfile> {
   const userRef = doc(db, 'users', user.uid);
-  const path = `users/${user.uid}`;
-  
-  let userSnap;
-  try {
-    userSnap = await getDoc(userRef);
-  } catch (error) {
-    handleFirestoreError(error, OperationType.GET, path);
-    throw error; // unreachable due to handleFirestoreError throw
-  }
-  
-  const isAdminEmail = user.email === 'biswalsatyasubham274@gmail.com';
+  const snap = await getDoc(userRef);
 
-  if (!userSnap.exists()) {
-    const newUser: UserProfile = {
-      uid: user.uid,
-      email: user.email || '',
-      displayName: user.displayName || null,
-      photoURL: user.photoURL || null,
-      role: isAdminEmail ? 'admin' : 'student',
-      isPremium: isAdminEmail, 
-      xpPoints: 0,
-      level: 1,
-      badges: [],
-      streakCount: 0,
-      weakTopics: [],
-      lastLoginAt: serverTimestamp(),
-      createdAt: serverTimestamp(),
-    };
-    try {
-      await setDoc(userRef, newUser);
-    } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, path);
-    }
-    return newUser;
+  if (snap.exists()) {
+    return snap.data() as UserProfile;
   } else {
-    const existingData = userSnap.data() as UserProfile;
-    const updates: Partial<UserProfile> = { lastLoginAt: serverTimestamp() };
-    
-    if (isAdminEmail && existingData.role !== 'admin') {
-      updates.role = 'admin';
-      updates.isPremium = true;
-    }
-    
-    try {
-      await updateDoc(userRef, updates);
-    } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, path);
-    }
-    return { ...existingData, ...updates };
+    const newProfile: UserProfile = {
+      uid: user.uid,
+      email: user.email,
+      displayName: user.displayName,
+      role: 'student',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      xpPoints: 0,
+      totalXP: 0,
+      level: 1,
+      streakCount: 0,
+      badges: ['Newcomer'],
+      studyHours: 0,
+      accuracy: 0
+    };
+    await setDoc(userRef, newProfile);
+    return newProfile;
   }
-};
+}
 
-export const calculateLevel = (xp: number): number => {
-  return Math.floor(Math.sqrt(xp / 100)) + 1;
-};
-
-export const updateUserProfile = async (uid: string, data: Partial<UserProfile>) => {
+export async function updateUserProfile(uid: string, data: Partial<UserProfile>) {
   const userRef = doc(db, 'users', uid);
-  const path = `users/${uid}`;
+  await updateDoc(userRef, { ...data, updatedAt: new Date() });
+}
+
+// --- NEW CAPABILITIES ---
+
+export async function uploadProfileImage(uid: string, file: File, type: 'avatar' | 'banner'): Promise<string> {
+  // 1. Compress Image
+  const options = {
+    maxSizeMB: type === 'avatar' ? 0.5 : 1,
+    maxWidthOrHeight: type === 'avatar' ? 800 : 1920,
+    useWebWorker: true,
+  };
+  const compressedFile = await imageCompression(file, options);
+
+  // 2. Upload to Storage
+  const fileExt = compressedFile.name.split('.').pop();
+  const storageRef = ref(storage, `users/${uid}/${type}_${Date.now()}.${fileExt}`);
+  const uploadTask = await uploadBytesResumable(storageRef, compressedFile);
   
-  if (data.xpPoints !== undefined) {
-    const newLevel = calculateLevel(data.xpPoints);
-    data.level = newLevel;
-  }
+  // 3. Get URL and update DB
+  const downloadURL = await getDownloadURL(uploadTask.ref);
+  await updateUserProfile(uid, { [type === 'avatar' ? 'avatarUrl' : 'bannerUrl']: downloadURL });
   
+  return downloadURL;
+}
+
+export async function getUserSignals(uid: string): Promise<ActivitySignal[]> {
+  const signalsRef = collection(db, `users/${uid}/signals`);
+  const q = query(signalsRef, orderBy('timestamp', 'desc'), limit(10));
+  const snap = await getDocs(q);
+  
+  return snap.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data(),
+    timestamp: doc.data().timestamp?.toDate() || new Date()
+  })) as ActivitySignal[];
+}
+
+import { addDoc } from 'firebase/firestore'; // Make sure addDoc is in your imports at the top!
+
+// Add this to the bottom of userService.ts
+export async function addActivitySignal(
+  uid: string, 
+  title: string, 
+  description: string, 
+  type: 'achievement' | 'learning' | 'system'
+) {
   try {
-    await updateDoc(userRef, data);
+    const signalsRef = collection(db, `users/${uid}/signals`);
+    await addDoc(signalsRef, {
+      title,
+      description,
+      type,
+      timestamp: new Date(),
+      read: false
+    });
   } catch (error) {
-    handleFirestoreError(error, OperationType.UPDATE, path);
+    console.error("Failed to push signal:", error);
   }
-};
+}

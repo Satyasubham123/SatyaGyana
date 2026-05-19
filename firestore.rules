@@ -1,180 +1,42 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 0. Default Deny
-    match /{document=**} {
-      allow read, write: if false;
-    }
 
-    // 3. Primitives & Helpers
-    function isSignedIn() { return request.auth != null; }
-    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
-    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
-    function incoming() { return request.resource.data; }
-    function existing() { return resource.data; }
+    // 1. Allow ANYONE (including guests) to read the founder profiles
+    match /founders/{document} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
     
-    // Admin check
-    function isAdmin() { 
-      return isSignedIn() && (
-        (request.auth.token.get('email', '') == 'biswalsatyasubham274@gmail.com' && request.auth.token.get('email_verified', false) == true) ||
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', '') == 'admin'
-      );
+    match /founder/{document} {
+      allow read: if true;
+      allow write: if request.auth != null;
     }
 
-    // 2. Validation Blueprints
-    function isValidUser(data) {
-      return data.uid is string && data.uid.size() > 0
-        && data.email is string && data.email.size() > 0
-        && (data.get('displayName', null) == null || (data.displayName is string && data.displayName.size() <= 256))
-        && (data.get('photoURL', null) == null || (data.photoURL is string && data.photoURL.size() <= 1024))
-        && (data.get('classLevel', null) == null || data.classLevel in ["Class 6", "Class 7", "Class 8", "Class 9", "Class 10", "Class 11", "Class 12"])
-        && (data.get('medium', null) == null || data.medium in ["English", "Hindi", "Odia"])
-        && (data.get('xpPoints', null) == null || data.xpPoints is int)
-        && (data.get('level', null) == null || data.level is int)
-        && (data.get('badges', null) == null || data.badges is list)
-        && (data.get('weakTopics', null) == null || data.weakTopics is list)
-        && (data.get('streakCount', null) == null || data.streakCount is int)
-        && (data.get('isPremium', null) == null || data.isPremium is bool)
-        && (data.get('role', null) == null || data.role in ["admin", "student"])
-        && (data.get('createdAt', null) == null || data.createdAt is timestamp)
-        && (data.get('lastLoginAt', null) == null || data.lastLoginAt is timestamp);
-    }
-
-    // 4. Match Blocks
-    
-    // Users
-    match /users/{userId} {
-      allow get: if isOwner(userId) || isAdmin();
-      allow list: if isAdmin();
-      allow create: if isOwner(userId) && isValidUser(incoming());
-      allow update: if (isOwner(userId) || isAdmin()) && isValidUser(incoming()) && (
-        isAdmin() || 
-        // Allow self-promotion for the bootstrap admin if email is verified
-        (isOwner(userId) && request.auth.token.email == 'biswalsatyasubham274@gmail.com' && request.auth.token.email_verified == true) ||
-        incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'classLevel', 'medium', 'xpPoints', 'level', 'streakCount', 'lastLoginAt', 'weakTopics', 'badges', 'isPremium'])
-      );
-    }
-
-    // Courses, Modules/Sections, Playlists, Lessons, Quizzes - Public Read, Admin Write
+    // 2. Allow anyone to view courses so guests can see the curriculum
     match /courses/{courseId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if request.auth != null;
       
-      match /modules/{moduleId} {
-        allow read: if true;
-        allow write: if isAdmin();
-        
-        match /lessons/{lessonId} {
-          allow read: if true;
-          allow write: if isAdmin();
-        }
-        
-        match /quizzes/{quizId} {
-          allow read: if true;
-          allow write: if isAdmin();
-        }
-      }
-
       match /sections/{sectionId} {
         allow read: if true;
-        allow write: if isAdmin();
+        allow write: if request.auth != null;
         
         match /playlists/{playlistId} {
           allow read: if true;
-          allow write: if isAdmin();
-          
-          match /lessons/{lessonId} {
-            allow read: if true;
-            allow write: if isAdmin();
-          }
+          allow write: if request.auth != null;
         }
       }
     }
 
-    // User Progress & History
-    match /userProgress/{progressId} {
-      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-      allow write: if isSignedIn() && (incoming().userId == request.auth.uid || isAdmin());
+    // 3. Keep user profiles protected (Only the logged-in owner can read/write their own profile)
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    match /userHistory/{historyId} {
-      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-      allow write: if isSignedIn() && (incoming().userId == request.auth.uid || isAdmin());
-    }
-
-    // Quiz Attempts
-    match /quizAttempts/{attemptId} {
-      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-      allow create: if isSignedIn() && incoming().userId == request.auth.uid;
-      allow update: if false; // Attempts are immutable
-      allow delete: if isAdmin();
-    }
-
-    // Study Plans
-    match /studyPlans/{userId} {
-      allow read: if isOwner(userId) || isAdmin();
-      allow write: if isOwner(userId) || isAdmin();
-    }
-
-    // AI Conversations
-    match /aiConversations/{conversationId} {
-      allow get, list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-      allow create: if isSignedIn() && incoming().userId == request.auth.uid;
-      allow update: if isSignedIn() && existing().userId == request.auth.uid && (
-        incoming().diff(existing()).affectedKeys().hasOnly(['messages', 'updatedAt'])
-      );
-      allow delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-    }
-
-    // Payments
-    match /payments/{paymentId} {
-      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-      allow create: if isSignedIn() && incoming().userId == request.auth.uid;
-      allow update: if isAdmin();
-    }
-
-    // Notifications
-    match /notifications/{notificationId} {
-      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-      allow update: if isSignedIn() && existing().userId == request.auth.uid && (
-        incoming().diff(existing()).affectedKeys().hasOnly(['read'])
-      );
-      allow create, delete: if isAdmin();
-    }
-
-    // Flashcards
-    match /flashcards/{flashcardSetId} {
-      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-      allow create: if isSignedIn() && incoming().userId == request.auth.uid;
-      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
-    }
-    
-    // Admins helper collection
-    match /admins/{userId} {
-      allow read: if isSignedIn();
-      allow write: if false; // Set manually in console
-    }
-
-    // Submissions & Assignments
-    match /submissions/{submissionId} {
-      // Students can view their own submissions; Admins can view all
-      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-      // Students can create new submissions
-      allow create: if isSignedIn() && incoming().userId == request.auth.uid;
-      // Only admins are allowed to update/grade a submission
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
-    }
-
-    // Connection test heartbeat
-    match /test/connection {
-      allow read: if true;
-    }
-
-    // Global Settings
-    match /settings/founder {
-      allow read: if true;
-      allow write: if isAdmin();
+    // 4. Fallback safeguard for any other collections
+    match /{document=**} {
+      allow read, write: if request.auth != null;
     }
   }
 }

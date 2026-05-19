@@ -4,10 +4,10 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { CheckCircle2, XCircle, RotateCcw, Award, Clock, ArrowRight, Brain } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { updateUserProfile } from '../services/userService';
+// 🚀 1. The imports are updated here
+import { updateUserProfile, addActivitySignal } from '../services/userService';
 import { contentService } from '../services/contentService';
 
-// Setup environmental type signature bindings globally to clear strict inspector lines
 declare global {
   interface ImportMeta {
     readonly env: {
@@ -38,7 +38,6 @@ export default function QuizPage({ user }: { user: FirebaseUser }) {
   const [shortAnswer, setShortAnswer] = useState('');
   const [isGrading, setIsGrading] = useState(false);
 
-  // Parse path coordinates from address line tokens
   const urlParams = new URLSearchParams(location.search);
   const courseId = urlParams.get('courseId') || 'dynamic';
   const sectionId = urlParams.get('sectionId') || 'dynamic';
@@ -48,7 +47,6 @@ export default function QuizPage({ user }: { user: FirebaseUser }) {
     const fetchQuiz = async () => {
       setIsLoading(true);
       try {
-        // Look for existing pre-published content structured by an Admin
         if (courseId !== 'dynamic' && sectionId !== 'dynamic' && playlistId !== 'dynamic' && quizId) {
           const lessons = await contentService.getLessons(courseId, sectionId, playlistId);
           const lesson = lessons.find(l => l.id === quizId);
@@ -68,7 +66,6 @@ export default function QuizPage({ user }: { user: FirebaseUser }) {
           }
         }
 
-        // Fallback: Secure Client-Side dynamic generation using Google Gateway directly
         const difficulty = urlParams.get('difficulty') || 'medium';
         const format = urlParams.get('format') || 'mcq';
         const topic = quizId?.split('-').pop() || 'General Science';
@@ -115,7 +112,7 @@ Each object must follow this scheme exactly:
         })));
       } catch (err) {
         console.error('Quiz Error:', err);
-      } {
+      } finally { // 🚀 2. Fixed syntax typo here
         setIsLoading(false);
       }
     };
@@ -129,6 +126,7 @@ Each object must follow this scheme exactly:
     }, 0);
   };
 
+  // 🚀 3. Restored the perfectly balanced handleNext function
   const handleNext = async () => {
     if (currentIdx < questions.length - 1) {
       setCurrentIdx(prev => prev + 1);
@@ -136,11 +134,9 @@ Each object must follow this scheme exactly:
       setShortAnswer('');
       setIsGrading(false);
     } else {
-      // Calculate real total performance values
       const finalScore = calculateScore(answers);
       const computedPercentage = Math.round((finalScore / questions.length) * 100);
 
-      // 1. Commit and log scorecard trace results live to Firestore
       await contentService.saveQuizAttempt({
         userId: user.uid,
         quizId: quizId || 'dynamic_eval',
@@ -152,7 +148,6 @@ Each object must follow this scheme exactly:
         percentage: computedPercentage
       });
 
-      // 2. Mark this lesson as complete in user stats tracking
       if (quizId && courseId !== 'dynamic') {
         await contentService.markLessonComplete(user.uid, {
           id: quizId,
@@ -165,15 +160,38 @@ Each object must follow this scheme exactly:
         });
       }
 
-      // 3. Grant custom profile award allocations
       try {
         await updateUserProfile(user.uid, { xpPoints: 50 });
+        
+        if (computedPercentage === 100) {
+          await addActivitySignal(
+            user.uid, 
+            "Perfect Score! 🏆", 
+            "You achieved 100% accuracy on your recent quiz. Masterful work!", 
+            "achievement"
+          );
+        } else if (computedPercentage >= 60) {
+          await addActivitySignal(
+            user.uid, 
+            "Solid Effort! 🧠", 
+            `You completed a quiz with ${computedPercentage}% accuracy. Keep pushing!`, 
+            "learning"
+          );
+        } else {
+           await addActivitySignal(
+            user.uid, 
+            "Module Reviewed 📚", 
+            `You completed a practice run. Review the neural insights to improve your score.`, 
+            "system"
+          );
+        }
+
       } catch (err) {
         console.error("User XP profile trace offline:", err);
       }
 
       setIsFinished(true);
-    }
+    } 
   };
 
   const handleAnswerSelect = (opt: string) => {
