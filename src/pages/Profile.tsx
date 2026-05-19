@@ -1,14 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User as FirebaseUser } from 'firebase/auth';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Toaster, toast } from 'react-hot-toast';
 import { 
-  Camera, Edit2, MapPin, Clock, Book, Trophy, Target, 
-  Activity, Zap, GraduationCap, CheckCircle, Brain, Sparkles, Loader2, Image as ImageIcon
+  Edit2, MapPin, Clock, Trophy, Target, 
+  Activity, Zap, GraduationCap, CheckCircle, Brain, Sparkles, Loader2
 } from 'lucide-react';
 import { 
   UserProfile, syncUserProfile, updateUserProfile, 
-  uploadProfileImage, ActivitySignal, getUserSignals 
+  ActivitySignal, getUserSignals 
 } from '../services/userService';
 
 interface ProfileProps {
@@ -24,13 +24,9 @@ export default function Profile({ user, profile: initialProfile }: ProfileProps)
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [isLoading, setIsLoading] = useState(!initialProfile);
   const [isSaving, setIsSaving] = useState(false);
-  const [uploadingImage, setUploadingImage] = useState<'avatar' | 'banner' | null>(null);
 
   // Form State
   const [formData, setFormData] = useState<Partial<UserProfile>>({});
-
-  const avatarInputRef = useRef<HTMLInputElement>(null);
-  const bannerInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -75,30 +71,6 @@ export default function Profile({ user, profile: initialProfile }: ProfileProps)
     }
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'avatar' | 'banner') => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("File size limit is 5MB.");
-      return;
-    }
-
-    setUploadingImage(type);
-    const uploadToast = toast.loading(`Compressing and uploading ${type}...`);
-
-    try {
-      const newUrl = await uploadProfileImage(user.uid, file, type);
-      setProfile(prev => prev ? { ...prev, [type === 'avatar' ? 'avatarUrl' : 'bannerUrl']: newUrl } : null);
-      setFormData(prev => ({ ...prev, [type === 'avatar' ? 'avatarUrl' : 'bannerUrl']: newUrl }));
-      toast.success(`${type} updated successfully.`, { id: uploadToast });
-    } catch (error) {
-      toast.error(`Failed to upload ${type}.`, { id: uploadToast });
-    } finally {
-      setUploadingImage(null);
-    }
-  };
-
   if (isLoading || !profile) {
     return (
       <div className="min-h-screen bg-bg-deep flex items-center justify-center">
@@ -116,40 +88,26 @@ export default function Profile({ user, profile: initialProfile }: ProfileProps)
         style: { background: '#0F172A', color: '#fff', border: '1px solid #1E293B', borderRadius: '16px' }
       }}/>
 
-      {/* --- PREMIUM BANNER & HEADER --- */}
-      <div className="relative w-full h-64 sm:h-80 bg-slate-900 overflow-hidden group">
+      {/* --- PREMIUM BANNER (No Upload Overlay) --- */}
+      <div className="relative w-full h-64 sm:h-80 bg-slate-900 overflow-hidden">
         {profile.bannerUrl ? (
           <img src={profile.bannerUrl} alt="Cover" className="w-full h-full object-cover opacity-80" />
         ) : (
           <div className="w-full h-full bg-gradient-to-tr from-brand/20 via-blue-900/40 to-slate-900" />
         )}
-        
-        {/* Banner Overlay Controls */}
-        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-          <input type="file" ref={bannerInputRef} hidden accept="image/*" onChange={(e) => handleImageUpload(e, 'banner')} />
-          <button onClick={() => bannerInputRef.current?.click()} disabled={uploadingImage === 'banner'} 
-            className="flex items-center gap-2 px-6 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl text-white font-bold hover:bg-white/20 transition-all">
-            {uploadingImage === 'banner' ? <Loader2 className="h-5 w-5 animate-spin" /> : <ImageIcon className="h-5 w-5" />}
-            {uploadingImage === 'banner' ? 'UPLOADING...' : 'CHANGE COVER'}
-          </button>
-        </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative -mt-24">
         <div className="bg-slate-900/80 backdrop-blur-2xl border border-slate-800 rounded-[32px] p-6 sm:p-8 shadow-2xl flex flex-col sm:flex-row items-center sm:items-start gap-6 sm:gap-8">
           
-          {/* Avatar System */}
-          <div className="relative group -mt-16 sm:-mt-20 shrink-0">
+          {/* Avatar System (No Upload Overlay) */}
+          <div className="relative -mt-16 sm:-mt-20 shrink-0">
             <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-[2rem] border-4 border-slate-900 bg-slate-800 overflow-hidden shadow-2xl relative">
               <img 
                 src={profile.avatarUrl || user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`} 
-                alt="Avatar" className="w-full h-full object-cover transition-transform group-hover:scale-105" 
+                alt="Avatar" className="w-full h-full object-cover" 
               />
-              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer" onClick={() => avatarInputRef.current?.click()}>
-                {uploadingImage === 'avatar' ? <Loader2 className="h-8 w-8 text-white animate-spin" /> : <Camera className="h-8 w-8 text-white" />}
-              </div>
             </div>
-            <input type="file" ref={avatarInputRef} hidden accept="image/*" onChange={(e) => handleImageUpload(e, 'avatar')} />
           </div>
 
           {/* Core Info */}
@@ -320,7 +278,6 @@ function StatCard({ icon, label, value, color, bg, border }: { icon: React.React
   return (
     <div className={`p-4 sm:p-6 bg-slate-900 border border-slate-800 rounded-2xl flex flex-col items-center sm:items-start text-center sm:text-left transition-all hover:border-slate-600`}>
       <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${bg} ${color} ${border} border`}>
-        {/* 🚀 FIX: Added <any> to ReactElement so TypeScript allows the className injection */}
         {React.cloneElement(icon as React.ReactElement<any>, { className: "h-5 w-5" })}
       </div>
       <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">{label}</p>
