@@ -44,7 +44,9 @@ export default function Profile({ user, profile: initialProfile, setProfile }: P
         setIsLoading(false);
       }
     };
-    if (user) loadData();
+    if (user && ! initialProfile) {
+      loadData();
+    }
   }, [user]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -65,9 +67,9 @@ export default function Profile({ user, profile: initialProfile, setProfile }: P
     try {
       await savePromise;
       const updatedProfile = {
-  ...profile,
-  ...formData
-} as UserProfile;
+        ...profile,
+        ...formData
+      } as UserProfile;
 
       setProfile(updatedProfile);
       setActiveTab('overview');
