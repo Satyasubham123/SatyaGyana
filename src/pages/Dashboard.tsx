@@ -26,7 +26,8 @@ interface DashboardProps {
   profile: UserProfile | null;
 }
 
-const CLASSES = ["Class 6", "Class 7", "Class 8", "Class 9", "Class 10", "Class 11", "Class 12"];
+// 🚀 FIXED: Limited to Classes 6 through 10
+const CLASSES = ["Class 6", "Class 7", "Class 8", "Class 9", "Class 10"];
 
 const SUBJECTS = [
   { id: 'math', name: 'Mathematics', icon: <Calculator />, color: 'bg-blue-500', textColor: 'text-blue-500' },
@@ -146,17 +147,17 @@ export default function Dashboard({ user, profile }: DashboardProps) {
       <div className="max-w-4xl mx-auto px-4 py-20 text-center">
         <h2 className="text-4xl md:text-6xl font-black uppercase italic tracking-tighter mb-4 text-main">Welcome, {user.displayName}! 窓</h2>
         <p className="text-secondary font-medium mb-12 uppercase tracking-widest text-sm">Select your current sector to initialize data stream.</p>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="flex flex-wrap justify-center gap-4">
           {CLASSES.map((cls) => (
             <button
               key={cls}
               onClick={() => handleClassSelect(cls)}
-              className="p-8 bg-bg-card border border-border-strong rounded-sm hover:border-brand transition-all flex flex-col items-center group relative overflow-hidden"
+              className="w-[140px] p-6 bg-bg-card border border-border-strong rounded-sm hover:border-brand transition-all flex flex-col items-center group relative overflow-hidden"
             >
-              <div className="bg-bg-deep border border-border-strong w-14 h-14 rounded-full flex items-center justify-center mb-4 transition-all group-hover:bg-brand group-hover:text-black">
-                <GraduationCap className="h-6 w-6" />
+              <div className="bg-bg-deep border border-border-strong w-12 h-12 rounded-full flex items-center justify-center mb-4 transition-all group-hover:bg-brand group-hover:text-black">
+                <GraduationCap className="h-5 w-5" />
               </div>
-              <span className="font-black uppercase tracking-tighter text-lg text-main">{cls}</span>
+              <span className="font-black uppercase tracking-tighter text-base text-main">{cls}</span>
             </button>
           ))}
         </div>

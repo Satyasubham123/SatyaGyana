@@ -222,9 +222,10 @@ export default function Profile({ user, profile: initialProfile }: ProfileProps)
 
                   <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Class Level</label>
+                    {/* 🚀 FIXED: Only options 6 through 10 */}
                     <select name="classLevel" value={formData.classLevel || ''} onChange={handleInputChange as any} className="w-full bg-slate-950 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand focus:ring-1 focus:ring-brand appearance-none">
                       <option value="">Select Level</option>
-                      {['Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12'].map(c => <option key={c} value={c}>{c}</option>)}
+                      {['Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10'].map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
                   
@@ -234,8 +235,19 @@ export default function Profile({ user, profile: initialProfile }: ProfileProps)
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">State / Region</label>
-                    <input name="state" value={formData.state || ''} onChange={handleInputChange} className="w-full bg-slate-950 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand focus:ring-1 focus:ring-brand" placeholder="e.g. Odisha, India" />
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">State / Region (India)</label>
+                    {/* 🚀 FIXED: Exact alphabetical list of all States and UTs */}
+                    <select name="state" value={formData.state || ''} onChange={handleInputChange as any} className="w-full bg-slate-950 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand focus:ring-1 focus:ring-brand appearance-none">
+                      <option value="">Select State / UT</option>
+                      {[
+                        "Andaman and Nicobar Islands", "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", 
+                        "Chandigarh", "Chhattisgarh", "Dadra and Nagar Haveli and Daman and Diu", "Delhi", "Goa", 
+                        "Gujarat", "Haryana", "Himachal Pradesh", "Jammu and Kashmir", "Jharkhand", "Karnataka", 
+                        "Kerala", "Ladakh", "Lakshadweep", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", 
+                        "Mizoram", "Nagaland", "Odisha", "Puducherry", "Punjab", "Rajasthan", "Sikkim", 
+                        "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal"
+                      ].map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
                   </div>
 
                   <div className="space-y-2">
