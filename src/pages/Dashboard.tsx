@@ -6,7 +6,7 @@ import { motion } from 'motion/react';
 import { 
   BookMarked, Trophy, Flame, MessageSquare, ArrowRight, Calculator, 
   Atom, BookText, History, Cpu, GraduationCap, Sparkles, Calendar, 
-  Play, CheckCircle, ChevronRight
+  Play, CheckCircle, ChevronRight, Zap
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { BadgeIcon } from '../components/BadgeIcon';
@@ -26,7 +26,7 @@ interface DashboardProps {
   profile: UserProfile | null;
 }
 
-// 🚀 FIXED: Limited to Classes 6 through 10
+// 🚀 Limited to Classes 6 through 10
 const CLASSES = ["Class 6", "Class 7", "Class 8", "Class 9", "Class 10"];
 
 const SUBJECTS = [
@@ -167,7 +167,7 @@ export default function Dashboard({ user, profile }: DashboardProps) {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 sm:py-16 bg-bg-deep min-h-screen">
-      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 sm:gap-8 mb-10 sm:mb-16 text-center sm:text-left">
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 sm:gap-8 mb-10 text-center sm:text-left">
         <div>
           <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-black uppercase italic tracking-tighter mb-4 text-main leading-tight">
             Namaste, {user.displayName?.split(' ')[0]}! 窓
@@ -186,6 +186,38 @@ export default function Dashboard({ user, profile }: DashboardProps) {
           </Link>
         </div>
       </div>
+
+      {/* 🚀 FIXED: Added (profile as any) bypass to stop VS Code complaining */}
+      {(profile as any)?.subscriptionPlan === 'trial' && (
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-10 bg-gradient-to-r from-brand/10 via-blue-900/20 to-slate-900 border border-brand/30 rounded-[24px] p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden shadow-2xl"
+        >
+          {/* Decorative Background Glow */}
+          <div className="absolute -top-10 -right-10 w-40 h-40 bg-brand/20 rounded-full blur-3xl"></div>
+          
+          <div className="relative z-10 text-center md:text-left">
+             <div className="inline-flex items-center gap-2 px-3 py-1 bg-yellow-500/10 border border-yellow-500/20 rounded-full mb-3">
+                <Zap className="h-3 w-3 text-yellow-500" />
+                <span className="text-[9px] font-black uppercase tracking-widest text-yellow-500">Early Bird Offer</span>
+             </div>
+             <h3 className="text-2xl sm:text-3xl font-black italic uppercase text-white tracking-tighter">
+                Lock in your <span className="text-brand">₹19/mo</span> price.
+             </h3>
+             <p className="text-slate-400 text-sm font-medium mt-2 max-w-xl">
+               Your 1-month free trial is currently active. Upgrade your account today to secure our lowest pricing tier before the official launch rates increase!
+             </p>
+          </div>
+          
+          <Link 
+            to="/subscription" 
+            className="relative z-10 w-full md:w-auto px-8 py-4 bg-brand hover:bg-blue-600 text-white font-black uppercase tracking-widest text-xs sm:text-sm rounded-xl transition-all shadow-xl shadow-brand/20 active:scale-95 flex items-center justify-center shrink-0"
+          >
+             Upgrade Now →
+          </Link>
+        </motion.div>
+      )}
 
       <div className="mb-12 -mx-4 sm:mx-0">
          <StatsSummary user={user} />
