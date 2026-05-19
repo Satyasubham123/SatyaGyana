@@ -144,7 +144,7 @@ export default function Dashboard({ user, profile }: DashboardProps) {
   if (profile && !profile.classLevel) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-20 text-center">
-        <h2 className="text-4xl md:text-6xl font-black uppercase italic tracking-tighter mb-4 text-main">Welcome, {user.displayName}! 窓</h2>
+        <h2 className="text-4xl md:text-6xl font-black uppercase italic tracking-tighter mb-4 text-main">Welcome, {user.displayName}!</h2>
         <p className="text-secondary font-medium mb-12 uppercase tracking-widest text-sm">Select your current sector to initialize data stream.</p>
         <div className="flex flex-wrap justify-center gap-4">
           {CLASSES.map((cls) => (
@@ -169,7 +169,7 @@ export default function Dashboard({ user, profile }: DashboardProps) {
       <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 sm:gap-8 mb-10 text-center sm:text-left">
         <div>
           <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-black uppercase italic tracking-tighter mb-4 text-main leading-tight">
-            Namaste, {user.displayName?.split(' ')[0]}! 窓
+            Namaste, {user.displayName?.split(' ')[0]}!
           </h1>
           <p className="text-secondary text-sm sm:text-base md:text-lg font-medium">
             You are at <span className="text-brand font-black underline decoration-brand/30 underline-offset-8 tracking-widest text-[10px] sm:text-xs uppercase">{profile?.classLevel || 'Unspecified'}</span>. Initializing adaptive session.
