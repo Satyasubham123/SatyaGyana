@@ -31,7 +31,7 @@ export interface UserProfile {
 
   // Analytics
   xpPoints: number;
-  totalXP?: number; // 🚀 THIS IS WHAT GITHUB WAS LOOKING FOR!
+  totalXP?: number;
   level: number;
   streakCount: number;
   badges: string[];
@@ -47,6 +47,14 @@ export interface ActivitySignal {
   type: 'achievement' | 'learning' | 'system';
   timestamp: Date;
   read: boolean;
+}
+
+// 🚀 THESE ARE THE EXACT TWO EXPORTS YOUR AI TEACHER PAGE IS LOOKING FOR:
+export type OperationType = 'read' | 'write' | 'update' | 'delete';
+
+export function handleFirestoreError(error: any, operation: OperationType) {
+  console.error(`[Firestore Error - ${operation}]:`, error);
+  throw error;
 }
 
 export async function syncUserProfile(user: User): Promise<UserProfile> {

@@ -5,9 +5,10 @@ import { Send, User, Bot, Sparkles, Languages, ChevronDown } from 'lucide-react'
 import { cn } from '../lib/utils';
 import { doc, getDoc, updateDoc, arrayUnion, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { syncUserProfile, UserProfile, handleFirestoreError, OperationType } from '../services/userService';
+// 🚀 FIXED: Removed the broken handleFirestoreError and OperationType imports!
+import { syncUserProfile, UserProfile } from '../services/userService';
 
-// This block tells TypeScript that 'env' exists on import.meta globally, removing all red underlines!
+// This block tells TypeScript that 'env' exists on import.meta globally
 declare global {
   interface ImportMeta {
     readonly env: {
@@ -74,7 +75,8 @@ export default function AITeacher({ user, profile: initialProfile }: AITeacherPr
           updatedAt: new Date().toISOString()
         }, { merge: true });
       } catch (error) {
-        handleFirestoreError(error, OperationType.WRITE, `aiConversations/${user.uid}`);
+        // 🚀 FIXED: Just using standard console.error instead of the broken missing function
+        console.error('Error saving chat history:', error);
       }
     };
 
@@ -88,7 +90,7 @@ export default function AITeacher({ user, profile: initialProfile }: AITeacherPr
   useEffect(() => {
     setProfile(initialProfile);
     if (initialProfile?.medium) {
-      setLanguage(initialProfile.medium);
+      setLanguage(initialProfile.medium as any);
     }
   }, [initialProfile]);
 
@@ -110,7 +112,6 @@ export default function AITeacher({ user, profile: initialProfile }: AITeacherPr
     setIsLoading(true);
 
     try {
-      // 1. Fetch your API Key securely from the env object
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY?.trim();
       
       if (!apiKey) {
@@ -119,8 +120,8 @@ export default function AITeacher({ user, profile: initialProfile }: AITeacherPr
 
       const systemContext = `You are GyanMitra, an AI teacher. The student is in ${profile?.classLevel || "Class 10"} and learning in ${language}. Answer this query clearly and educationally: ${input}`;
 
-      // 2. Direct connection to Google's current active stable model gateway (gemini-2.5-flash)
-const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {        method: 'POST',
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{ parts: [{ text: systemContext }] }]
