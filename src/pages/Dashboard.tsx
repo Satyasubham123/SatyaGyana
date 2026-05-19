@@ -26,7 +26,6 @@ interface DashboardProps {
   profile: UserProfile | null;
 }
 
-// 🚀 Limited to Classes 6 through 10
 const CLASSES = ["Class 6", "Class 7", "Class 8", "Class 9", "Class 10"];
 
 const SUBJECTS = [
@@ -187,8 +186,8 @@ export default function Dashboard({ user, profile }: DashboardProps) {
         </div>
       </div>
 
-      {/* 🚀 FIXED: Added (profile as any) bypass to stop VS Code complaining */}
-      {(profile as any)?.subscriptionPlan === 'trial' && (
+      {/* 🚀 FIXED: Added (profile.role === 'admin') so you can physically see the banner while developing */}
+      {((profile as any)?.subscriptionPlan === 'trial' || (profile as any)?.role === 'admin') && (
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
