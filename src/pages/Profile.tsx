@@ -4,20 +4,21 @@ import { Toaster, toast } from 'react-hot-toast';
 import { 
   Edit2, MapPin, Clock, Trophy, Target, 
   Activity, Zap, GraduationCap, CheckCircle, Brain, 
-  Sparkles, Loader2, User as UserIcon, BookOpen, Star, Shield, Mail
+  Sparkles, Loader2, User as UserIcon, BookOpen, Star, Shield, Mail, LogOut
 } from 'lucide-react';
 import { 
   UserProfile, updateUserProfile, 
   ActivitySignal, getUserSignals 
 } from '../services/userService';
-// 1. Import the new context hook
 import { useUser } from '../contexts/UserContext';
+
+// 🚀 IMPORTS REQUIRED FOR SECURE LOGOUT
+import { auth } from '../lib/firebase';
+import { signOut } from 'firebase/auth';
 
 type TabType = 'profile' | 'overview' | 'edit' | 'settings';
 
-// 2. Remove ProfileProps interface and remove props from the function
 export default function Profile() {
-  // 3. Extract user and real-time profile directly from Context
   const { user, profile } = useUser();
   
   const [signals, setSignals] = useState<ActivitySignal[]>([]);
@@ -71,7 +72,6 @@ export default function Profile() {
         displayName: generatedDisplayName || formData.displayName 
       };
 
-      // 4. Just update Firestore. The context listener will instantly update the UI globally!
       await updateUserProfile(user.uid, finalData);
       
       toast.success('Profile parameters updated securely.', { icon: '✅' });
@@ -80,6 +80,19 @@ export default function Profile() {
       toast.error('Data transmission failed.');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  // 🚀 THE FUNCTION TO DELETE THE BROWSER LINK (SIGN OUT)
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      toast.success("Securely logged out.");
+      // Force reload to completely wipe local cache and jump to landing page
+      window.location.href = '/'; 
+    } catch (error) {
+      toast.error("Failed to log out.");
+      console.error(error);
     }
   };
 
@@ -404,6 +417,7 @@ export default function Profile() {
               </form>
             )}
 
+            {/* 🚀 THE NEW LOGOUT BUTTON IS HERE IN SETTINGS */}
             {activeTab === 'settings' && (
               <div className="bg-slate-900/60 border border-slate-800 rounded-[32px] p-12 max-w-4xl text-center shadow-2xl relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-full h-full bg-brand/5 blur-3xl pointer-events-none"></div>
@@ -412,9 +426,20 @@ export default function Profile() {
                       <Shield className="h-10 w-10 text-brand" />
                    </div>
                    <h2 className="text-3xl font-black uppercase italic tracking-tighter text-white">System Preferences</h2>
-                   <p className="text-slate-400 text-sm mt-4 max-w-lg mx-auto font-medium leading-relaxed">
+                   <p className="text-slate-400 text-sm mt-4 max-w-lg mx-auto font-medium leading-relaxed mb-10">
                      Advanced personalization matrices including theme configurations, focus modes, and notification overrides are slated for deployment in v2.0.
                    </p>
+
+                   <div className="pt-8 border-t border-slate-800/80 w-full max-w-md">
+                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-4">Security</p>
+                     <button
+                       onClick={handleSignOut}
+                       className="w-full flex items-center justify-center gap-2 px-8 py-4 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white border border-red-500/20 rounded-xl font-black uppercase tracking-widest text-xs transition-all active:scale-95 shadow-xl shadow-red-500/10"
+                     >
+                       <LogOut className="h-4 w-4" />
+                       Purge Access Node (Log Out)
+                     </button>
+                   </div>
                 </div>
               </div>
             )}
