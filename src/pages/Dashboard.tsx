@@ -30,7 +30,6 @@ const SUBJECTS = [
 ];
 
 export default function Dashboard() {
-  // 1. Pull data directly from the real-time Context
   const { user, profile, loading: contextLoading } = useUser();
 
   const [loadingClass, setLoadingClass] = useState(false);
@@ -51,7 +50,7 @@ export default function Dashboard() {
     if (!profile?.classLevel) return;
     try {
       const courses = await contentService.getCoursesByClass(profile.classLevel);
-      setDbCourses(courses);
+      setDbCourses(Array.isArray(courses) ? courses : []); // 🚀 BULLETPROOF: Ensure array
     } catch (err) {
       console.error(err);
     }
@@ -62,20 +61,24 @@ export default function Dashboard() {
     try {
       const history = await contentService.getUserHistory(user.uid);
       const progress = await contentService.getUserProgress(user.uid);
-      setUserHistory(history);
-      setUserProgress(progress);
+      setUserHistory(Array.isArray(history) ? history : []); // 🚀 BULLETPROOF
+      setUserProgress(Array.isArray(progress) ? progress : []); // 🚀 BULLETPROOF
     } catch (err) {
       console.error(err);
     }
   };
 
+  // 🚀 BULLETPROOF: Safely filter progress
   const getCourseProgress = (courseId: string) => {
-    const courseProgress = userProgress.filter(p => p.courseId === courseId && p.completed);
+    if (!Array.isArray(userProgress)) return 0;
+    const courseProgress = userProgress.filter(p => p?.courseId === courseId && p?.completed);
     return courseProgress.length;
   };
 
-  const lastViewedCourse = userHistory[0] ? dbCourses.find(c => c.id === userHistory[0].courseId) : null;
-  const recentHistory = userHistory.slice(1, 4).map(h => dbCourses.find(c => c.id === h.courseId)).filter(Boolean);
+  // 🚀 BULLETPROOF: Safe fallback for history
+  const safeHistory = Array.isArray(userHistory) ? userHistory : [];
+  const lastViewedCourse = safeHistory[0] ? dbCourses.find(c => c.id === safeHistory[0].courseId) : null;
+  const recentHistory = safeHistory.slice(1, 4).map(h => dbCourses.find(c => c.id === h.courseId)).filter(Boolean);
   
   const generateStudyPlan = async () => {
     if (!profile) return;
@@ -84,8 +87,13 @@ export default function Dashboard() {
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY?.trim();
       if (!apiKey) throw new Error("API Key missing!");
 
+      // 🚀 BULLETPROOF: Prevent crash if weakTopics is a string or undefined
+      const safeWeakTopics = Array.isArray(profile.weakTopics) 
+        ? profile.weakTopics.join(', ') 
+        : (typeof profile.weakTopics === 'string' ? profile.weakTopics : 'None specified');
+
       const prompt = `Generate a weekly study plan for a student in ${profile.classLevel}.
-      They have ${profile.xpPoints || 0} XP. Their weak topics are: ${profile.weakTopics?.join(', ') || 'None specified'}.
+      They have ${profile.xpPoints || 0} XP. Their weak topics are: ${safeWeakTopics}.
       Return ONLY a raw JSON object with this exact structure. Do not wrap in markdown (like \`\`\`json):
       {
         "objective": "Main weekly goal",
@@ -118,7 +126,6 @@ export default function Dashboard() {
     if (!user) return;
     setLoadingClass(true);
     try {
-      // 2. Just update Firestore. The context onSnapshot listener will auto-update the UI!
       await updateUserProfile(user.uid, { classLevel: className });
     } catch (err) {
       console.error(err);
@@ -127,7 +134,6 @@ export default function Dashboard() {
     }
   };
 
-  // 3. Show loading skeleton while real-time data connects
   if (contextLoading || loadingClass || !profile || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-bg-deep">
@@ -139,7 +145,6 @@ export default function Dashboard() {
     );
   }
 
-  // Handle users who haven't picked a class yet
   if (profile && !profile.classLevel) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-20 text-center">
@@ -165,10 +170,10 @@ export default function Dashboard() {
     );
   }
 
-  // 4. Dynamic Greeting variables
+  // 🚀 BULLETPROOF: Safely parse numbers to prevent Math/NaN crashes
   const firstName = profile.firstName || profile.displayName?.split(' ')[0] || 'Student';
-  const xp = profile.totalXP || profile.xpPoints || 0;
-  const streak = profile.streakCount || 0;
+  const xp = Number(profile.totalXP) || Number(profile.xpPoints) || 0;
+  const streak = Number(profile.streakCount) || 0;
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 sm:py-16 bg-bg-deep min-h-screen">
@@ -209,7 +214,7 @@ export default function Dashboard() {
                 Lock in your <span className="text-brand">₹19/mo</span> price.
              </h3>
              <p className="text-slate-400 text-sm font-medium mt-2 max-w-xl">
-               Your 1-month free trial is currently active. Upgrade your account today to secure our lowest pricing tier before the official launch rates increase!
+                Your 1-month free trial is currently active. Upgrade your account today to secure our lowest pricing tier before the official launch rates increase!
              </p>
           </div>
           
@@ -222,7 +227,6 @@ export default function Dashboard() {
         </motion.div>
       )}
 
-      {/* Stats Summary - Now passed with empty props so it can pull from its own Context link later */}
       <div className="mb-12 -mx-4 sm:mx-0">
          <StatsSummary />
       </div>
