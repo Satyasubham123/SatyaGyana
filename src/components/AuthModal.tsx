@@ -66,12 +66,10 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
       if (mode === 'signup') {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         
-        // Combine names safely
         const generatedDisplayName = [firstName, middleName, lastName].filter(Boolean).join(' ');
         
         await updateProfile(userCredential.user, { displayName: generatedDisplayName });
         
-        // Save all compulsory and optional data to Firestore instantly
         await setDoc(doc(db, 'users', userCredential.user.uid), {
           firstName: firstName.trim(),
           middleName: middleName.trim(),
@@ -85,7 +83,6 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           updatedAt: new Date()
         }, { merge: true });
 
-        // Enforce verification
         await sendEmailVerification(userCredential.user);
         await auth.signOut();
         
@@ -101,7 +98,10 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           setError("Access Denied: Email not verified. A new link has been dispatched to your inbox.");
           return;
         }
-        onClose();
+        
+        // 🚀 FIX: Force a clean app reload to prevent React Router race conditions
+        window.location.href = '/dashboard';
+        
       } else if (mode === 'forgot') {
         await sendPasswordResetEmail(auth, email);
         setMessage('Recovery instructions dispatched! Check your inbox.');
@@ -121,7 +121,10 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const handleGoogleAuth = async () => {
     try {
       await signInWithGoogle();
-      onClose();
+      
+      // 🚀 FIX: Force a clean app reload here as well
+      window.location.href = '/dashboard';
+      
     } catch (err) {
       setError("Google Handshake failed. Try again.");
     }
@@ -131,7 +134,6 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
   return createPortal(
     <div className="fixed inset-0 z-[99999] grid place-items-center p-4 sm:p-6 bg-slate-950/60 backdrop-blur-sm">
-      
       <div className="w-full max-w-md bg-slate-900 rounded-[32px] border border-slate-700 shadow-2xl flex flex-col overflow-hidden max-h-[90vh] sm:max-h-[85vh]">
         
         <div className="flex justify-between items-center p-6 border-b border-slate-800 bg-slate-900 shrink-0">
