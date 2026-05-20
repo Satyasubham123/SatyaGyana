@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Mail, Lock, User, ArrowRight, ShieldAlert, GraduationCap, BookOpen } from 'lucide-react';
+import { X, Mail, Lock, User, ArrowRight, ShieldAlert, GraduationCap, BookOpen, MapPin } from 'lucide-react';
 import { 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
@@ -20,14 +20,20 @@ interface AuthModalProps {
 
 export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [mode, setMode] = useState<AuthMode>('login');
+  
+  // Auth States
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
   
-  // 🚀 NEW COMPULSORY STATES
+  // Registration States
+  const [firstName, setFirstName] = useState('');
+  const [middleName, setMiddleName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [classLevel, setClassLevel] = useState('');
+  const [stateSelection, setStateSelection] = useState('');
   const [medium, setMedium] = useState('');
   
+  // UI States
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -37,8 +43,11 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     setMessage('');
     setEmail('');
     setPassword('');
-    setName('');
+    setFirstName('');
+    setMiddleName('');
+    setLastName('');
     setClassLevel('');
+    setStateSelection('');
     setMedium('');
   };
 
@@ -55,21 +64,28 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
     try {
       if (mode === 'signup') {
-        // Create the user in Firebase Auth
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        await updateProfile(userCredential.user, { displayName: name });
         
-        // 🚀 Save Class Level and Medium to Firestore instantly
+        // Combine names safely
+        const generatedDisplayName = [firstName, middleName, lastName].filter(Boolean).join(' ');
+        
+        await updateProfile(userCredential.user, { displayName: generatedDisplayName });
+        
+        // Save all compulsory and optional data to Firestore instantly
         await setDoc(doc(db, 'users', userCredential.user.uid), {
+          firstName: firstName.trim(),
+          middleName: middleName.trim(),
+          lastName: lastName.trim(),
+          displayName: generatedDisplayName,
           classLevel: classLevel,
+          state: stateSelection,
           medium: medium,
-          displayName: name,
           email: email,
           createdAt: new Date(),
           updatedAt: new Date()
         }, { merge: true });
 
-        // Send Email and Sign out to enforce verification
+        // Enforce verification
         await sendEmailVerification(userCredential.user);
         await auth.signOut();
         
@@ -116,7 +132,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   return createPortal(
     <div className="fixed inset-0 z-[99999] grid place-items-center p-4 sm:p-6 bg-slate-950/60 backdrop-blur-sm">
       
-      <div className="w-full max-w-md bg-slate-900 rounded-[32px] border border-slate-700 shadow-2xl flex flex-col overflow-hidden max-h-[85vh] sm:max-h-[80vh]">
+      <div className="w-full max-w-md bg-slate-900 rounded-[32px] border border-slate-700 shadow-2xl flex flex-col overflow-hidden max-h-[90vh] sm:max-h-[85vh]">
         
         <div className="flex justify-between items-center p-6 border-b border-slate-800 bg-slate-900 shrink-0">
           <h3 className="text-xl font-black uppercase italic tracking-tighter text-white">
@@ -142,38 +158,75 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             </div>
           )}
 
-          <form onSubmit={handleEmailAuth} className="space-y-5">
+          <form onSubmit={handleEmailAuth} className="space-y-4">
             {mode === 'signup' && (
               <>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Full Name <span className="text-red-500">*</span></label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-2">First Name <span className="text-red-500">*</span></label>
+                    <div className="relative">
+                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                      <input 
+                        type="text" required value={firstName} onChange={e => setFirstName(e.target.value)}
+                        className="w-full bg-slate-800 border border-slate-700 p-3.5 pl-10 rounded-2xl text-white font-bold outline-none focus:border-brand transition-all text-sm"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-2">Middle Name</label>
+                    <div className="relative">
+                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 opacity-50" />
+                      <input 
+                        type="text" value={middleName} onChange={e => setMiddleName(e.target.value)}
+                        className="w-full bg-slate-800 border border-slate-700 p-3.5 pl-10 rounded-2xl text-white font-bold outline-none focus:border-brand transition-all text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-2">Last Name <span className="text-red-500">*</span></label>
                   <div className="relative">
                     <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
                     <input 
-                      type="text" required value={name} onChange={e => setName(e.target.value)}
+                      type="text" required value={lastName} onChange={e => setLastName(e.target.value)}
                       className="w-full bg-slate-800 border border-slate-700 p-4 pl-12 rounded-2xl text-white font-bold outline-none focus:border-brand transition-all"
                     />
                   </div>
                 </div>
 
-                {/* 🚀 NEW COMPULSORY FIELD: CLASS LEVEL */}
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Class Level <span className="text-red-500">*</span></label>
-                  <div className="relative">
-                    <GraduationCap className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-                    <select 
-                      required value={classLevel} onChange={e => setClassLevel(e.target.value)}
-                      className="w-full bg-slate-800 border border-slate-700 p-4 pl-12 rounded-2xl text-white font-bold outline-none focus:border-brand transition-all appearance-none cursor-pointer"
-                    >
-                      <option value="" disabled>Select Sector / Class</option>
-                      {['Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10'].map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-2">Class <span className="text-red-500">*</span></label>
+                    <div className="relative">
+                      <GraduationCap className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                      <select 
+                        required value={classLevel} onChange={e => setClassLevel(e.target.value)}
+                        className="w-full bg-slate-800 border border-slate-700 p-3.5 pl-10 rounded-2xl text-white font-bold outline-none focus:border-brand transition-all appearance-none cursor-pointer text-sm"
+                      >
+                        <option value="" disabled>Select</option>
+                        {['Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10'].map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-2">State/UT <span className="text-red-500">*</span></label>
+                    <div className="relative">
+                      <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                      <select 
+                        required value={stateSelection} onChange={e => setStateSelection(e.target.value)}
+                        className="w-full bg-slate-800 border border-slate-700 p-3.5 pl-10 rounded-2xl text-white font-bold outline-none focus:border-brand transition-all appearance-none cursor-pointer text-sm"
+                      >
+                        <option value="" disabled>Select</option>
+                        {["Andaman and Nicobar Islands", "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chandigarh", "Chhattisgarh", "Dadra and Nagar Haveli and Daman and Diu", "Delhi", "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jammu and Kashmir", "Jharkhand", "Karnataka", "Kerala", "Ladakh", "Lakshadweep", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Puducherry", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal"].map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    </div>
                   </div>
                 </div>
 
-                {/* 🚀 NEW COMPULSORY FIELD: MEDIUM */}
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Primary Medium <span className="text-red-500">*</span></label>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-2">Primary Medium <span className="text-red-500">*</span></label>
                   <div className="relative">
                     <BookOpen className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
                     <select 
@@ -190,8 +243,8 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
               </>
             )}
 
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Email Address <span className="text-red-500">*</span></label>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-2">Email Address <span className="text-red-500">*</span></label>
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
                 <input 
@@ -202,8 +255,8 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             </div>
 
             {mode !== 'forgot' && (
-              <div className="space-y-2">
-                <div className="flex justify-between items-center ml-4">
+              <div className="space-y-1.5">
+                <div className="flex justify-between items-center ml-2">
                   <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Password <span className="text-red-500">*</span></label>
                   {mode === 'login' && (
                     <button type="button" onClick={() => switchMode('forgot')} className="text-[9px] font-black uppercase text-brand hover:underline tracking-widest">
