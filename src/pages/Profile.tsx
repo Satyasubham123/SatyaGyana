@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { User as FirebaseUser } from 'firebase/auth';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Toaster, toast } from 'react-hot-toast';
 import { 
@@ -8,62 +7,58 @@ import {
   Sparkles, Loader2, User as UserIcon, BookOpen, Star, Shield, Mail
 } from 'lucide-react';
 import { 
-  UserProfile, syncUserProfile, updateUserProfile, 
+  UserProfile, updateUserProfile, 
   ActivitySignal, getUserSignals 
 } from '../services/userService';
-
-interface ProfileProps {
-  user: FirebaseUser;
-  profile: UserProfile | null;
-  setProfile: (p: UserProfile) => void;
-}
+// 1. Import the new context hook
+import { useUser } from '../contexts/UserContext';
 
 type TabType = 'profile' | 'overview' | 'edit' | 'settings';
 
-export default function Profile({ user, profile: initialProfile, setProfile }: ProfileProps) {
-  const [profile, setLocalProfile] = useState<UserProfile | null>(initialProfile);
+// 2. Remove ProfileProps interface and remove props from the function
+export default function Profile() {
+  // 3. Extract user and real-time profile directly from Context
+  const { user, profile } = useUser();
+  
   const [signals, setSignals] = useState<ActivitySignal[]>([]);
   const [activeTab, setActiveTab] = useState<TabType>('profile');
-  const [isLoading, setIsLoading] = useState(!initialProfile);
+  const [isLoadingSignals, setIsLoadingSignals] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState<Partial<UserProfile>>({});
 
+  // Fetch Signals (Sub-collection)
   useEffect(() => {
-    const loadData = async () => {
+    const fetchSignals = async () => {
+      if (!user) return;
       try {
-        const [userData, userSignals] = await Promise.all([
-          syncUserProfile(user),
-          getUserSignals(user.uid)
-        ]);
-        setLocalProfile(userData);
-        setFormData(userData);
+        const userSignals = await getUserSignals(user.uid);
         setSignals(userSignals);
       } catch (error) {
-        toast.error("Failed to sync neural profile.");
+        console.error("Failed to fetch signals", error);
       } finally {
-        setIsLoading(false);
+        setIsLoadingSignals(false);
       }
     };
-    if (user) loadData();
+    fetchSignals();
   }, [user]);
 
-  // Ensure formData updates if the global profile prop updates
+  // Keep the form data synced with the real-time profile
   useEffect(() => {
-    if (initialProfile) {
-      setLocalProfile(initialProfile);
-      setFormData(initialProfile);
+    if (profile) {
+      setFormData(profile);
     }
-  }, [initialProfile]);
+  }, [profile]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // 🚀 FIXED: Automatically combines First, Middle, and Last name
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) return;
+    
     setIsSaving(true);
     
     try {
@@ -76,10 +71,9 @@ export default function Profile({ user, profile: initialProfile, setProfile }: P
         displayName: generatedDisplayName || formData.displayName 
       };
 
+      // 4. Just update Firestore. The context listener will instantly update the UI globally!
       await updateUserProfile(user.uid, finalData);
-      const updatedProfile = { ...profile!, ...finalData } as UserProfile;
-      setLocalProfile(updatedProfile);
-      setProfile(updatedProfile); // Sync Globally
+      
       toast.success('Profile parameters updated securely.', { icon: '✅' });
       setActiveTab('profile');
     } catch (err) {
@@ -98,7 +92,8 @@ export default function Profile({ user, profile: initialProfile, setProfile }: P
 
   const completionPercent = calculateCompletion();
 
-  if (isLoading || !profile) {
+  // Show loading skeleton if the context profile hasn't loaded yet
+  if (!profile || !user) {
     return (
       <div className="min-h-screen bg-bg-deep pt-24 px-4 sm:px-8">
         <div className="max-w-7xl mx-auto space-y-8 animate-pulse">
@@ -120,12 +115,10 @@ export default function Profile({ user, profile: initialProfile, setProfile }: P
         style: { background: '#0F172A', color: '#fff', border: '1px solid #1E293B', borderRadius: '16px' }
       }}/>
 
-      {/* Animated Background Gradients */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-5xl h-[500px] bg-brand/10 blur-[120px] rounded-full pointer-events-none opacity-50 mix-blend-screen"></div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative pt-12">
         
-        {/* Page Header */}
         <div className="mb-10">
            <h1 className="text-3xl sm:text-5xl font-black uppercase italic tracking-tighter text-white flex items-center gap-3">
              <UserIcon className="h-8 w-8 sm:h-10 sm:w-10 text-brand" /> Neural Identity
@@ -133,7 +126,6 @@ export default function Profile({ user, profile: initialProfile, setProfile }: P
            <p className="text-slate-400 font-medium mt-2 text-sm sm:text-base">Manage your synchronization parameters and learning telemetry.</p>
         </div>
 
-        {/* --- NAVIGATION TABS --- */}
         <div className="flex gap-2 sm:gap-6 border-b border-slate-800/80 overflow-x-auto custom-scrollbar pb-1">
           {[
             { id: 'profile', label: 'Your Profile', icon: <UserIcon className="h-4 w-4" /> },
@@ -155,7 +147,6 @@ export default function Profile({ user, profile: initialProfile, setProfile }: P
           ))}
         </div>
 
-        {/* --- TAB CONTENT --- */}
         <AnimatePresence mode="wait">
           <motion.div 
             key={activeTab} 
@@ -166,10 +157,8 @@ export default function Profile({ user, profile: initialProfile, setProfile }: P
             className="mt-8"
           >
             
-            {/* TAB 1: YOUR PROFILE */}
             {activeTab === 'profile' && (
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                {/* Left Column: Identity Card */}
                 <div className="lg:col-span-5 space-y-8">
                    <div className="bg-slate-900/60 backdrop-blur-2xl border border-slate-800 rounded-[32px] overflow-hidden shadow-2xl relative group hover:border-brand/30 transition-all">
                       <div className="h-32 bg-gradient-to-br from-brand/20 via-blue-900/40 to-slate-900 relative">
@@ -224,7 +213,6 @@ export default function Profile({ user, profile: initialProfile, setProfile }: P
                       </div>
                    </div>
 
-                   {/* Completion Tracker */}
                    <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6">
                       <div className="flex justify-between items-center mb-3">
                          <h3 className="text-xs font-black uppercase tracking-widest text-slate-400">Profile Configuration</h3>
@@ -241,10 +229,7 @@ export default function Profile({ user, profile: initialProfile, setProfile }: P
                    </div>
                 </div>
 
-                {/* Right Column: Stats & Goals */}
                 <div className="lg:col-span-7 space-y-8">
-                   
-                   {/* Level & XP Box */}
                    <div className="bg-gradient-to-br from-slate-900 to-slate-900/80 border border-slate-800 hover:border-brand/30 transition-all rounded-[32px] p-8 relative overflow-hidden">
                       <div className="absolute top-0 right-0 w-64 h-64 bg-brand/5 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none"></div>
                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6 mb-8 relative z-10">
@@ -269,7 +254,6 @@ export default function Profile({ user, profile: initialProfile, setProfile }: P
                    </div>
 
                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-                     {/* Badges / Achievements */}
                      <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6">
                         <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2"><Trophy className="h-4 w-4 text-orange-400" /> Achievement Badges</h3>
                         <div className="grid grid-cols-3 gap-4">
@@ -285,7 +269,6 @@ export default function Profile({ user, profile: initialProfile, setProfile }: P
                         </div>
                      </div>
 
-                     {/* Learning Goals */}
                      <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6">
                         <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2"><Target className="h-4 w-4 text-emerald-400" /> Active Directives</h3>
                         {profile.learningGoals && profile.learningGoals.length > 0 ? (
@@ -307,7 +290,6 @@ export default function Profile({ user, profile: initialProfile, setProfile }: P
               </div>
             )}
 
-            {/* TAB 2: OVERVIEW (Analytics) */}
             {activeTab === 'overview' && (
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 space-y-8">
@@ -342,7 +324,6 @@ export default function Profile({ user, profile: initialProfile, setProfile }: P
               </div>
             )}
 
-            {/* 🚀 TAB 3: EDIT PROFILE (FIXED WITH FIRST/MIDDLE/LAST NAME) */}
             {activeTab === 'edit' && (
               <form onSubmit={handleSaveProfile} className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-[32px] p-6 sm:p-10 max-w-4xl shadow-2xl relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-brand/5 rounded-full blur-3xl pointer-events-none"></div>
@@ -359,7 +340,6 @@ export default function Profile({ user, profile: initialProfile, setProfile }: P
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 relative z-10">
-                  {/* 🚀 NEW NAME INPUTS */}
                   <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">First Name <span className="text-red-500">*</span></label>
                     <input name="firstName" value={formData.firstName || ''} onChange={handleInputChange} required className="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-all" />
@@ -424,7 +404,6 @@ export default function Profile({ user, profile: initialProfile, setProfile }: P
               </form>
             )}
 
-            {/* TAB 4: SETTINGS */}
             {activeTab === 'settings' && (
               <div className="bg-slate-900/60 border border-slate-800 rounded-[32px] p-12 max-w-4xl text-center shadow-2xl relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-full h-full bg-brand/5 blur-3xl pointer-events-none"></div>

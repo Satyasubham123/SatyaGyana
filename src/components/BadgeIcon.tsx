@@ -1,5 +1,6 @@
 import React from 'react';
 import { Award, Zap, Target, Book, Star, ShieldCheck } from 'lucide-react';
+import { CLASS_LEVELS, INDIA_STATES_AND_UTS } from '../lib/profileOptions';
 
 interface BadgeIconProps {
   name: string;

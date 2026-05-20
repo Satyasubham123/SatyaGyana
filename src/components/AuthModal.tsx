@@ -1,208 +1,78 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Mail, Lock, User, ArrowRight, ShieldAlert } from 'lucide-react';
-import { 
-  createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword, 
-  sendPasswordResetEmail,
-  updateProfile,
-  sendEmailVerification
-} from 'firebase/auth';
-import { auth, signInWithGoogle } from '../lib/firebase';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
+import { auth, db, signInWithGoogle } from '../lib/firebase';
+import { doc, setDoc } from 'firebase/firestore';
+import { CLASS_LEVELS, INDIA_STATES_AND_UTS } from '../lib/profileOptions';
+import { X, Mail, Lock, User, ArrowRight, ShieldAlert, Loader2 } from 'lucide-react';
 
-type AuthMode = 'login' | 'signup' | 'forgot';
-
-interface AuthModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
-  const [mode, setMode] = useState<AuthMode>('login');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
-  
+export default function AuthModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) {
+  const [mode, setMode] = useState<'login' | 'signup'>('login');
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    firstName: '', middleName: '', lastName: '', email: '', password: '', classLevel: '', state: ''
+  });
 
-  const resetState = () => {
-    setError('');
-    setMessage('');
-    setEmail('');
-    setPassword('');
-    setName('');
-  };
-
-  const switchMode = (newMode: AuthMode) => {
-    resetState();
-    setMode(newMode);
-  };
-
-  const handleEmailAuth = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setMessage('');
-    setIsLoading(true);
-
+    setLoading(true);
     try {
       if (mode === 'signup') {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        await updateProfile(userCredential.user, { displayName: name });
-        await sendEmailVerification(userCredential.user);
+        const cred = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+        await setDoc(doc(db, 'users', cred.user.uid), {
+          uid: cred.user.uid,
+          firstName: formData.firstName,
+          middleName: formData.middleName,
+          lastName: formData.lastName,
+          displayName: `${formData.firstName} ${formData.lastName}`,
+          classLevel: formData.classLevel,
+          state: formData.state,
+          role: 'student',
+          createdAt: new Date()
+        });
+        await sendEmailVerification(cred.user);
         await auth.signOut();
-        
-        setMessage('Access Node created! Check your email to verify your identity.');
-        setTimeout(() => switchMode('login'), 5000);
-
-      } else if (mode === 'login') {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        
-        if (!userCredential.user.emailVerified) {
-          await sendEmailVerification(userCredential.user);
-          await auth.signOut(); 
-          setError("Access Denied: Email not verified. A new link has been dispatched to your inbox.");
-          return;
-        }
-        onClose();
-      } else if (mode === 'forgot') {
-        await sendPasswordResetEmail(auth, email);
-        setMessage('Recovery instructions dispatched! Check your inbox.');
+        alert("Account created. Please verify your email.");
+      } else {
+        await signInWithEmailAndPassword(auth, formData.email, formData.password);
       }
-    } catch (err: any) {
-      console.error(err);
-      let errorText = "Authentication failure. Please try again.";
-      if (err.code === 'auth/email-already-in-use') errorText = "Access Node already exists for this email.";
-      if (err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') errorText = "Invalid credentials. Access denied.";
-      if (err.code === 'auth/weak-password') errorText = "Security low: Password must be 6+ characters.";
-      setError(errorText);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleGoogleAuth = async () => {
-    try {
-      await signInWithGoogle();
       onClose();
-    } catch (err) {
-      setError("Google Handshake failed. Try again.");
-    }
+    } catch (err: any) { setError(err.message); }
+    finally { setLoading(false); }
   };
 
   if (!isOpen) return null;
 
-  // 🚀 createPortal TELEPORTS THIS OUT OF THE NAVBAR AND INTO THE <body>
   return createPortal(
-    <div className="fixed inset-0 z-[99999] grid place-items-center p-4 sm:p-6 bg-slate-950/60 backdrop-blur-sm">
-      
-      {/* Outer Container with absolute dead-center alignment */}
-      <div className="w-full max-w-md bg-slate-900 rounded-[32px] border border-slate-700 shadow-2xl flex flex-col overflow-hidden max-h-[85vh] sm:max-h-[80vh]">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+      <div className="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-lg p-8 overflow-y-auto max-h-[90vh]">
+        <button onClick={onClose} className="float-right text-slate-400"><X /></button>
+        <h2 className="text-2xl font-black text-white mb-6 uppercase">{mode === 'signup' ? 'Sign Up' : 'Login'}</h2>
         
-        {/* Header - Stays glued to the top */}
-        <div className="flex justify-between items-center p-6 border-b border-slate-800 bg-slate-900 shrink-0">
-          <h3 className="text-xl font-black uppercase italic tracking-tighter text-white">
-            {mode === 'login' ? 'SYSTEM LOGIN' : mode === 'signup' ? 'CREATE ACCESS NODE' : 'RECOVER PASSKEY'}
-          </h3>
-          <button onClick={onClose} className="p-2 bg-slate-800 rounded-full text-slate-400 hover:text-white transition-all">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
-        {/* Form Body - flex-1 and min-h-0 strictly prevent cutoff inside the box */}
-        <div className="p-6 sm:p-8 overflow-y-auto flex-1 min-h-0 custom-scrollbar">
-          
-          {error && (
-            <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold uppercase tracking-widest rounded-xl flex items-center gap-3 text-left leading-relaxed">
-              <ShieldAlert className="h-6 w-6 shrink-0" />
-              <span>{error}</span>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {mode === 'signup' && (
+            <div className="grid grid-cols-2 gap-4">
+              <input required placeholder="First Name *" className="w-full bg-slate-800 p-3 rounded-xl text-white" onChange={e => setFormData({...formData, firstName: e.target.value})} />
+              <input placeholder="Middle Name" className="w-full bg-slate-800 p-3 rounded-xl text-white" onChange={e => setFormData({...formData, middleName: e.target.value})} />
+              <input required placeholder="Last Name *" className="w-full bg-slate-800 p-3 rounded-xl text-white col-span-2" onChange={e => setFormData({...formData, lastName: e.target.value})} />
+              <select required className="w-full bg-slate-800 p-3 rounded-xl text-white" onChange={e => setFormData({...formData, classLevel: e.target.value})}>
+                <option value="">Select Class *</option>
+                {CLASS_LEVELS.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+              <select required className="w-full bg-slate-800 p-3 rounded-xl text-white" onChange={e => setFormData({...formData, state: e.target.value})}>
+                <option value="">Select State *</option>
+                {INDIA_STATES_AND_UTS.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
             </div>
           )}
-          
-          {message && (
-            <div className="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-widest rounded-xl text-center">
-              {message}
-            </div>
-          )}
-
-          <form onSubmit={handleEmailAuth} className="space-y-5">
-            {mode === 'signup' && (
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Full Name</label>
-                <div className="relative">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-                  <input 
-                    type="text" required value={name} onChange={e => setName(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 p-4 pl-12 rounded-2xl text-white font-bold outline-none focus:border-brand transition-all"
-                  />
-                </div>
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Email Address</label>
-              <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-                <input 
-                  type="email" required value={email} onChange={e => setEmail(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 p-4 pl-12 rounded-2xl text-white font-bold outline-none focus:border-brand transition-all"
-                />
-              </div>
-            </div>
-
-            {mode !== 'forgot' && (
-              <div className="space-y-2">
-                <div className="flex justify-between items-center ml-4">
-                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Password</label>
-                  {mode === 'login' && (
-                    <button type="button" onClick={() => switchMode('forgot')} className="text-[9px] font-black uppercase text-brand hover:underline tracking-widest">
-                      FORGOT?
-                    </button>
-                  )}
-                </div>
-                <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-                  <input 
-                    type="password" required value={password} onChange={e => setPassword(e.target.value)} minLength={6}
-                    className="w-full bg-slate-800 border border-slate-700 p-4 pl-12 rounded-2xl text-white font-bold outline-none focus:border-brand transition-all"
-                  />
-                </div>
-              </div>
-            )}
-
-            <button 
-              type="submit" disabled={isLoading}
-              className="w-full py-4 mt-6 bg-[#2563EB] text-white rounded-2xl font-black uppercase tracking-[0.1em] text-xs shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2"
-            >
-              {isLoading ? 'PROCESSING...' : mode === 'login' ? 'AUTHENTICATE' : mode === 'signup' ? 'INITIALIZE NODE' : 'DISPATCH LINK'} 
-              {!isLoading && <ArrowRight className="h-4 w-4" />}
-            </button>
-          </form>
-
-          <div className="mt-8 pt-6 border-t border-slate-800">
-            <button 
-              onClick={handleGoogleAuth} type="button"
-              className="w-full py-4 bg-white text-slate-900 rounded-2xl font-black uppercase tracking-[0.1em] text-xs shadow-xl active:scale-95 transition-all flex items-center justify-center gap-3"
-            >
-              <img src="https://www.google.com/favicon.ico" alt="Google" className="h-4 w-4" />
-              CONTINUE WITH GOOGLE
-            </button>
-          </div>
-
-          <div className="mt-6 text-center">
-            {mode === 'login' ? (
-              <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest">
-                NO ACCESS NODE? <button onClick={() => switchMode('signup')} className="text-[#2563EB] hover:underline">Create One</button>
-              </p>
-            ) : (
-              <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest">
-                RETURN TO <button onClick={() => switchMode('login')} className="text-[#2563EB] hover:underline">System Login</button>
-              </p>
-            )}
-          </div>
-          
-        </div>
+          <input required type="email" placeholder="Email" className="w-full bg-slate-800 p-3 rounded-xl text-white" onChange={e => setFormData({...formData, email: e.target.value})} />
+          <input required type="password" placeholder="Password" className="w-full bg-slate-800 p-3 rounded-xl text-white" onChange={e => setFormData({...formData, password: e.target.value})} />
+          <button className="w-full py-4 bg-brand rounded-xl text-white font-bold">{loading ? <Loader2 className="animate-spin" /> : 'Continue'}</button>
+        </form>
+        <button onClick={() => setMode(mode === 'signup' ? 'login' : 'signup')} className="text-brand mt-4 block w-full text-sm">
+          {mode === 'signup' ? 'Already have an account? Login' : 'Need an account? Sign Up'}
+        </button>
       </div>
     </div>,
     document.body

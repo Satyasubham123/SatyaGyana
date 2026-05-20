@@ -1,9 +1,6 @@
 import { doc, getDoc, setDoc, updateDoc, collection, getDocs, query, orderBy, limit, addDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { User } from 'firebase/auth';
-import imageCompression from 'browser-image-compression';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-import { storage } from '../lib/firebase';
 
 // --- INTERFACES ---
 export interface UserProfile {
@@ -42,6 +39,11 @@ export interface UserProfile {
   studyHours?: number;
   accuracy?: number;
   weakTopics?: string[];
+  
+  // Real-time dashboard tracking fields
+  nextMilestoneDate?: Date | any; 
+  nextMilestoneName?: string;
+  dailyXPTracker?: { date: string, xp: number };
 }
 
 export interface ActivitySignal {
@@ -62,7 +64,8 @@ const USER_EDITABLE_FIELDS: (keyof UserProfile)[] = [
   'photoURL', 'classLevel', 'school', 'medium', 'learningGoals', 
   'username', 'bio', 'interests', 'timezone', 'state', 'mood', 
   'themeColor', 'avatarUrl', 'bannerUrl', 'xpPoints', 'totalXP', 
-  'level', 'streakCount', 'badges', 'studyHours', 'accuracy', 'weakTopics'
+  'level', 'streakCount', 'badges', 'studyHours', 'accuracy', 'weakTopics',
+  'nextMilestoneDate', 'nextMilestoneName', 'dailyXPTracker'
 ];
 
 // Helper to convert Firestore Timestamps to JS Dates
@@ -74,7 +77,6 @@ export async function syncUserProfile(user: User): Promise<UserProfile> {
   
   if (snap.exists()) {
     const data = snap.data();
-    // 🚀 FIXED: Convert Firestore Timestamps to native JS Dates
     return {
       ...data,
       createdAt: toDate(data.createdAt),
@@ -127,7 +129,7 @@ export const isProfileComplete = (profile: UserProfile | null): boolean => {
   return !!(profile.firstName && profile.lastName && profile.classLevel && profile.state);
 };
 
-// --- ACTIVITY SIGNALS (Restored) ---
+// --- ACTIVITY SIGNALS ---
 export async function addActivitySignal(uid: string, title: string, description: string, type: 'achievement' | 'learning' | 'system') {
   try {
     await addDoc(collection(db, `users/${uid}/signals`), { title, description, type, timestamp: new Date(), read: false });

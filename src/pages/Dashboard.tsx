@@ -1,6 +1,6 @@
-import { User as FirebaseUser } from 'firebase/auth';
 import { useEffect, useState } from 'react';
-import { syncUserProfile, UserProfile, updateUserProfile } from '../services/userService';
+import { useUser } from '../contexts/UserContext';
+import { updateUserProfile } from '../services/userService';
 import { contentService } from '../services/contentService';
 import { motion } from 'motion/react';
 import { 
@@ -9,8 +9,6 @@ import {
   Play, CheckCircle, ChevronRight, Zap
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { BadgeIcon } from '../components/BadgeIcon';
-import { FounderProfile } from '../components/FounderProfile';
 import StatsSummary from '../components/StatsSummary';
 
 declare global {
@@ -19,12 +17,6 @@ declare global {
       readonly VITE_GEMINI_API_KEY?: string;
     };
   }
-}
-
-interface DashboardProps {
-  user: FirebaseUser;
-  profile: UserProfile | null;
-  setProfile: React.Dispatch<React.SetStateAction<UserProfile | null>>;
 }
 
 const CLASSES = ["Class 6", "Class 7", "Class 8", "Class 9", "Class 10"];
@@ -37,8 +29,11 @@ const SUBJECTS = [
   { id: 'cs', name: 'Computer Science', icon: <Cpu />, color: 'bg-slate-700', textColor: 'text-slate-700' },
 ];
 
-export default function Dashboard({ user, profile, setProfile }: DashboardProps) {
-  const [loading, setLoading] = useState(false);
+export default function Dashboard() {
+  // 1. Pull data directly from the real-time Context
+  const { user, profile, loading: contextLoading } = useUser();
+
+  const [loadingClass, setLoadingClass] = useState(false);
   const [studyPlan, setStudyPlan] = useState<any>(null);
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
   const [dbCourses, setDbCourses] = useState<any[]>([]);
@@ -46,11 +41,11 @@ export default function Dashboard({ user, profile, setProfile }: DashboardProps)
   const [userProgress, setUserProgress] = useState<any[]>([]);
 
   useEffect(() => {
-    if (profile?.classLevel) {
+    if (profile?.classLevel && user) {
       fetchCourses();
       fetchUserData();
     }
-  }, [profile?.classLevel, user.uid]);
+  }, [profile?.classLevel, user]);
 
   const fetchCourses = async () => {
     if (!profile?.classLevel) return;
@@ -63,6 +58,7 @@ export default function Dashboard({ user, profile, setProfile }: DashboardProps)
   };
 
   const fetchUserData = async () => {
+    if (!user) return;
     try {
       const history = await contentService.getUserHistory(user.uid);
       const progress = await contentService.getUserProgress(user.uid);
@@ -119,22 +115,20 @@ export default function Dashboard({ user, profile, setProfile }: DashboardProps)
   };
 
   const handleClassSelect = async (className: string) => {
-    if (!profile) return;
-    setLoading(true);
+    if (!user) return;
+    setLoadingClass(true);
     try {
+      // 2. Just update Firestore. The context onSnapshot listener will auto-update the UI!
       await updateUserProfile(user.uid, { classLevel: className });
-
-setProfile(prev =>
-  prev ? { ...prev, classLevel: className } : prev
-);
     } catch (err) {
       console.error(err);
     } finally {
-      setLoading(false);
+      setLoadingClass(false);
     }
   };
 
-  if (!profile || loading) {
+  // 3. Show loading skeleton while real-time data connects
+  if (contextLoading || loadingClass || !profile || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-bg-deep">
         <div className="animate-pulse flex flex-col items-center">
@@ -145,10 +139,13 @@ setProfile(prev =>
     );
   }
 
+  // Handle users who haven't picked a class yet
   if (profile && !profile.classLevel) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-20 text-center">
-        <h2 className="text-4xl md:text-6xl font-black uppercase italic tracking-tighter mb-4 text-main">Welcome, {user.displayName}!</h2>
+        <h2 className="text-4xl md:text-6xl font-black uppercase italic tracking-tighter mb-4 text-main">
+          Welcome, {profile.firstName || user.displayName}!
+        </h2>
         <p className="text-secondary font-medium mb-12 uppercase tracking-widest text-sm">Select your current sector to initialize data stream.</p>
         <div className="flex flex-wrap justify-center gap-4">
           {CLASSES.map((cls) => (
@@ -168,12 +165,17 @@ setProfile(prev =>
     );
   }
 
+  // 4. Dynamic Greeting variables
+  const firstName = profile.firstName || profile.displayName?.split(' ')[0] || 'Student';
+  const xp = profile.totalXP || profile.xpPoints || 0;
+  const streak = profile.streakCount || 0;
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 sm:py-16 bg-bg-deep min-h-screen">
       <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 sm:gap-8 mb-10 text-center sm:text-left">
         <div>
           <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-black uppercase italic tracking-tighter mb-4 text-main leading-tight">
-            Namaste, {user.displayName?.split(' ')[0]}!
+            NAMASTE, {firstName.toUpperCase()}!
           </h1>
           <p className="text-secondary text-sm sm:text-base md:text-lg font-medium">
             You are at <span className="text-brand font-black underline decoration-brand/30 underline-offset-8 tracking-widest text-[10px] sm:text-xs uppercase">{profile?.classLevel || 'Unspecified'}</span>. Initializing adaptive session.
@@ -190,14 +192,12 @@ setProfile(prev =>
         </div>
       </div>
 
-      {/* 🚀 FIXED: Added (profile.role === 'admin') so you can physically see the banner while developing */}
       {((profile as any)?.subscriptionPlan === 'trial' || (profile as any)?.role === 'admin') && (
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-10 bg-gradient-to-r from-brand/10 via-blue-900/20 to-slate-900 border border-brand/30 rounded-[24px] p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden shadow-2xl"
         >
-          {/* Decorative Background Glow */}
           <div className="absolute -top-10 -right-10 w-40 h-40 bg-brand/20 rounded-full blur-3xl"></div>
           
           <div className="relative z-10 text-center md:text-left">
@@ -222,8 +222,9 @@ setProfile(prev =>
         </motion.div>
       )}
 
+      {/* Stats Summary - Now passed with empty props so it can pull from its own Context link later */}
       <div className="mb-12 -mx-4 sm:mx-0">
-         <StatsSummary user={user} />
+         <StatsSummary />
       </div>
 
       <div className="grid grid-cols-12 gap-8">
@@ -348,20 +349,18 @@ setProfile(prev =>
                        <span>Tier {profile?.level || 1}</span>
                     </div>
                     <div className="h-2 bg-border-subtle rounded-sm overflow-hidden">
-                       {/* @ts-ignore */}
-                       <div className="h-full bg-brand" style={{ width: `${(profile?.totalXP || profile?.xpPoints || 0) % 100}%` }}></div>
+                       <div className="h-full bg-brand transition-all duration-500" style={{ width: `${xp % 100}%` }}></div>
                     </div>
                  </div>
                  
                  <div className="grid grid-cols-2 gap-4">
                     <div className="bg-bg-deep p-4 border border-border-subtle rounded-xl">
                        <p className="text-[10px] font-black text-muted uppercase mb-1">XP Gain</p>
-                       {/* @ts-ignore */}
-                       <p className="text-2xl font-black italic text-main">{profile?.totalXP || profile?.xpPoints || 0}</p>
+                       <p className="text-2xl font-black italic text-main">{xp > 0 ? xp : '0'}</p>
                     </div>
                     <div className="bg-bg-deep p-4 border border-border-subtle rounded-xl">
                        <p className="text-[10px] font-black text-muted uppercase mb-1">Streak</p>
-                       <p className="text-2xl font-black italic text-main">{profile?.streakCount || 0}d</p>
+                       <p className="text-2xl font-black italic text-main">{streak > 0 ? `${streak}d` : '0d'}</p>
                     </div>
                  </div>
               </div>
