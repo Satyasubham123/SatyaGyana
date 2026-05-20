@@ -4,7 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Toaster, toast } from 'react-hot-toast';
 import { 
   Edit2, MapPin, Clock, Trophy, Target, 
-  Activity, Zap, GraduationCap, CheckCircle, Brain, Sparkles, Loader2
+  Activity, Zap, GraduationCap, CheckCircle, Brain, 
+  Sparkles, Loader2, User as UserIcon, BookOpen, Star, Shield, Mail
 } from 'lucide-react';
 import { 
   UserProfile, syncUserProfile, updateUserProfile, 
@@ -14,14 +15,15 @@ import {
 interface ProfileProps {
   user: FirebaseUser;
   profile: UserProfile | null;
-  setProfile: React.Dispatch<React.SetStateAction<UserProfile | null>>;
+  setProfile: (p: UserProfile) => void;
 }
-type TabType = 'overview' | 'edit' | 'settings';
+
+type TabType = 'profile' | 'overview' | 'edit' | 'settings';
 
 export default function Profile({ user, profile: initialProfile, setProfile }: ProfileProps) {
   const [profile, setLocalProfile] = useState<UserProfile | null>(initialProfile);
   const [signals, setSignals] = useState<ActivitySignal[]>([]);
-  const [activeTab, setActiveTab] = useState<TabType>('overview');
+  const [activeTab, setActiveTab] = useState<TabType>('profile');
   const [isLoading, setIsLoading] = useState(!initialProfile);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -44,10 +46,16 @@ export default function Profile({ user, profile: initialProfile, setProfile }: P
         setIsLoading(false);
       }
     };
-    if (user && ! initialProfile) {
-      loadData();
-    }
+    if (user) loadData();
   }, [user]);
+
+  // Ensure formData updates if the global profile prop updates
+  useEffect(() => {
+    if (initialProfile) {
+      setLocalProfile(initialProfile);
+      setFormData(initialProfile);
+    }
+  }, [initialProfile]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -56,112 +64,244 @@ export default function Profile({ user, profile: initialProfile, setProfile }: P
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
-    const savePromise = updateUserProfile(user.uid, formData);
     
-    toast.promise(savePromise, {
-      loading: 'Updating parameters...',
-      success: 'Profile data synchronized.',
-      error: 'Data transmission failed.'
-    });
-
     try {
-      await savePromise;
-      const updatedProfile = {
-        ...profile,
-        ...formData
-      } as UserProfile;
-
-      setProfile(updatedProfile);
-      setActiveTab('overview');
+      await updateUserProfile(user.uid, formData);
+      const updatedProfile = { ...profile!, ...formData } as UserProfile;
+      setLocalProfile(updatedProfile);
+      setProfile(updatedProfile); // Sync Globally
+      toast.success('Profile parameters updated securely.', { icon: '✅' });
+      setActiveTab('profile');
+    } catch (err) {
+      toast.error('Data transmission failed.');
     } finally {
       setIsSaving(false);
     }
   };
 
+  const calculateCompletion = () => {
+    if (!profile) return 0;
+    const fields = ['displayName', 'username', 'bio', 'classLevel', 'school', 'state', 'medium'];
+    const filled = fields.filter(f => !!(profile as any)[f]).length;
+    return Math.round((filled / fields.length) * 100);
+  };
+
+  const completionPercent = calculateCompletion();
+
   if (isLoading || !profile) {
     return (
-      <div className="min-h-screen bg-bg-deep flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-8 w-8 text-brand animate-spin" />
-          <p className="text-xs font-black uppercase tracking-widest text-slate-500">Loading Neural Profile...</p>
+      <div className="min-h-screen bg-bg-deep pt-24 px-4 sm:px-8">
+        <div className="max-w-7xl mx-auto space-y-8 animate-pulse">
+          <div className="h-12 w-64 bg-slate-800/50 rounded-xl"></div>
+          <div className="flex gap-4 border-b border-slate-800/50 pb-2">
+            <div className="h-8 w-24 bg-slate-800/50 rounded-lg"></div>
+            <div className="h-8 w-24 bg-slate-800/50 rounded-lg"></div>
+            <div className="h-8 w-24 bg-slate-800/50 rounded-lg"></div>
+          </div>
+          <div className="h-[500px] bg-slate-900/50 rounded-[32px] border border-slate-800/50"></div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-bg-deep text-slate-100 pb-24">
+    <div className="min-h-screen bg-bg-deep text-slate-100 pb-24 relative overflow-hidden">
       <Toaster position="top-center" toastOptions={{
         style: { background: '#0F172A', color: '#fff', border: '1px solid #1E293B', borderRadius: '16px' }
       }}/>
 
-      {/* --- PREMIUM BANNER (No Upload Overlay) --- */}
-      <div className="relative w-full h-64 sm:h-80 bg-slate-900 overflow-hidden">
-        {profile.bannerUrl ? (
-          <img src={profile.bannerUrl} alt="Cover" className="w-full h-full object-cover opacity-80" />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-tr from-brand/20 via-blue-900/40 to-slate-900" />
-        )}
-      </div>
+      {/* Animated Background Gradients */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-5xl h-[500px] bg-brand/10 blur-[120px] rounded-full pointer-events-none opacity-50 mix-blend-screen"></div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative -mt-24">
-        <div className="bg-slate-900/80 backdrop-blur-2xl border border-slate-800 rounded-[32px] p-6 sm:p-8 shadow-2xl flex flex-col sm:flex-row items-center sm:items-start gap-6 sm:gap-8">
-          
-          {/* Avatar System (No Upload Overlay) */}
-          <div className="relative -mt-16 sm:-mt-20 shrink-0">
-            <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-[2rem] border-4 border-slate-900 bg-slate-800 overflow-hidden shadow-2xl relative">
-              <img 
-                src={profile.avatarUrl || user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`} 
-                alt="Avatar" className="w-full h-full object-cover" 
-              />
-            </div>
-          </div>
-
-          {/* Core Info */}
-          <div className="flex-1 text-center sm:text-left mt-2">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <h1 className="text-3xl sm:text-4xl font-black italic uppercase tracking-tighter text-white">
-                  {profile.displayName || 'Anonymous Node'}
-                </h1>
-                <p className="text-brand font-bold uppercase tracking-widest text-xs mt-1">
-                  @{profile.username || user.uid.slice(0,8)} • Level {profile.level || 1}
-                </p>
-              </div>
-              <button onClick={() => setActiveTab('edit')} className="px-6 py-3 bg-brand/10 text-brand border border-brand/20 hover:bg-brand hover:text-white rounded-xl font-black uppercase tracking-widest text-xs transition-all flex items-center justify-center gap-2 shrink-0">
-                <Edit2 className="h-4 w-4" /> Edit Profile
-              </button>
-            </div>
-            
-            <p className="mt-4 text-slate-400 font-medium max-w-2xl leading-relaxed">
-              {profile.bio || "No biographical data initialized. Edit profile to configure your learning matrix."}
-            </p>
-
-            <div className="mt-6 flex flex-wrap items-center justify-center sm:justify-start gap-4 sm:gap-6">
-              {profile.school && <div className="flex items-center gap-2 text-slate-500 text-xs font-bold uppercase tracking-widest"><GraduationCap className="h-4 w-4" /> {profile.school}</div>}
-              {profile.state && <div className="flex items-center gap-2 text-slate-500 text-xs font-bold uppercase tracking-widest"><MapPin className="h-4 w-4" /> {profile.state}</div>}
-              {profile.timezone && <div className="flex items-center gap-2 text-slate-500 text-xs font-bold uppercase tracking-widest"><Clock className="h-4 w-4" /> {profile.timezone}</div>}
-            </div>
-          </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative pt-12">
+        
+        {/* Page Header */}
+        <div className="mb-10">
+           <h1 className="text-3xl sm:text-5xl font-black uppercase italic tracking-tighter text-white flex items-center gap-3">
+             <UserIcon className="h-8 w-8 sm:h-10 sm:w-10 text-brand" /> Neural Identity
+           </h1>
+           <p className="text-slate-400 font-medium mt-2 text-sm sm:text-base">Manage your synchronization parameters and learning telemetry.</p>
         </div>
 
         {/* --- NAVIGATION TABS --- */}
-        <div className="mt-8 flex gap-2 border-b border-slate-800 overflow-x-auto custom-scrollbar pb-1">
-          {['overview', 'edit', 'settings'].map((tab) => (
-            <button key={tab} onClick={() => setActiveTab(tab as TabType)} className={`px-6 py-4 text-xs font-black uppercase tracking-widest whitespace-nowrap transition-all border-b-2 ${activeTab === tab ? 'border-brand text-brand' : 'border-transparent text-slate-500 hover:text-slate-300'}`}>
-              {tab}
+        <div className="flex gap-2 sm:gap-6 border-b border-slate-800/80 overflow-x-auto custom-scrollbar pb-1">
+          {[
+            { id: 'profile', label: 'Your Profile', icon: <UserIcon className="h-4 w-4" /> },
+            { id: 'overview', label: 'Overview', icon: <Activity className="h-4 w-4" /> },
+            { id: 'edit', label: 'Edit', icon: <Edit2 className="h-4 w-4" /> },
+            { id: 'settings', label: 'Settings', icon: <Shield className="h-4 w-4" /> }
+          ].map((tab) => (
+            <button 
+              key={tab.id} 
+              onClick={() => setActiveTab(tab.id as TabType)} 
+              className={`px-4 sm:px-6 py-4 text-xs font-black uppercase tracking-widest whitespace-nowrap transition-all border-b-2 flex items-center gap-2 ${
+                activeTab === tab.id 
+                ? 'border-brand text-brand bg-brand/5 rounded-t-xl' 
+                : 'border-transparent text-slate-500 hover:text-slate-300 hover:bg-slate-800/30 rounded-t-xl'
+              }`}
+            >
+              {tab.icon} {tab.label}
             </button>
           ))}
         </div>
 
         {/* --- TAB CONTENT --- */}
         <AnimatePresence mode="wait">
-          <motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }} className="mt-8">
+          <motion.div 
+            key={activeTab} 
+            initial={{ opacity: 0, y: 15 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            exit={{ opacity: 0, y: -15 }} 
+            transition={{ duration: 0.3, ease: "easeOut" }} 
+            className="mt-8"
+          >
             
-            {/* OVERVIEW TAB */}
+            {/* 🚀 TAB 1: YOUR PROFILE (NEW) */}
+            {activeTab === 'profile' && (
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                
+                {/* Left Column: Identity Card */}
+                <div className="lg:col-span-5 space-y-8">
+                   <div className="bg-slate-900/60 backdrop-blur-2xl border border-slate-800 rounded-[32px] overflow-hidden shadow-2xl relative group hover:border-brand/30 transition-all">
+                      <div className="h-32 bg-gradient-to-br from-brand/20 via-blue-900/40 to-slate-900 relative">
+                         {profile.isPremium && (
+                           <div className="absolute top-4 right-4 bg-yellow-500 text-slate-900 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest shadow-lg flex items-center gap-1">
+                             <Star className="h-3 w-3" /> Premium
+                           </div>
+                         )}
+                      </div>
+                      
+                      <div className="px-8 pb-8 relative">
+                         <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-[2rem] border-4 border-slate-900 bg-slate-800 overflow-hidden shadow-[0_0_30px_rgba(59,130,246,0.3)] absolute -top-16">
+                           <img 
+                             src={profile.avatarUrl || user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`} 
+                             alt="Avatar" className="w-full h-full object-cover" 
+                           />
+                         </div>
+                         
+                         <div className="pt-20">
+                            <h2 className="text-3xl font-black italic uppercase tracking-tighter text-white">{profile.displayName || 'Unnamed Node'}</h2>
+                            <p className="text-brand font-bold text-sm mt-1">@{profile.username || user.uid.slice(0,8)}</p>
+                            
+                            <p className="mt-4 text-slate-400 text-sm font-medium leading-relaxed">
+                              {profile.bio || <span className="italic opacity-50">No biographical data found. Update profile to calibrate identity.</span>}
+                            </p>
+
+                            <div className="mt-6 space-y-3">
+                               {profile.school && (
+                                 <div className="flex items-center gap-3 text-slate-300 text-sm font-semibold">
+                                    <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-brand"><GraduationCap className="h-4 w-4" /></div>
+                                    {profile.school}
+                                 </div>
+                               )}
+                               {profile.classLevel && (
+                                 <div className="flex items-center gap-3 text-slate-300 text-sm font-semibold">
+                                    <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-emerald-400"><BookOpen className="h-4 w-4" /></div>
+                                    {profile.classLevel}
+                                 </div>
+                               )}
+                               {profile.state && (
+                                 <div className="flex items-center gap-3 text-slate-300 text-sm font-semibold">
+                                    <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-orange-400"><MapPin className="h-4 w-4" /></div>
+                                    {profile.state}
+                                 </div>
+                               )}
+                               <div className="flex items-center gap-3 text-slate-300 text-sm font-semibold">
+                                  <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-purple-400"><Mail className="h-4 w-4" /></div>
+                                  {user.email}
+                               </div>
+                            </div>
+                         </div>
+                      </div>
+                   </div>
+
+                   {/* Completion Tracker */}
+                   <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6">
+                      <div className="flex justify-between items-center mb-3">
+                         <h3 className="text-xs font-black uppercase tracking-widest text-slate-400">Profile Configuration</h3>
+                         <span className="text-brand font-black text-sm">{completionPercent}%</span>
+                      </div>
+                      <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
+                         <div className="h-full bg-brand transition-all duration-1000 relative" style={{ width: `${completionPercent}%` }}>
+                            <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
+                         </div>
+                      </div>
+                      {completionPercent < 100 && (
+                        <p className="text-[10px] text-slate-500 mt-3 font-semibold uppercase tracking-wider">Complete your profile in the Edit tab to unlock optimal AI calibration.</p>
+                      )}
+                   </div>
+                </div>
+
+                {/* Right Column: Stats & Goals */}
+                <div className="lg:col-span-7 space-y-8">
+                   
+                   {/* Level & XP Box */}
+                   <div className="bg-gradient-to-br from-slate-900 to-slate-900/80 border border-slate-800 hover:border-brand/30 transition-all rounded-[32px] p-8 relative overflow-hidden">
+                      <div className="absolute top-0 right-0 w-64 h-64 bg-brand/5 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none"></div>
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6 mb-8 relative z-10">
+                         <div>
+                            <p className="text-xs font-black uppercase tracking-widest text-brand mb-2 flex items-center gap-2"><Zap className="h-4 w-4" /> Current Link Level</p>
+                            <h2 className="text-5xl sm:text-6xl font-black italic uppercase tracking-tighter text-white">Tier {profile.level || 1}</h2>
+                         </div>
+                         <div className="text-left sm:text-right">
+                            <p className="text-xs font-black uppercase tracking-widest text-slate-500 mb-1">Total Accumulated XP</p>
+                            <p className="text-2xl font-black text-slate-300">{(profile.totalXP || profile.xpPoints || 0).toLocaleString()} XP</p>
+                         </div>
+                      </div>
+                      <div className="relative z-10">
+                         <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">
+                           <span>Level {profile.level || 1}</span>
+                           <span>Level {(profile.level || 1) + 1}</span>
+                         </div>
+                         <div className="h-3 w-full bg-slate-800 rounded-full overflow-hidden border border-slate-700/50 shadow-inner">
+                            <div className="h-full bg-gradient-to-r from-brand to-cyan-400" style={{ width: `${(profile.totalXP || profile.xpPoints || 0) % 100}%` }}></div>
+                         </div>
+                      </div>
+                   </div>
+
+                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                     {/* Badges / Achievements */}
+                     <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6">
+                        <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2"><Trophy className="h-4 w-4 text-orange-400" /> Achievement Badges</h3>
+                        <div className="grid grid-cols-3 gap-4">
+                           {/* Placeholder Badges to look beautiful */}
+                           <div className="aspect-square bg-slate-800/50 rounded-2xl border border-slate-700 flex items-center justify-center text-yellow-500 hover:scale-110 transition-transform shadow-[0_0_15px_rgba(234,179,8,0.1)] cursor-help" title="First Login">
+                              <Star className="h-6 w-6" />
+                           </div>
+                           <div className="aspect-square bg-slate-800/50 rounded-2xl border border-slate-700 flex items-center justify-center text-blue-400 hover:scale-110 transition-transform shadow-[0_0_15px_rgba(96,165,250,0.1)] cursor-help" title="7 Day Streak">
+                              <Zap className="h-6 w-6" />
+                           </div>
+                           <div className="aspect-square bg-slate-800/50 rounded-2xl border border-slate-700 flex items-center justify-center text-emerald-400 hover:scale-110 transition-transform shadow-[0_0_15px_rgba(52,211,153,0.1)] cursor-help" title="Profile Completed">
+                              <CheckCircle className="h-6 w-6" />
+                           </div>
+                        </div>
+                     </div>
+
+                     {/* Learning Goals */}
+                     <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6">
+                        <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2"><Target className="h-4 w-4 text-emerald-400" /> Active Directives</h3>
+                        {profile.learningGoals && profile.learningGoals.length > 0 ? (
+                          <div className="space-y-3">
+                            {profile.learningGoals.slice(0,3).map((goal, i) => (
+                              <div key={i} className="px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-xl text-xs font-bold text-slate-300 flex items-center gap-3">
+                                 <div className="w-1.5 h-1.5 rounded-full bg-brand"></div> {goal}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="h-24 flex items-center justify-center border-2 border-dashed border-slate-800 rounded-2xl opacity-50">
+                             <p className="text-[10px] uppercase tracking-widest font-bold text-slate-500">No active goals</p>
+                          </div>
+                        )}
+                     </div>
+                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 2: OVERVIEW (Analytics) */}
             {activeTab === 'overview' && (
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Left Column: Analytics */}
                 <div className="lg:col-span-2 space-y-8">
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                     <StatCard icon={<Zap />} label="Total XP" value={(profile.totalXP || profile.xpPoints || 0).toLocaleString()} color="text-yellow-400" bg="bg-yellow-400/10" border="border-yellow-400/20" />
@@ -169,24 +309,9 @@ export default function Profile({ user, profile: initialProfile, setProfile }: P
                     <StatCard icon={<Clock />} label="Hours" value={`${profile.studyHours || 0}h`} color="text-blue-400" bg="bg-blue-400/10" border="border-blue-400/20" />
                     <StatCard icon={<Target />} label="Accuracy" value={`${profile.accuracy || 0}%`} color="text-emerald-400" bg="bg-emerald-400/10" border="border-emerald-400/20" />
                   </div>
-
-                  {/* Learning Goals */}
-                  <div className="bg-slate-900/50 border border-slate-800 rounded-[24px] p-6 sm:p-8">
-                    <h3 className="text-sm font-black uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2"><Target className="h-5 w-5 text-brand" /> Current Directives</h3>
-                    {profile.learningGoals && profile.learningGoals.length > 0 ? (
-                      <div className="flex flex-wrap gap-3">
-                        {profile.learningGoals.map((goal, i) => (
-                          <span key={i} className="px-4 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs font-bold text-slate-300">{goal}</span>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-slate-500 text-sm italic">No active directives found. Update settings.</p>
-                    )}
-                  </div>
                 </div>
 
-                {/* Right Column: Activity Feed */}
-                <div className="bg-slate-900/50 border border-slate-800 rounded-[24px] p-6 sm:p-8 overflow-hidden flex flex-col h-[500px]">
+                <div className="bg-slate-900/60 border border-slate-800 rounded-[32px] p-6 sm:p-8 overflow-hidden flex flex-col h-[500px]">
                   <h3 className="text-sm font-black uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2 shrink-0"><Activity className="h-5 w-5 text-brand" /> Signal Feed</h3>
                   <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-4">
                     {signals.length > 0 ? signals.map((signal) => (
@@ -209,43 +334,54 @@ export default function Profile({ user, profile: initialProfile, setProfile }: P
               </div>
             )}
 
-            {/* EDIT PROFILE TAB */}
+            {/* TAB 3: EDIT PROFILE */}
             {activeTab === 'edit' && (
-              <form onSubmit={handleSaveProfile} className="bg-slate-900/50 border border-slate-800 rounded-[32px] p-6 sm:p-10 max-w-4xl">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+              <form onSubmit={handleSaveProfile} className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-[32px] p-6 sm:p-10 max-w-4xl shadow-2xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-brand/5 rounded-full blur-3xl pointer-events-none"></div>
+                
+                <div className="mb-8 border-b border-slate-800/80 pb-6 flex flex-col sm:flex-row items-center justify-between gap-4 relative z-10">
+                   <div>
+                      <h2 className="text-2xl font-black italic uppercase tracking-tighter text-white">Edit Parameters</h2>
+                      <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mt-1">Configure your neural identity</p>
+                   </div>
+                   <button type="submit" disabled={isSaving} className="w-full sm:w-auto px-8 py-4 bg-brand hover:bg-blue-600 text-white rounded-xl font-black uppercase tracking-widest text-xs shadow-xl shadow-brand/20 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50">
+                     {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
+                     {isSaving ? 'Processing...' : 'Save Changes'}
+                   </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 relative z-10">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Display Name</label>
-                    <input name="displayName" value={formData.displayName || ''} onChange={handleInputChange} required className="w-full bg-slate-950 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand focus:ring-1 focus:ring-brand" />
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Display Name <span className="text-red-500">*</span></label>
+                    <input name="displayName" value={formData.displayName || ''} onChange={handleInputChange} required className="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-all" />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Username</label>
-                    <input name="username" value={formData.username || ''} onChange={handleInputChange} className="w-full bg-slate-950 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand focus:ring-1 focus:ring-brand" />
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Username (Handle)</label>
+                    <input name="username" value={formData.username || ''} onChange={handleInputChange} className="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-all" />
                   </div>
                   
                   <div className="sm:col-span-2 space-y-2">
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Bio / Status</label>
-                    <textarea name="bio" value={formData.bio || ''} onChange={handleInputChange} rows={3} className="w-full bg-slate-950 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand focus:ring-1 focus:ring-brand resize-none" placeholder="How are you feeling today?" />
+                    <textarea name="bio" value={formData.bio || ''} onChange={handleInputChange} rows={3} className="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-all resize-none" placeholder="What are your goals?" />
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Class Level</label>
-                    {/* 🚀 FIXED: Only options 6 through 10 */}
-                    <select name="classLevel" value={formData.classLevel || ''} onChange={handleInputChange as any} className="w-full bg-slate-950 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand focus:ring-1 focus:ring-brand appearance-none">
-                      <option value="">Select Level</option>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Class Level <span className="text-red-500">*</span></label>
+                    <select name="classLevel" value={formData.classLevel || ''} onChange={handleInputChange as any} required className="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand focus:ring-1 focus:ring-brand appearance-none transition-all cursor-pointer">
+                      <option value="" disabled>Select Level</option>
                       {['Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10'].map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
                   
                   <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">School / Institution</label>
-                    <input name="school" value={formData.school || ''} onChange={handleInputChange} className="w-full bg-slate-950 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand focus:ring-1 focus:ring-brand" />
+                    <input name="school" value={formData.school || ''} onChange={handleInputChange} className="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-all" />
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">State / Region (India)</label>
-                    {/* 🚀 FIXED: Exact alphabetical list of all States and UTs */}
-                    <select name="state" value={formData.state || ''} onChange={handleInputChange as any} className="w-full bg-slate-950 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand focus:ring-1 focus:ring-brand appearance-none">
-                      <option value="">Select State / UT</option>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">State / Region (India) <span className="text-red-500">*</span></label>
+                    <select name="state" value={formData.state || ''} onChange={handleInputChange as any} required className="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand focus:ring-1 focus:ring-brand appearance-none transition-all cursor-pointer">
+                      <option value="" disabled>Select State / UT</option>
                       {[
                         "Andaman and Nicobar Islands", "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", 
                         "Chandigarh", "Chhattisgarh", "Dadra and Nagar Haveli and Daman and Diu", "Delhi", "Goa", 
@@ -259,32 +395,33 @@ export default function Profile({ user, profile: initialProfile, setProfile }: P
 
                   <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Primary Language Medium</label>
-                    <select name="medium" value={formData.medium || ''} onChange={handleInputChange as any} className="w-full bg-slate-950 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand focus:ring-1 focus:ring-brand appearance-none">
-                      <option value="">Select Medium</option>
+                    <select name="medium" value={formData.medium || ''} onChange={handleInputChange as any} className="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand focus:ring-1 focus:ring-brand appearance-none transition-all cursor-pointer">
+                      <option value="" disabled>Select Medium</option>
                       <option value="English">English</option>
                       <option value="Hindi">Hindi</option>
                       <option value="Odia">Odia</option>
                     </select>
                   </div>
                 </div>
-
-                <div className="mt-10 flex justify-end">
-                  <button type="submit" disabled={isSaving} className="px-8 py-4 bg-brand hover:bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50">
-                    {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
-                    {isSaving ? 'Processing...' : 'Save Configuration'}
-                  </button>
-                </div>
               </form>
             )}
 
-            {/* SETTINGS TAB */}
+            {/* TAB 4: SETTINGS */}
             {activeTab === 'settings' && (
-              <div className="bg-slate-900/50 border border-slate-800 rounded-[32px] p-8 max-w-4xl text-center">
-                <Sparkles className="h-12 w-12 text-slate-700 mx-auto mb-4" />
-                <h2 className="text-xl font-black uppercase italic tracking-tighter text-slate-300">Advanced Personalization</h2>
-                <p className="text-slate-500 text-sm mt-2">Theme color, focus modes, and notification preferences will be available in the v2 deployment.</p>
+              <div className="bg-slate-900/60 border border-slate-800 rounded-[32px] p-12 max-w-4xl text-center shadow-2xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-full h-full bg-brand/5 blur-3xl pointer-events-none"></div>
+                <div className="relative z-10 flex flex-col items-center">
+                   <div className="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(59,130,246,0.2)] border border-slate-700">
+                      <Shield className="h-10 w-10 text-brand" />
+                   </div>
+                   <h2 className="text-3xl font-black uppercase italic tracking-tighter text-white">System Preferences</h2>
+                   <p className="text-slate-400 text-sm mt-4 max-w-lg mx-auto font-medium leading-relaxed">
+                     Advanced personalization matrices including theme configurations, focus modes, and notification overrides are slated for deployment in v2.0.
+                   </p>
+                </div>
               </div>
             )}
+            
           </motion.div>
         </AnimatePresence>
       </div>
@@ -295,8 +432,8 @@ export default function Profile({ user, profile: initialProfile, setProfile }: P
 // Subcomponent for Stats
 function StatCard({ icon, label, value, color, bg, border }: { icon: React.ReactNode, label: string, value: string, color: string, bg: string, border: string }) {
   return (
-    <div className={`p-4 sm:p-6 bg-slate-900 border border-slate-800 rounded-2xl flex flex-col items-center sm:items-start text-center sm:text-left transition-all hover:border-slate-600`}>
-      <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${bg} ${color} ${border} border`}>
+    <div className={`p-4 sm:p-6 bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-3xl flex flex-col items-center sm:items-start text-center sm:text-left transition-all hover:border-slate-600 shadow-xl`}>
+      <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${bg} ${color} ${border} border shadow-lg`}>
         {React.cloneElement(icon as React.ReactElement<any>, { className: "h-5 w-5" })}
       </div>
       <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">{label}</p>
