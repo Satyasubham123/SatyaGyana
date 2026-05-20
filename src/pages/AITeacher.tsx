@@ -1,295 +1,355 @@
-import { useState, useRef, useEffect } from 'react';
-import { User as FirebaseUser } from 'firebase/auth';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Send, User, Bot, Sparkles, Languages, ChevronDown } from 'lucide-react';
-import { cn } from '../lib/utils';
-import { doc, getDoc, updateDoc, arrayUnion, setDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
-// 🚀 FIXED: Removed the broken handleFirestoreError and OperationType imports!
-import { syncUserProfile, UserProfile } from '../services/userService';
+import { 
+  Send, Sparkles, User, Brain, Paperclip, 
+  MessageSquare, Plus, MoreVertical, Trash2, 
+  Edit2, X, Image as ImageIcon, Loader2 
+} from 'lucide-react';
+import { useUser } from '../contexts/UserContext';
+import { chatService, ChatSession, ChatMessage } from '../services/chatService';
+import { aiService } from '../services/aiService';
+import { toast, Toaster } from 'react-hot-toast';
+import ReactMarkdown from 'react-markdown';
 
-// This block tells TypeScript that 'env' exists on import.meta globally
-declare global {
-  interface ImportMeta {
-    readonly env: {
-      readonly VITE_GEMINI_API_KEY?: string;
-    };
-  }
-}
-
-interface AITeacherProps {
-  user: FirebaseUser;
-  profile: UserProfile | null;
-}
-
-interface Message {
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: string;
-}
-
-export default function AITeacher({ user, profile: initialProfile }: AITeacherProps) {
-  const [messages, setMessages] = useState<Message[]>([]);
+export default function AITeacher() {
+  const { user } = useUser();
+  const [sessions, setSessions] = useState<ChatSession[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  
   const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [profile, setProfile] = useState<UserProfile | null>(initialProfile);
-  const [language, setLanguage] = useState<'English' | 'Hindi' | 'Odia'>('English');
-  const chatEndRef = useRef<HTMLDivElement>(null);
-  const isInitialMount = useRef(true);
+  const [isTyping, setIsTyping] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  
+  // Image Upload State
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Load chat history
+  // Load User's Chat History on Mount
   useEffect(() => {
-    const loadChatHistory = async () => {
-      try {
-        const chatDoc = await getDoc(doc(db, 'aiConversations', user.uid));
-        if (chatDoc.exists()) {
-          const data = chatDoc.data();
-          if (data.messages) {
-            setMessages(data.messages);
-          }
-        }
-      } catch (error) {
-        console.error('Error loading chat history:', error);
-      }
-    };
-
     if (user) {
-      loadChatHistory();
+      loadSessions();
     }
   }, [user]);
 
-  // Sync messages to Firestore
+  // Load Messages when Active Session Changes
   useEffect(() => {
-    const syncChatHistory = async () => {
-      if (isInitialMount.current) {
-        isInitialMount.current = false;
-        return;
-      }
-
-      if (messages.length === 0) return;
-
-      try {
-        await setDoc(doc(db, 'aiConversations', user.uid), {
-          userId: user.uid,
-          messages,
-          updatedAt: new Date().toISOString()
-        }, { merge: true });
-      } catch (error) {
-        // 🚀 FIXED: Just using standard console.error instead of the broken missing function
-        console.error('Error saving chat history:', error);
-      }
-    };
-
-    const timer = setTimeout(() => {
-      syncChatHistory();
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, [messages, user.uid]);
-
-  useEffect(() => {
-    setProfile(initialProfile);
-    if (initialProfile?.medium) {
-      setLanguage(initialProfile.medium as any);
+    if (activeSessionId) {
+      loadMessages(activeSessionId);
+    } else {
+      setMessages([]);
     }
-  }, [initialProfile]);
+  }, [activeSessionId]);
 
+  // Auto-scroll to bottom of chat
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, isTyping]);
 
-  const handleSendMessage = async () => {
-    if (!input.trim() || isLoading) return;
-
-    const userMessage: Message = {
-      role: 'user',
-      content: input,
-      timestamp: new Date().toISOString()
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-    setInput('');
-    setIsLoading(true);
-
-    try {
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY?.trim();
-      
-      if (!apiKey) {
-        throw new Error("API Key configuration missing on build server!");
-      }
-
-      const systemContext = `You are GyanMitra, an AI teacher. The student is in ${profile?.classLevel || "Class 10"} and learning in ${language}. Answer this query clearly and educationally: ${input}`;
-
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: systemContext }] }]
-        })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const googleReason = errorData.error?.message || `Status Code ${response.status}`;
-        throw new Error(`Google API Reject: ${googleReason}`);
-      }
-
-      const data = await response.json();
-      const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || "I'm having a bit of trouble thinking right now. Could you try asking again?";
-      
-      const assistantMessage: Message = {
-        role: 'assistant',
-        content: aiText,
-        timestamp: new Date().toISOString()
-      };
-
-      setMessages(prev => [...prev, assistantMessage]);
-    } catch (error: any) {
-      console.error('Chat Error:', error);
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: `System Diagnostics: ${error.message || "Failed to parse stream."}`,
-        timestamp: new Date().toISOString()
-      }]);
-    } finally {
-      setIsLoading(false);
+  const loadSessions = async () => {
+    if (!user) return;
+    const history = await chatService.getUserChats(user.uid);
+    setSessions(history);
+    // Auto-select most recent chat if none is active
+    if (history.length > 0 && !activeSessionId) {
+      setActiveSessionId(history[0].id);
     }
   };
 
-  const QUICK_PROMPTS = [
-    "Explain Newton's 1st Law",
-    "How to solve quadratic equations?",
-    "Science Chapter 5 summary",
-    "Need help with math formula"
-  ];
+  const loadMessages = async (chatId: string) => {
+    const chatMsgs = await chatService.getChatMessages(chatId);
+    setMessages(chatMsgs);
+  };
+
+  const createNewChat = async () => {
+    if (!user) return;
+    try {
+      const newChatId = await chatService.createChat(user.uid, "New Conversation", false);
+      await loadSessions();
+      setActiveSessionId(newChatId);
+      setMessages([]);
+    } catch (error) {
+      toast.error("Failed to initialize new neural link.");
+    }
+  };
+
+  // 🚀 HANDLE IMAGE UPLOAD (Converts to Base64)
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 4 * 1024 * 1024) {
+      toast.error("Image too large. Limit is 4MB.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setSelectedImage(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // 🚀 THE MAIN SEND MESSAGE FUNCTION
+  const handleSendMessage = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if ((!input.trim() && !selectedImage) || !user || isTyping) return;
+
+    // 1. Ensure we have an active chat session
+    let currentChatId = activeSessionId;
+    if (!currentChatId) {
+      currentChatId = await chatService.createChat(user.uid, input.slice(0, 30) || "Image Query", false);
+      setActiveSessionId(currentChatId);
+      await loadSessions(); // Refresh sidebar
+    }
+
+    const userMsgText = input.trim();
+    const userMsgImage = selectedImage;
+    
+    // Clear input UI immediately for good UX
+    setInput('');
+    setSelectedImage(null);
+    setIsTyping(true);
+
+    // 2. Add user message to local UI
+    const newUserMsg: ChatMessage = { sender: 'user', text: userMsgText, imageUrl: userMsgImage || undefined, timestamp: new Date() };
+    setMessages(prev => [...prev, newUserMsg]);
+
+    // 3. Save user message to database
+    await chatService.saveMessage(currentChatId, 'user', userMsgText, userMsgImage || undefined);
+
+    try {
+      // 4. Format history for AI
+      const aiHistory = messages.map(m => ({
+        role: (m.sender === 'user' ? 'user' : 'model') as 'user' | 'model',
+        text: m.text
+      }));
+
+      // 5. Call Gemini AI via our new Service
+      const aiResponseText = await aiService.sendMessage(aiHistory, {
+        text: userMsgText || "Analyze this image and explain what you see in the context of school studies.",
+        base64Image: userMsgImage || undefined
+      });
+
+      // 6. Add AI response to local UI
+      const newAiMsg: ChatMessage = { sender: 'ai', text: aiResponseText, timestamp: new Date() };
+      setMessages(prev => [...prev, newAiMsg]);
+
+      // 7. Save AI response to database
+      await chatService.saveMessage(currentChatId, 'ai', aiResponseText);
+
+    } catch (error) {
+      toast.error("AI synchronization failed.");
+    } finally {
+      setIsTyping(false);
+    }
+  };
+
+  const deleteChat = async (e: React.MouseEvent, chatId: string) => {
+    e.stopPropagation(); // Prevent clicking the chat row
+    if (!window.confirm("Purge this conversation permanently?")) return;
+    
+    await chatService.deleteChat(chatId);
+    if (activeSessionId === chatId) {
+      setActiveSessionId(null);
+      setMessages([]);
+    }
+    await loadSessions();
+  };
+
+  if (!user) return null; // Or a loading spinner/auth redirect
 
   return (
-    <div className="max-w-4xl mx-auto h-[calc(100dvh-5rem)] sm:h-[calc(100vh-8rem)] flex flex-col pt-4 sm:pt-8 px-2 sm:px-4">
-        <div className="flex-1 flex flex-col border border-border-strong bg-white dark:bg-bg-surface rounded-2xl sm:rounded-[32px] overflow-hidden shadow-[0_20px_50px_rgba(37,99,235,0.08)] dark:shadow-none transition-all">
-          {/* Header */}
-          <div className="p-4 sm:p-6 border-b border-border-strong bg-white dark:bg-bg-card flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto">
-               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-brand rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg shadow-brand/20">
-                  <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
-               </div>
-               <div>
-                  <h3 className="font-black text-sm sm:text-base uppercase tracking-tighter text-slate-900 dark:text-brand italic leading-none mb-1">Neural Assistant</h3>
-                  <div className="flex items-center gap-2">
-                     <div className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse"></div>
-                     <span className="text-[9px] sm:text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-none">Linked & Active</span>
-                  </div>
-               </div>
-            </div>
-            
-            <div className="flex items-center gap-1 sm: gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl w-full sm:w-auto overflow-x-auto no-scrollbar">
-               {['English', 'Hindi', 'Odia'].map((lang) => (
-                 <button
-                  key={lang}
-                  onClick={() => setLanguage(lang as any)}
-                  className={cn(
-                    "flex-1 sm:flex-none px-3 sm:px-4 py-2 text-[9px] sm:text-[10px] font-black uppercase tracking-widest rounded-lg transition-all whitespace-nowrap",
-                    language === lang 
-                      ? "bg-white dark:bg-slate-700 shadow-sm text-brand" 
-                      : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
-                  )}
-                 >
-                   {lang}
-                 </button>
-               ))}
-            </div>
-          </div>
+    <div className="flex h-[calc(100vh-80px)] bg-bg-deep overflow-hidden relative">
+      <Toaster position="top-center" toastOptions={{ style: { background: '#0F172A', color: '#fff', border: '1px solid #1E293B', borderRadius: '16px' }}}/>
 
-        {/* Chat Area */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-bg-deep scroll-smooth">
-          {messages.length === 0 && (
-            <div className="h-full flex flex-col items-center justify-center text-center px-4">
-               <div className="w-20 h-20 bg-bg-card border-2 border-brand/20 rounded-full flex items-center justify-center mb-8 rotate-12">
-                  <Bot className="h-10 w-10 text-brand" />
-               </div>
-               <h2 className="text-3xl font-black uppercase italic tracking-tighter mb-2 text-main">Initialize Query</h2>
-               <p className="text-muted font-medium uppercase tracking-widest text-xs mb-10 max-w-xs">
-                 Ask anything about your curriculum. Multilingual processing active.
-               </p>
-               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-md">
-                  {QUICK_PROMPTS.map(p => (
-                     <button
-                      key={p}
-                      onClick={() => { setInput(p); }}
-                      className="p-4 bg-bg-card border border-border-strong rounded-xl text-[10px] text-left text-brand font-black uppercase tracking-wider hover:border-brand transition-all shadow-xl shadow-black/40"
-                     >
-                       {p} →
-                     </button>
-                  ))}
-               </div>
-            </div>
-          )}
-
-          {messages.map((message, idx) => (
-            <motion.div
-              key={idx}
-              initial={{ opacity: 0, x: message.role === 'user' ? 20 : -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className={cn(
-                "flex w-full mb-4",
-                message.role === 'user' ? "justify-end" : "justify-start"
-              )}
-            >
-              <div className={cn(
-                "flex flex-col max-w-[85%] md:max-w-[75%]",
-                message.role === 'user' ? "items-end" : "items-start"
-              )}>
-                <div className={cn(
-                  "p-6 rounded-2xl leading-relaxed whitespace-pre-wrap text-[15px] font-medium shadow-sm transition-all",
-                  message.role === 'user' 
-                    ? "bg-brand text-white rounded-tr-none shadow-xl shadow-brand/10 border border-brand/20" 
-                    : "bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-tl-none border border-border-strong"
-                )}>
-                  {message.content}
-                </div>
-                <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-2 uppercase font-black tracking-widest italic px-1">
-                  {message.role === 'user' ? 'Local Stream' : 'Neural Uplink'} • {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </span>
-              </div>
-            </motion.div>
-          ))}
-
-          {isLoading && (
-            <div className="flex justify-start">
-               <div className="bg-bg-card border border-border-strong p-6 rounded-2xl rounded-tl-none flex flex-col gap-3 shadow-xl">
-                  <div className="flex space-x-2">
-                    <div className="w-2 h-2 bg-brand rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-brand rounded-full animate-bounce [animation-delay:0.2s]"></div>
-                    <div className="w-2 h-2 bg-brand rounded-full animate-bounce [animation-delay:0.4s]"></div>
-                  </div>
-                  <span className="text-[10px] font-black uppercase tracking-widest text-brand animate-pulse">Neural Path Analysis...</span>
-               </div>
-            </div>
-          )}
-          <div ref={chatEndRef} />
+      {/* 🚀 LEFT SIDEBAR (History) */}
+      <motion.div 
+        initial={{ x: 0 }}
+        animate={{ width: isSidebarOpen ? 300 : 0, opacity: isSidebarOpen ? 1 : 0 }}
+        className="h-full bg-slate-900 border-r border-slate-800 flex flex-col shrink-0 overflow-hidden shadow-2xl relative z-20"
+      >
+        <div className="p-4 border-b border-slate-800">
+          <button 
+            onClick={createNewChat}
+            className="w-full flex items-center justify-between p-3 bg-brand/10 hover:bg-brand/20 border border-brand/30 rounded-xl transition-all group"
+          >
+            <span className="text-xs font-black uppercase tracking-widest text-brand flex items-center gap-2">
+              <Plus className="h-4 w-4" /> New Link
+            </span>
+            <Sparkles className="h-4 w-4 text-brand opacity-50 group-hover:opacity-100" />
+          </button>
         </div>
 
-        {/* Input Area */}
-        <div className="p-4 bg-bg-surface border-t border-border-subtle">
-          <div className="flex gap-2 items-center bg-bg-card p-2 rounded-xl border border-border-strong shadow-2xl">
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-              placeholder="Inject command or query..."
-              className="flex-1 bg-transparent border-none text-sm outline-none px-4 font-medium placeholder:text-muted text-main"
-            />
-            <button
-              onClick={handleSendMessage}
-              disabled={!input.trim() || isLoading}
-              className="w-12 h-12 bg-brand text-white rounded-lg flex items-center justify-center font-black hover:scale-95 disabled:bg-border-strong transition-all shadow-xl shadow-brand/10 active:rotate-3"
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-2">
+          {sessions.length === 0 ? (
+             <div className="text-center p-4 opacity-50 mt-10">
+               <MessageSquare className="h-8 w-8 mx-auto mb-2 text-slate-500" />
+               <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">No active links</p>
+             </div>
+          ) : (
+            sessions.map((session) => (
+              <div 
+                key={session.id}
+                onClick={() => setActiveSessionId(session.id)}
+                className={`w-full text-left p-3 rounded-xl flex items-center justify-between group cursor-pointer transition-all ${
+                  activeSessionId === session.id 
+                    ? 'bg-slate-800 border-l-2 border-brand' 
+                    : 'hover:bg-slate-800/50 border-l-2 border-transparent'
+                }`}
+              >
+                <div className="flex items-center gap-3 overflow-hidden">
+                  <MessageSquare className={`h-4 w-4 shrink-0 ${activeSessionId === session.id ? 'text-brand' : 'text-slate-500'}`} />
+                  <span className="text-xs font-medium text-slate-300 truncate">{session.title}</span>
+                </div>
+                <button 
+                  onClick={(e) => deleteChat(e, session.id)}
+                  className="opacity-0 group-hover:opacity-100 p-1 hover:text-red-400 transition-opacity"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+      </motion.div>
+
+      {/* 🚀 MAIN CHAT AREA */}
+      <div className="flex-1 flex flex-col h-full relative">
+        
+        {/* Top Header */}
+        <div className="h-16 border-b border-slate-800 bg-slate-900/50 backdrop-blur-md flex items-center px-4 justify-between shrink-0 sticky top-0 z-10">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="p-2 bg-slate-800 rounded-lg hover:bg-slate-700 transition-colors"
             >
-              <Send className="h-5 w-5" />
+              <MoreVertical className="h-4 w-4 text-slate-400" />
             </button>
+            <div>
+               <h2 className="text-sm font-black uppercase tracking-widest text-white italic">GyanMitra AI</h2>
+               <p className="text-[9px] font-bold text-brand uppercase tracking-[0.2em]">Neural Mentor v2.0</p>
+            </div>
           </div>
-          <p className="text-[10px] text-center text-muted mt-4 uppercase tracking-[0.2em] font-black italic">
-            Telemetry Secure • AI Model: Gemini 2.5 Active
-          </p>
+        </div>
+
+        {/* Chat Messages */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6 space-y-6">
+          {messages.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center text-center max-w-md mx-auto">
+              <div className="w-20 h-20 bg-brand/10 border border-brand/20 rounded-3xl flex items-center justify-center mb-6 shadow-2xl shadow-brand/10">
+                <Brain className="h-10 w-10 text-brand" />
+              </div>
+              <h3 className="text-2xl font-black italic uppercase tracking-tighter text-white mb-2">Initialize Core</h3>
+              <p className="text-slate-400 text-sm font-medium leading-relaxed">
+                I am your dedicated AI mentor. Ask me complex math problems, request historical summaries, or upload an image of a diagram you don't understand.
+              </p>
+            </div>
+          ) : (
+            messages.map((msg, idx) => (
+              <motion.div 
+                key={idx}
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                className={`flex gap-4 ${msg.sender === 'user' ? 'flex-row-reverse' : ''}`}
+              >
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                  msg.sender === 'user' ? 'bg-slate-800 border border-slate-700' : 'bg-brand shadow-lg shadow-brand/20'
+                }`}>
+                  {msg.sender === 'user' ? <User className="h-4 w-4 text-slate-300" /> : <Sparkles className="h-4 w-4 text-white" />}
+                </div>
+                
+                <div className={`max-w-[85%] sm:max-w-[75%] rounded-2xl p-4 ${
+                  msg.sender === 'user' 
+                    ? 'bg-slate-800 border border-slate-700 text-white rounded-tr-sm' 
+                    : 'bg-transparent border border-slate-800 text-slate-300 rounded-tl-sm'
+                }`}>
+                  {msg.imageUrl && (
+                    <div className="mb-3 rounded-xl overflow-hidden border border-slate-700">
+                      <img src={msg.imageUrl} alt="Uploaded query" className="max-w-full h-auto max-h-60 object-contain bg-slate-900" />
+                    </div>
+                  )}
+                  <div className="prose prose-invert prose-sm max-w-none prose-p:leading-relaxed prose-pre:bg-slate-900 prose-pre:border prose-pre:border-slate-800">
+                    <ReactMarkdown>{msg.text}</ReactMarkdown>
+                  </div>
+                </div>
+              </motion.div>
+            ))
+          )}
+          
+          {isTyping && (
+            <div className="flex gap-4">
+               <div className="w-8 h-8 rounded-lg bg-brand shadow-lg shadow-brand/20 flex items-center justify-center shrink-0">
+                  <Sparkles className="h-4 w-4 text-white" />
+               </div>
+               <div className="bg-transparent border border-slate-800 rounded-2xl rounded-tl-sm p-4 flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 text-brand animate-spin" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-brand">Processing...</span>
+               </div>
+            </div>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+
+        {/* 🚀 INPUT AREA WITH IMAGE ATTACHMENT */}
+        <div className="p-4 bg-bg-deep shrink-0">
+          <div className="max-w-4xl mx-auto">
+            {/* Image Preview Area */}
+            <AnimatePresence>
+              {selectedImage && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10, height: 0 }} animate={{ opacity: 1, y: 0, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+                  className="mb-3 relative inline-block"
+                >
+                  <img src={selectedImage} alt="Preview" className="h-20 w-20 object-cover rounded-xl border-2 border-brand" />
+                  <button 
+                    onClick={() => setSelectedImage(null)}
+                    className="absolute -top-2 -right-2 bg-slate-800 text-white p-1 rounded-full border border-slate-700 hover:bg-red-500 transition-colors"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <form onSubmit={handleSendMessage} className="relative flex items-end gap-2 bg-slate-900 border border-slate-700 rounded-3xl p-2 focus-within:border-brand/50 focus-within:ring-1 focus-within:ring-brand/50 transition-all shadow-xl">
+              
+              <input 
+                type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleImageUpload}
+              />
+              <button 
+                type="button" onClick={() => fileInputRef.current?.click()}
+                className="p-3 text-slate-400 hover:text-brand bg-slate-800 rounded-full transition-colors shrink-0"
+                title="Attach Image"
+              >
+                <ImageIcon className="h-5 w-5" />
+              </button>
+              
+              <textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSendMessage();
+                  }
+                }}
+                placeholder="Ask GyanMitra AI..."
+                className="flex-1 bg-transparent border-none outline-none text-white text-sm resize-none py-3 px-2 min-h-[44px] max-h-32 custom-scrollbar"
+                rows={1}
+              />
+
+              <button 
+                type="submit" disabled={isTyping || (!input.trim() && !selectedImage)}
+                className="p-3 bg-brand text-white rounded-full hover:bg-blue-600 transition-colors shrink-0 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-brand/20"
+              >
+                <Send className="h-5 w-5 ml-1" />
+              </button>
+            </form>
+            <p className="text-center text-[9px] font-bold uppercase tracking-[0.2em] text-slate-500 mt-3">
+              GyanMitra AI can process text and images. Verification of AI output is recommended.
+            </p>
+          </div>
         </div>
       </div>
     </div>
