@@ -2,8 +2,8 @@ import { db } from '../lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY?.trim();
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
-
+// Use the stable, reliable model
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
 // 🚀 STRICT SYSTEM PROMPT TO WHITE-LABEL THE AI COMPLETELY
 const SYSTEM_INSTRUCTION = `
   You are GyanMitra AI, a brilliant, empathetic, and encouraging AI Mentor built explicitly for school students (Classes 6 to 10) in India.
