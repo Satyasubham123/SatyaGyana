@@ -1,40 +1,42 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User as FirebaseUser } from 'firebase/auth';
-import { updateUserProfile, UserProfile } from '../services/userService';
-import { Sparkles, Loader2, MapPin, GraduationCap, UserIcon } from 'lucide-react';
+import { updateUserProfile } from '../services/userService';
+import { Sparkles, Loader2, MapPin, GraduationCap, UserIcon, BookOpen } from 'lucide-react';
 import { toast, Toaster } from 'react-hot-toast';
+import { useUser } from '../contexts/UserContext';
 
-interface CompleteProfileProps {
-  user: FirebaseUser;
-  setProfile: (p: UserProfile) => void;
-}
-
-export default function CompleteProfile({ user, setProfile }: CompleteProfileProps) {
+export default function CompleteProfile() {
   const navigate = useNavigate();
+  // 🚀 FIX: Pull user directly from Context instead of props
+  const { user } = useUser();
+  
   const [isSaving, setIsSaving] = useState(false);
   
-  // Try to split the Google Display Name if they used Google Auth
-  const nameParts = (user.displayName || '').split(' ');
+  // 🚀 BULLETPROOF CHECK: Don't render until user exists
+  if (!user) return null;
+
+  const nameParts = (user?.displayName || '').split(' ');
   
   const [formData, setFormData] = useState({
     firstName: nameParts[0] || '',
     middleName: nameParts.length > 2 ? nameParts.slice(1, -1).join(' ') : '',
     lastName: nameParts.length > 1 ? nameParts[nameParts.length - 1] : '',
     classLevel: '',
-    state: ''
+    state: '',
+    medium: ''
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.firstName || !formData.lastName || !formData.classLevel || !formData.state) {
+    if (!user) return;
+
+    if (!formData.firstName || !formData.lastName || !formData.classLevel || !formData.state || !formData.medium) {
       toast.error("Please fill all mandatory fields.");
       return;
     }
 
     setIsSaving(true);
     try {
-      // Auto-generate the full display name for the rest of the app to use
       const generatedDisplayName = [formData.firstName, formData.middleName, formData.lastName]
         .filter(Boolean)
         .join(' ');
@@ -45,9 +47,10 @@ export default function CompleteProfile({ user, setProfile }: CompleteProfilePro
       };
 
       await updateUserProfile(user.uid, finalData);
-      setProfile(finalData as UserProfile);
       toast.success("Registration complete!");
-      navigate('/dashboard');
+      
+      // Force a safe redirect to dashboard
+      window.location.href = '/dashboard';
     } catch (error) {
       console.error(error);
       toast.error("Failed to save data. Try again.");
@@ -104,6 +107,16 @@ export default function CompleteProfile({ user, setProfile }: CompleteProfilePro
               <select required value={formData.state} onChange={e => setFormData({...formData, state: e.target.value})} className="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand transition-all appearance-none cursor-pointer">
                 <option value="" disabled>Select State / UT</option>
                 {["Andaman and Nicobar Islands", "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chandigarh", "Chhattisgarh", "Dadra and Nagar Haveli and Daman and Diu", "Delhi", "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jammu and Kashmir", "Jharkhand", "Karnataka", "Kerala", "Ladakh", "Lakshadweep", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Puducherry", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal"].map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1 flex items-center gap-2"><BookOpen className="h-3 w-3" /> Primary Medium <span className="text-red-500">*</span></label>
+              <select required value={formData.medium} onChange={e => setFormData({...formData, medium: e.target.value})} className="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand transition-all appearance-none cursor-pointer">
+                <option value="" disabled>Select Medium</option>
+                <option value="English">English</option>
+                <option value="Hindi">Hindi</option>
+                <option value="Odia">Odia</option>
               </select>
             </div>
           </div>

@@ -1,14 +1,12 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
-// 1. Add the Storage import here at the top
 import { getStorage } from 'firebase/storage'; 
 import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-// 2. Initialize Storage here using your 'app' variable
 export const storage = getStorage(app); 
 
 export const googleProvider = new GoogleAuthProvider();
