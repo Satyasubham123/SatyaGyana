@@ -61,13 +61,23 @@ export default function Profile({ user, profile: initialProfile, setProfile }: P
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  // 🚀 FIXED: Automatically combines First, Middle, and Last name
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
     
     try {
-      await updateUserProfile(user.uid, formData);
-      const updatedProfile = { ...profile!, ...formData } as UserProfile;
+      const generatedDisplayName = [formData.firstName, formData.middleName, formData.lastName]
+        .filter(Boolean)
+        .join(' ');
+      
+      const finalData = { 
+        ...formData, 
+        displayName: generatedDisplayName || formData.displayName 
+      };
+
+      await updateUserProfile(user.uid, finalData);
+      const updatedProfile = { ...profile!, ...finalData } as UserProfile;
       setLocalProfile(updatedProfile);
       setProfile(updatedProfile); // Sync Globally
       toast.success('Profile parameters updated securely.', { icon: '✅' });
@@ -156,10 +166,9 @@ export default function Profile({ user, profile: initialProfile, setProfile }: P
             className="mt-8"
           >
             
-            {/* 🚀 TAB 1: YOUR PROFILE (NEW) */}
+            {/* TAB 1: YOUR PROFILE */}
             {activeTab === 'profile' && (
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                
                 {/* Left Column: Identity Card */}
                 <div className="lg:col-span-5 space-y-8">
                    <div className="bg-slate-900/60 backdrop-blur-2xl border border-slate-800 rounded-[32px] overflow-hidden shadow-2xl relative group hover:border-brand/30 transition-all">
@@ -264,7 +273,6 @@ export default function Profile({ user, profile: initialProfile, setProfile }: P
                      <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6">
                         <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2"><Trophy className="h-4 w-4 text-orange-400" /> Achievement Badges</h3>
                         <div className="grid grid-cols-3 gap-4">
-                           {/* Placeholder Badges to look beautiful */}
                            <div className="aspect-square bg-slate-800/50 rounded-2xl border border-slate-700 flex items-center justify-center text-yellow-500 hover:scale-110 transition-transform shadow-[0_0_15px_rgba(234,179,8,0.1)] cursor-help" title="First Login">
                               <Star className="h-6 w-6" />
                            </div>
@@ -334,7 +342,7 @@ export default function Profile({ user, profile: initialProfile, setProfile }: P
               </div>
             )}
 
-            {/* TAB 3: EDIT PROFILE */}
+            {/* 🚀 TAB 3: EDIT PROFILE (FIXED WITH FIRST/MIDDLE/LAST NAME) */}
             {activeTab === 'edit' && (
               <form onSubmit={handleSaveProfile} className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-[32px] p-6 sm:p-10 max-w-4xl shadow-2xl relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-brand/5 rounded-full blur-3xl pointer-events-none"></div>
@@ -351,10 +359,20 @@ export default function Profile({ user, profile: initialProfile, setProfile }: P
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 relative z-10">
+                  {/* 🚀 NEW NAME INPUTS */}
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Display Name <span className="text-red-500">*</span></label>
-                    <input name="displayName" value={formData.displayName || ''} onChange={handleInputChange} required className="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-all" />
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">First Name <span className="text-red-500">*</span></label>
+                    <input name="firstName" value={formData.firstName || ''} onChange={handleInputChange} required className="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-all" />
                   </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Middle Name</label>
+                    <input name="middleName" value={formData.middleName || ''} onChange={handleInputChange} className="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-all" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Last Name <span className="text-red-500">*</span></label>
+                    <input name="lastName" value={formData.lastName || ''} onChange={handleInputChange} required className="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-all" />
+                  </div>
+
                   <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Username (Handle)</label>
                     <input name="username" value={formData.username || ''} onChange={handleInputChange} className="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-all" />
@@ -429,7 +447,6 @@ export default function Profile({ user, profile: initialProfile, setProfile }: P
   );
 }
 
-// Subcomponent for Stats
 function StatCard({ icon, label, value, color, bg, border }: { icon: React.ReactNode, label: string, value: string, color: string, bg: string, border: string }) {
   return (
     <div className={`p-4 sm:p-6 bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-3xl flex flex-col items-center sm:items-start text-center sm:text-left transition-all hover:border-slate-600 shadow-xl`}>
