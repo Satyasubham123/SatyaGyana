@@ -4,11 +4,9 @@ import { db } from '../lib/firebase';
 import { useUser } from '../contexts/UserContext';
 
 export default function StatsSummary() {
-  // 1. Get user and profile directly from the context (No props needed!)
   const { user, profile } = useUser();
   const [globalPercentile, setGlobalPercentile] = useState(100);
 
-  // 2. Fetch the global percentile only when necessary
   useEffect(() => {
     if (!user || !profile) return;
 
@@ -34,16 +32,14 @@ export default function StatsSummary() {
     };
 
     fetchPercentile();
-  }, [user, profile?.totalXP]); // Re-runs automatically if their XP increases
+  }, [user, profile?.totalXP]);
 
-  // Hide component if data is still loading
-  if (!profile) return null;
+  // 🚀 BULLETPROOF: Immediately hide if user OR profile is missing
+  if (!user || !profile) return null;
 
-  // 3. Extract real-time values from the profile context
   const totalXP = profile.totalXP || profile.xpPoints || 0;
   const streak = profile.streakCount || 0;
 
-  // 4. Calculate milestone days remaining
   let daysRemaining = 0;
   if (profile.nextMilestoneDate) {
     const milestoneDate = profile.nextMilestoneDate instanceof Date 

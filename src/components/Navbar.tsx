@@ -89,8 +89,9 @@ export default function Navbar({ user, profile }: NavbarProps) {
                  <div className="flex items-center space-x-3 lg:space-x-4">
                    <Link to="/profile" className="group shrink-0">
                     <div className="w-10 h-10 rounded-xl border-2 border-border-strong p-0.5 group-hover:border-brand transition-all overflow-hidden">
+                      {/* 🚀 BULLETPROOF: Safe fallback if displayName is undefined */}
                       <img
-                        src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName}`}
+                        src={user?.photoURL || `https://ui-avatars.com/api/?name=${user?.displayName || 'User'}`}
                         alt="Profile"
                         className="h-full w-full rounded-[8px] object-cover transition-transform group-hover:scale-110"
                       />
@@ -120,8 +121,9 @@ export default function Navbar({ user, profile }: NavbarProps) {
             {user && (
               <Link to="/profile" className="shrink-0">
                 <div className="w-10 h-10 rounded-xl border-2 border-border-strong p-0.5 overflow-hidden">
+                  {/* 🚀 BULLETPROOF: Safe fallback if displayName is undefined */}
                   <img
-                    src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName}`}
+                    src={user?.photoURL || `https://ui-avatars.com/api/?name=${user?.displayName || 'User'}`}
                     alt="Profile"
                     className="h-full w-full rounded-[8px] object-cover"
                   />
