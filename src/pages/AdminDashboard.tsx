@@ -203,12 +203,19 @@ export default function AdminDashboard({ profile }: AdminDashboardProps) {
   const fetchInitialData = async () => {
     setIsLoading(true);
     try {
-      const [_students, _courses, _founder] = await Promise.all([
-        getDocs(query(collection(db, 'users'), where('role', '==', 'student'))),
+      // 🚀 FIXED: Fetch ALL users from the database, removing the strict 'where' clause
+      const [_users, _courses, _founder] = await Promise.all([
+        getDocs(collection(db, 'users')), 
         contentService.getCourses(true), 
         founderService.getProfile()
       ]);
-      setStudents(_students.docs.map(d => d.data() as UserProfile));
+
+      // 🚀 FIXED: Manually filter out the admins. 
+      // This ensures ANY normal user (even old test accounts with blank roles) will show up!
+      const allUsers = _users.docs.map(d => d.data() as UserProfile);
+      const studentList = allUsers.filter(u => u.role !== 'admin');
+      
+      setStudents(studentList);
       setCourses(_courses);
       if (_founder) setFounderForm(_founder);
     } catch (err) {
