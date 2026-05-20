@@ -1845,6 +1845,8 @@ Each object must follow this scheme exactly:
                 <tr>
                    <th className="px-6 sm:px-10 py-4 sm:py-6 text-[10px] font-black uppercase tracking-widest text-slate-500">Student Identity</th>
                    <th className="px-6 sm:px-10 py-4 sm:py-6 text-[10px] font-black uppercase tracking-widest text-slate-500">Grade Level</th>
+                   {/* 🚀 NEW: State Column Header */}
+                   <th className="px-6 sm:px-10 py-4 sm:py-6 text-[10px] font-black uppercase tracking-widest text-slate-500">State / UT</th>
                    <th className="px-6 sm:px-10 py-4 sm:py-6 text-[10px] font-black uppercase tracking-widest text-slate-500">Tier Status</th>
                    <th className="px-6 sm:px-10 py-4 sm:py-6 text-[10px] font-black uppercase tracking-widest text-slate-500 text-right">Actions</th>
                 </tr>
@@ -1863,6 +1865,12 @@ Each object must follow this scheme exactly:
                      </td>
                      <td className="px-6 sm:px-10 py-4 sm:py-6 whitespace-nowrap">
                         <span className="px-3 sm:px-4 py-1 sm:py-1.5 bg-slate-800 rounded-lg text-[9px] sm:text-[10px] font-black uppercase tracking-widest border border-border-strong">{s.classLevel || 'Sector Unset'}</span>
+                     </td>
+                     {/* 🚀 NEW: State Data Cell */}
+                     <td className="px-6 sm:px-10 py-4 sm:py-6 whitespace-nowrap">
+                        <span className="px-3 py-1 bg-orange-500/10 text-orange-400 border border-orange-500/20 rounded-full text-[10px] font-black uppercase tracking-widest">
+                           {s.state || 'Unknown'}
+                        </span>
                      </td>
                      <td className="px-6 sm:px-10 py-4 sm:py-6 whitespace-nowrap">
                         {s.isPremium ? (
@@ -1884,7 +1892,6 @@ Each object must follow this scheme exactly:
        </div>
     </div>
   );
-
   const renderModals = () => (
     <AnimatePresence>
       {confirmDelete && (
