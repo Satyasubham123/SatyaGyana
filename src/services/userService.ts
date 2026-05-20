@@ -5,10 +5,10 @@ import imageCompression from 'browser-image-compression';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { storage } from '../lib/firebase';
 
+// --- INTERFACES ---
 export interface UserProfile {
   uid: string;
   email: string;
-  // Structured Identity
   firstName?: string;
   middleName?: string;
   lastName?: string;
@@ -17,12 +17,8 @@ export interface UserProfile {
   role: 'student' | 'admin' | 'teacher';
   createdAt: Date;
   updatedAt: Date;
-  
-  // Mandatory Academic Data
   classLevel?: string;
   state?: string;
-  
-  // Optional Data
   school?: string;
   medium?: string;
   learningGoals?: string[];
@@ -34,13 +30,10 @@ export interface UserProfile {
   themeColor?: string;
   avatarUrl?: string;
   bannerUrl?: string;
-
   isPremium: boolean;
   subscriptionPlan: 'trial' | 'active' | 'expired' | 'lifetime';
   trialEndsAt?: Date;
   subscriptionEndsAt?: Date;
-
-  // Analytics
   xpPoints: number;
   totalXP?: number;
   level: number;
@@ -60,8 +53,7 @@ export interface ActivitySignal {
   read: boolean;
 }
 
-export type OperationType = 'read' | 'write' | 'update' | 'delete';
-
+// --- HELPERS ---
 const ADMIN_ACCOUNT = 'biswalsatyasubham274@gmail.com';
 const VIP_ACCOUNTS = ['biswalsatya321@gmail.com', ADMIN_ACCOUNT];
 
@@ -73,83 +65,76 @@ const USER_EDITABLE_FIELDS: (keyof UserProfile)[] = [
   'level', 'streakCount', 'badges', 'studyHours', 'accuracy', 'weakTopics'
 ];
 
-function addDays(date: Date, days: number) {
-  const result = new Date(date);
-  result.setDate(result.getDate() + days);
-  return result;
-}
-
-// Helper to safely normalize names
-function normalizeName(data: Partial<UserProfile>, user: User) {
-  if (data.firstName && data.lastName) return `${data.firstName} ${data.middleName || ''} ${data.lastName}`.replace(/\s+/g, ' ').trim();
-  return data.displayName || user.displayName || 'Student';
-}
+// Helper to convert Firestore Timestamps to JS Dates
+const toDate = (val: any) => (val?.toDate ? val.toDate() : new Date(val));
 
 export async function syncUserProfile(user: User): Promise<UserProfile> {
   const userRef = doc(db, 'users', user.uid);
   const snap = await getDoc(userRef);
+  
+  if (snap.exists()) {
+    const data = snap.data();
+    // 🚀 FIXED: Convert Firestore Timestamps to native JS Dates
+    return {
+      ...data,
+      createdAt: toDate(data.createdAt),
+      updatedAt: toDate(data.updatedAt),
+      trialEndsAt: data.trialEndsAt ? toDate(data.trialEndsAt) : undefined,
+      subscriptionEndsAt: data.subscriptionEndsAt ? toDate(data.subscriptionEndsAt) : undefined,
+    } as UserProfile;
+  } 
+  
+  // Create Initial Profile
   const now = new Date();
   const email = user.email ?? 'unknown@user.com';
   const isAdmin = email === ADMIN_ACCOUNT;
   const isVip = VIP_ACCOUNTS.includes(email);
 
-  if (snap.exists()) {
-    const data = snap.data() as UserProfile;
-    return { ...data, ...data }; // Return existing
-  } else {
-    // Create Initial Profile
-    const newProfile: UserProfile = {
-      uid: user.uid,
-      email,
-      displayName: user.displayName || 'Student',
-      photoURL: user.photoURL,
-      role: isAdmin ? 'admin' : 'student',
-      createdAt: now,
-      updatedAt: now,
-      isPremium: isVip,
-      subscriptionPlan: isVip ? 'lifetime' : 'trial',
-      trialEndsAt: addDays(now, 30),
-      xpPoints: 0,
-      totalXP: 0,
-      level: 1,
-      streakCount: 0,
-      badges: ['Newcomer'],
-      studyHours: 0,
-      accuracy: 0
-    };
-    await setDoc(userRef, newProfile);
-    return newProfile;
-  }
+  const newProfile: UserProfile = {
+    uid: user.uid,
+    email,
+    displayName: user.displayName || 'Student',
+    photoURL: user.photoURL,
+    role: isAdmin ? 'admin' : 'student',
+    createdAt: now,
+    updatedAt: now,
+    isPremium: isVip,
+    subscriptionPlan: isVip ? 'lifetime' : 'trial',
+    trialEndsAt: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000),
+    xpPoints: 0,
+    totalXP: 0,
+    level: 1,
+    streakCount: 0,
+    badges: ['Newcomer'],
+    studyHours: 0,
+    accuracy: 0
+  };
+  await setDoc(userRef, newProfile);
+  return newProfile;
 }
 
 export async function updateUserProfile(uid: string, data: Partial<UserProfile>) {
   const userRef = doc(db, 'users', uid);
-  const updates: Partial<UserProfile> = {};
-
+  const updates: any = {};
   for (const key of USER_EDITABLE_FIELDS) {
-    if (data[key] !== undefined) {
-      (updates as any)[key] = data[key];
-    }
+    if (data[key] !== undefined) updates[key] = data[key];
   }
-
   await updateDoc(userRef, { ...updates, updatedAt: new Date() });
 }
 
 export const isProfileComplete = (profile: UserProfile | null): boolean => {
   if (!profile) return false;
-  // Mandatory Checks
-  return !!(
-    profile.firstName && 
-    profile.lastName && 
-    profile.classLevel && 
-    profile.state
-  );
+  return !!(profile.firstName && profile.lastName && profile.classLevel && profile.state);
 };
 
-// --- SIGNAL SERVICES ---
+// --- ACTIVITY SIGNALS (Restored) ---
+export async function addActivitySignal(uid: string, title: string, description: string, type: 'achievement' | 'learning' | 'system') {
+  try {
+    await addDoc(collection(db, `users/${uid}/signals`), { title, description, type, timestamp: new Date(), read: false });
+  } catch (error) { console.error("Signal Push Failed", error); }
+}
+
 export async function getUserSignals(uid: string): Promise<ActivitySignal[]> {
-  const signalsRef = collection(db, `users/${uid}/signals`);
-  const q = query(signalsRef, orderBy('timestamp', 'desc'), limit(10));
-  const snap = await getDocs(q);
-  return snap.docs.map(doc => ({ id: doc.id, ...doc.data(), timestamp: doc.data().timestamp?.toDate() || new Date() })) as ActivitySignal[];
+  const snap = await getDocs(query(collection(db, `users/${uid}/signals`), orderBy('timestamp', 'desc'), limit(10)));
+  return snap.docs.map(doc => ({ id: doc.id, ...doc.data(), timestamp: toDate(doc.data().timestamp) })) as ActivitySignal[];
 }
