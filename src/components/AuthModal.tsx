@@ -99,8 +99,8 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           return;
         }
         
-        // 🚀 FIX: Force a clean app reload to prevent React Router race conditions
-        window.location.href = '/dashboard';
+        // 🚀 FIX: Safe refresh applied here!
+        window.location.reload();
         
       } else if (mode === 'forgot') {
         await sendPasswordResetEmail(auth, email);
@@ -122,8 +122,8 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     try {
       await signInWithGoogle();
       
-      // 🚀 FIX: Force a clean app reload here as well
-      window.location.href = '/dashboard';
+      // 🚀 FIX: Safe refresh applied here too!
+      window.location.reload();
       
     } catch (err) {
       setError("Google Handshake failed. Try again.");
