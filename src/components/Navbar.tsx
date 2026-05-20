@@ -18,9 +18,22 @@ export default function Navbar({ user, profile }: NavbarProps) {
   const [isAuthOpen, setIsAuthOpen] = useState(false); 
   const navigate = useNavigate();
 
+  // 🚀 HARD WIPE LOGOUT FUNCTION
   const handleLogout = async () => {
-    await signOut(auth);
-    navigate('/');
+    try {
+      // 1. Tell Firebase to destroy the secure token
+      await signOut(auth);
+      
+      // 2. HARD WIPE: Manually destroy all browser memory caches
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      // 3. Force a hard browser redirect (Do NOT use React Router's navigate here)
+      // This guarantees the app restarts with a completely blank memory slate.
+      window.location.href = '/';
+    } catch (error) {
+      console.error("Error destroying session:", error);
+    }
   };
 
   const mainNav = [
@@ -89,7 +102,6 @@ export default function Navbar({ user, profile }: NavbarProps) {
                  <div className="flex items-center space-x-3 lg:space-x-4">
                    <Link to="/profile" className="group shrink-0">
                     <div className="w-10 h-10 rounded-xl border-2 border-border-strong p-0.5 group-hover:border-brand transition-all overflow-hidden">
-                      {/* 🚀 BULLETPROOF: Safe fallback if displayName is undefined */}
                       <img
                         src={user?.photoURL || `https://ui-avatars.com/api/?name=${user?.displayName || 'User'}`}
                         alt="Profile"
@@ -121,7 +133,6 @@ export default function Navbar({ user, profile }: NavbarProps) {
             {user && (
               <Link to="/profile" className="shrink-0">
                 <div className="w-10 h-10 rounded-xl border-2 border-border-strong p-0.5 overflow-hidden">
-                  {/* 🚀 BULLETPROOF: Safe fallback if displayName is undefined */}
                   <img
                     src={user?.photoURL || `https://ui-avatars.com/api/?name=${user?.displayName || 'User'}`}
                     alt="Profile"
