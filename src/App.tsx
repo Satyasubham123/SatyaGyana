@@ -1,3 +1,4 @@
+import VerifyEmail from './pages/VerifyEmail';
 import { syncUserProfile, UserProfile, isProfileComplete } from './services/userService';
 import CompleteProfile from './pages/CompleteProfile';
 import React, { useState, useEffect } from 'react';
@@ -32,6 +33,8 @@ export default function App() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [dbError, setDbError] = useState<string | null>(null);
+  const profileComplete = profile ? isProfileComplete(profile) : false;
+  const isVerified = user?.emailVerified || false;
   const profileComplete = profile ? isProfileComplete(profile) : false;
 
   useEffect(() => {
@@ -84,10 +87,11 @@ export default function App() {
         <main>
           <Routes>
             <Route path="/" element={<LandingPage user={user} />} />
-            <Route path="/complete-profile" element={user && profile && !profileComplete ? <CompleteProfile user={user} setProfile={setProfile} /> : <Navigate to="/dashboard" />} />
-            <Route path="/dashboard" element={user ? (profileComplete ? <Dashboard user={user} profile={profile} setProfile={setProfile} /> : <Navigate to="/complete-profile" />) : <Navigate to="/" />} />
+            <Route path="/verify-email" element={user && !isVerified ? <VerifyEmail user={user} /> : <Navigate to="/dashboard" />} />
+            <Route path="/complete-profile" element={user && isVerified && !profileComplete ? <CompleteProfile user={user} setProfile={setProfile} /> : <Navigate to="/dashboard" />} />
+            <Route path="/dashboard" element={user ? (isVerified ? (profileComplete ? <Dashboard user={user} profile={profile} setProfile={setProfile} /> : <Navigate to="/complete-profile" />) : <Navigate to="/verify-email" />) : <Navigate to="/" />} />
             <Route path="/quiz/:quizId" element={user ? <QuizPage user={user} /> : <Navigate to="/" />} />
-            <Route path="/ai-teacher" element={user ? (profileComplete ? <AITeacher user={user} profile={profile} /> : <Navigate to="/complete-profile" />) : <Navigate to="/" />} />            
+            <Route path="/ai-teacher" element={user ? (isVerified ? (profileComplete ? <AITeacher user={user} profile={profile} /> : <Navigate to="/complete-profile" />) : <Navigate to="/verify-email" />) : <Navigate to="/" />} />
             <Route path="/ai-quiz" element={user ? (profileComplete ? <AIQuizGen user={user} profile={profile} /> : <Navigate to="/complete-profile" />) : <Navigate to="/" />} />            
             <Route path="/profile" element={user ? <Profile user={user} profile={profile} setProfile={setProfile} /> : <Navigate to="/" />} />            <Route path="/payment-success" element={user ? <PaymentSuccess /> : <Navigate to="/" />} />
             <Route path="/flashcards/:topicId" element={user ? <FlashcardsPage user={user} /> : <Navigate to="/" />} />
