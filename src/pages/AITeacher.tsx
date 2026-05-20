@@ -48,10 +48,15 @@ export default function AITeacher() {
   }, [messages, isTyping]);
 
   const loadSessions = async () => {
-    if (!user) return;
+    if (!user) {
+      console.log("No user found, skipping load");
+      return;
+    }
+    console.log("Attempting to fetch chats for UID:", user.uid);
     const history = await chatService.getUserChats(user.uid);
+    console.log("History result from Firestore:", history);
+    
     setSessions(history);
-    // Auto-select most recent chat if none is active
     if (history.length > 0 && !activeSessionId) {
       setActiveSessionId(history[0].id);
     }
