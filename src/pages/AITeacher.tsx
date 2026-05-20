@@ -56,6 +56,7 @@ export default function AITeacher() {
     const history = await chatService.getUserChats(user.uid);
     console.log("History result from Firestore:", history);
     
+  
     setSessions(history);
     if (history.length > 0 && !activeSessionId) {
       setActiveSessionId(history[0].id);
