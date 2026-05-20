@@ -57,7 +57,7 @@ export default function LandingPage({ user }: LandingPageProps) {
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand via-blue-500 to-indigo-400">AI Teaching</span>
             </h1>
             <p className="text-slate-700 dark:text-slate-200 text-base sm:text-lg md:text-2xl max-w-3xl mx-auto mb-14 leading-relaxed font-medium">
-              Comprehensive learning for Class 6 to 12. Personalized notes, adaptive quizzes, and AI-driven insights to help you excel.
+              Comprehensive learning for Class 6 to 10. Personalized notes, adaptive quizzes, and AI-driven insights to help you excel.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6">
@@ -90,7 +90,7 @@ export default function LandingPage({ user }: LandingPageProps) {
       </section>
 
       {/* 🚀 THIS PLACES THE NEW LIVE DASHBOARD COMPONENT HERE 🚀 */}
-      <StatsSummary user={user} />
+      <StatsSummary />
 
       {/* Features Grid */}
       <section id="features" className="py-24">
