@@ -35,7 +35,6 @@ export default function App() {
   const [dbError, setDbError] = useState<string | null>(null);
   const profileComplete = profile ? isProfileComplete(profile) : false;
   const isVerified = user?.emailVerified || false;
-  const profileComplete = profile ? isProfileComplete(profile) : false;
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
