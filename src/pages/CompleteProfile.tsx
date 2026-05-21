@@ -18,19 +18,21 @@ export default function CompleteProfile() {
   const nameParts = (user?.displayName || '').split(' ');
   
   const [formData, setFormData] = useState({
-    firstName: nameParts[0] || '',
-    middleName: nameParts.length > 2 ? nameParts.slice(1, -1).join(' ') : '',
-    lastName: nameParts.length > 1 ? nameParts[nameParts.length - 1] : '',
+    firstName: nameParts[0] ? nameParts[0].toUpperCase() : '',
+    middleName: nameParts.length > 2 ? nameParts.slice(1, -1).join(' ').toUpperCase() : '',
+    lastName: nameParts.length > 1 ? nameParts[nameParts.length - 1].toUpperCase() : '',
     classLevel: '',
     state: '',
-    medium: ''
+    medium: '',
+    gender: '' // 🚀 NEW: Added gender to state
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
 
-    if (!formData.firstName || !formData.lastName || !formData.classLevel || !formData.state || !formData.medium) {
+    // 🚀 NEW: Added gender to the mandatory check
+    if (!formData.firstName || !formData.lastName || !formData.classLevel || !formData.state || !formData.medium || !formData.gender) {
       toast.error("Please fill all mandatory fields.");
       return;
     }
@@ -79,17 +81,20 @@ export default function CompleteProfile() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
              <div className="space-y-2">
                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1 flex items-center gap-2"><UserIcon className="h-3 w-3" /> First Name <span className="text-red-500">*</span></label>
-               <input required value={formData.firstName} onChange={e => setFormData({...formData, firstName: e.target.value})} className="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand transition-all" placeholder="First Name" />
+               {/* 🚀 FORCE UPPERCASE */}
+               <input required value={formData.firstName} onChange={e => setFormData({...formData, firstName: e.target.value.toUpperCase()})} className="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand transition-all" placeholder="First Name" />
              </div>
              
              <div className="space-y-2">
                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1 flex items-center gap-2"><UserIcon className="h-3 w-3 text-slate-700" /> Middle Name</label>
-               <input value={formData.middleName} onChange={e => setFormData({...formData, middleName: e.target.value})} className="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand transition-all" placeholder="Middle Name (Optional)" />
+               {/* 🚀 FORCE UPPERCASE */}
+               <input value={formData.middleName} onChange={e => setFormData({...formData, middleName: e.target.value.toUpperCase()})} className="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand transition-all" placeholder="Middle Name (Optional)" />
              </div>
 
              <div className="space-y-2 md:col-span-2">
                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1 flex items-center gap-2"><UserIcon className="h-3 w-3" /> Last Name <span className="text-red-500">*</span></label>
-               <input required value={formData.lastName} onChange={e => setFormData({...formData, lastName: e.target.value})} className="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand transition-all" placeholder="Last Name" />
+               {/* 🚀 FORCE UPPERCASE */}
+               <input required value={formData.lastName} onChange={e => setFormData({...formData, lastName: e.target.value.toUpperCase()})} className="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand transition-all" placeholder="Last Name" />
              </div>
           </div>
 
@@ -110,13 +115,24 @@ export default function CompleteProfile() {
               </select>
             </div>
 
-            <div className="space-y-2 md:col-span-2">
+            <div className="space-y-2">
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1 flex items-center gap-2"><BookOpen className="h-3 w-3" /> Primary Medium <span className="text-red-500">*</span></label>
               <select required value={formData.medium} onChange={e => setFormData({...formData, medium: e.target.value})} className="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand transition-all appearance-none cursor-pointer">
                 <option value="" disabled>Select Medium</option>
                 <option value="English">English</option>
                 <option value="Hindi">Hindi</option>
                 <option value="Odia">Odia</option>
+              </select>
+            </div>
+
+            {/* 🚀 NEW: Gender Selector placed perfectly in the grid */}
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1 flex items-center gap-2"><UserIcon className="h-3 w-3" /> Gender <span className="text-red-500">*</span></label>
+              <select required value={formData.gender} onChange={e => setFormData({...formData, gender: e.target.value})} className="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand transition-all appearance-none cursor-pointer">
+                <option value="" disabled>Select Gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
               </select>
             </div>
           </div>

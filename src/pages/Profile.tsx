@@ -52,8 +52,16 @@ export default function Profile() {
     }
   }, [profile]);
 
+  // 🚀 UPDATED: Instantly force UPPERCASE only for name fields!
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    
+    // Check if the field is a name field, if so, force uppercase
+    if (['firstName', 'middleName', 'lastName'].includes(name)) {
+      setFormData({ ...formData, [name]: value.toUpperCase() });
+    } else {
+      setFormData({ ...formData, [name]: value });
+    }
   };
 
   const handleSaveProfile = async (e: React.FormEvent) => {
@@ -98,7 +106,8 @@ export default function Profile() {
 
   const calculateCompletion = () => {
     if (!profile) return 0;
-    const fields = ['displayName', 'username', 'bio', 'classLevel', 'school', 'state', 'medium'];
+    // 🚀 NEW: Added gender to the completion checklist
+    const fields = ['displayName', 'username', 'bio', 'classLevel', 'school', 'state', 'medium', 'gender'];
     const filled = fields.filter(f => !!(profile as any)[f]).length;
     return Math.round((filled / fields.length) * 100);
   };
@@ -199,6 +208,13 @@ export default function Profile() {
                             </p>
 
                             <div className="mt-6 space-y-3">
+                               {/* 🚀 NEW: Added Gender display icon */}
+                               {profile.gender && (
+                                 <div className="flex items-center gap-3 text-slate-300 text-sm font-semibold">
+                                    <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-pink-400"><UserIcon className="h-4 w-4" /></div>
+                                    {profile.gender}
+                                 </div>
+                               )}
                                {profile.school && (
                                  <div className="flex items-center gap-3 text-slate-300 text-sm font-semibold">
                                     <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-brand"><GraduationCap className="h-4 w-4" /></div>
@@ -373,6 +389,7 @@ export default function Profile() {
                   
                   <div className="sm:col-span-2 space-y-2">
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Bio / Status</label>
+                    {/* 🚀 Bio does NOT capitalize automatically! */}
                     <textarea name="bio" value={formData.bio || ''} onChange={handleInputChange} rows={3} className="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-all resize-none" placeholder="What are your goals?" />
                   </div>
 
@@ -413,6 +430,17 @@ export default function Profile() {
                       <option value="Odia">Odia</option>
                     </select>
                   </div>
+
+                  {/* 🚀 NEW: Compulsory Gender Field placed perfectly inside the Edit Grid */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Gender <span className="text-red-500">*</span></label>
+                    <select name="gender" value={formData.gender || ''} onChange={handleInputChange as any} required className="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand focus:ring-1 focus:ring-brand appearance-none transition-all cursor-pointer">
+                      <option value="" disabled>Select Gender</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
                 </div>
               </form>
             )}
@@ -427,7 +455,7 @@ export default function Profile() {
                    </div>
                    <h2 className="text-3xl font-black uppercase italic tracking-tighter text-white">System Preferences</h2>
                    <p className="text-slate-400 text-sm mt-4 max-w-lg mx-auto font-medium leading-relaxed mb-10">
-                     Advanced personalization matrices including theme configurations, focus modes, and notification overrides are slated for deployment in v2.0.
+                      Advanced personalization matrices including theme configurations, focus modes, and notification overrides are slated for deployment in v2.0.
                    </p>
 
                    <div className="pt-8 border-t border-slate-800/80 w-full max-w-md">

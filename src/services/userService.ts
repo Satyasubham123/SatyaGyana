@@ -39,6 +39,7 @@ export interface UserProfile {
   studyHours?: number;
   accuracy?: number;
   weakTopics?: string[];
+  gender?: string; // 🚀 NEW: Added Gender
   
   // Real-time dashboard tracking fields
   nextMilestoneDate?: Date | any; 
@@ -65,7 +66,7 @@ const USER_EDITABLE_FIELDS: (keyof UserProfile)[] = [
   'username', 'bio', 'interests', 'timezone', 'state', 'mood', 
   'themeColor', 'avatarUrl', 'bannerUrl', 'xpPoints', 'totalXP', 
   'level', 'streakCount', 'badges', 'studyHours', 'accuracy', 'weakTopics',
-  'nextMilestoneDate', 'nextMilestoneName', 'dailyXPTracker'
+  'nextMilestoneDate', 'nextMilestoneName', 'dailyXPTracker', 'gender' // 🚀 NEW: Added gender to editable fields
 ];
 
 // Helper to convert Firestore Timestamps to JS Dates
@@ -126,7 +127,8 @@ export async function updateUserProfile(uid: string, data: Partial<UserProfile>)
 
 export const isProfileComplete = (profile: UserProfile | null): boolean => {
   if (!profile) return false;
-  return !!(profile.firstName && profile.lastName && profile.classLevel && profile.state);
+  // 🚀 NEW: Added profile.gender to make it strictly compulsory!
+  return !!(profile.firstName && profile.lastName && profile.classLevel && profile.state && profile.gender);
 };
 
 // --- ACTIVITY SIGNALS ---
