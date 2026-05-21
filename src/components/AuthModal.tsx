@@ -32,6 +32,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [classLevel, setClassLevel] = useState('');
   const [stateSelection, setStateSelection] = useState('');
   const [medium, setMedium] = useState('');
+  const [gender, setGender] = useState(''); // 🚀 NEW: Added gender state
   
   // UI States
   const [error, setError] = useState('');
@@ -49,6 +50,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     setClassLevel('');
     setStateSelection('');
     setMedium('');
+    setGender(''); // 🚀 NEW: Reset gender
   };
 
   const switchMode = (newMode: AuthMode) => {
@@ -70,6 +72,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         
         await updateProfile(userCredential.user, { displayName: generatedDisplayName });
         
+        // 🚀 UPDATED: Save gender to database!
         await setDoc(doc(db, 'users', userCredential.user.uid), {
           firstName: firstName.trim(),
           middleName: middleName.trim(),
@@ -78,6 +81,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           classLevel: classLevel,
           state: stateSelection,
           medium: medium,
+          gender: gender, 
           email: email,
           createdAt: new Date(),
           updatedAt: new Date()
@@ -99,7 +103,6 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           return;
         }
         
-        // 🚀 FIX: Safe refresh applied here!
         window.location.reload();
         
       } else if (mode === 'forgot') {
@@ -121,10 +124,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const handleGoogleAuth = async () => {
     try {
       await signInWithGoogle();
-      
-      // 🚀 FIX: Safe refresh applied here too!
       window.location.reload();
-      
     } catch (err) {
       setError("Google Handshake failed. Try again.");
     }
@@ -168,7 +168,6 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-2">First Name <span className="text-red-500">*</span></label>
                     <div className="relative">
                       <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-                      {/* 🚀 UPDATE: FORCE UPPERCASE */}
                       <input 
                         type="text" required value={firstName} onChange={e => setFirstName(e.target.value.toUpperCase())}
                         className="w-full bg-slate-800 border border-slate-700 p-3.5 pl-10 rounded-2xl text-white font-bold outline-none focus:border-brand transition-all text-sm"
@@ -179,7 +178,6 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-2">Middle Name</label>
                     <div className="relative">
                       <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 opacity-50" />
-                      {/* 🚀 UPDATE: FORCE UPPERCASE */}
                       <input 
                         type="text" value={middleName} onChange={e => setMiddleName(e.target.value.toUpperCase())}
                         className="w-full bg-slate-800 border border-slate-700 p-3.5 pl-10 rounded-2xl text-white font-bold outline-none focus:border-brand transition-all text-sm"
@@ -192,7 +190,6 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-2">Last Name <span className="text-red-500">*</span></label>
                   <div className="relative">
                     <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-                    {/* 🚀 UPDATE: FORCE UPPERCASE */}
                     <input 
                       type="text" required value={lastName} onChange={e => setLastName(e.target.value.toUpperCase())}
                       className="w-full bg-slate-800 border border-slate-700 p-4 pl-12 rounded-2xl text-white font-bold outline-none focus:border-brand transition-all"
@@ -230,25 +227,44 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-2">Primary Medium <span className="text-red-500">*</span></label>
-                  <div className="relative">
-                    <BookOpen className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-                    <select 
-                      required value={medium} onChange={e => setMedium(e.target.value)}
-                      className="w-full bg-slate-800 border border-slate-700 p-4 pl-12 rounded-2xl text-white font-bold outline-none focus:border-brand transition-all appearance-none cursor-pointer"
-                    >
-                      <option value="" disabled>Select Medium</option>
-                      <option value="English">English</option>
-                      <option value="Hindi">Hindi</option>
-                      <option value="Odia">Odia</option>
-                    </select>
+                {/* 🚀 NEW: Grid to balance Medium and Gender */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-2">Medium <span className="text-red-500">*</span></label>
+                    <div className="relative">
+                      <BookOpen className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                      <select 
+                        required value={medium} onChange={e => setMedium(e.target.value)}
+                        className="w-full bg-slate-800 border border-slate-700 p-3.5 pl-10 rounded-2xl text-white font-bold outline-none focus:border-brand transition-all appearance-none cursor-pointer text-sm"
+                      >
+                        <option value="" disabled>Select</option>
+                        <option value="English">English</option>
+                        <option value="Hindi">Hindi</option>
+                        <option value="Odia">Odia</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-2">Gender <span className="text-red-500">*</span></label>
+                    <div className="relative">
+                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                      <select 
+                        required value={gender} onChange={e => setGender(e.target.value)}
+                        className="w-full bg-slate-800 border border-slate-700 p-3.5 pl-10 rounded-2xl text-white font-bold outline-none focus:border-brand transition-all appearance-none cursor-pointer text-sm"
+                      >
+                        <option value="" disabled>Select</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
               </>
             )}
 
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 pt-2">
               <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-2">Email Address <span className="text-red-500">*</span></label>
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
