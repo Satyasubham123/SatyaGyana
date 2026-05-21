@@ -6,7 +6,7 @@ import { motion } from 'motion/react';
 import { 
   BookMarked, Trophy, Flame, MessageSquare, ArrowRight, Calculator, 
   Atom, BookText, History, Cpu, GraduationCap, Sparkles, Calendar, 
-  Play, CheckCircle, ChevronRight, Zap
+  Play, CheckCircle, ChevronRight, Zap, Image as ImageIcon // 🚀 NEW: Added ImageIcon
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import StatsSummary from '../components/StatsSummary';
@@ -186,7 +186,18 @@ export default function Dashboard() {
             You are at <span className="text-brand font-black underline decoration-brand/30 underline-offset-8 tracking-widest text-[10px] sm:text-xs uppercase">{profile?.classLevel || 'Unspecified'}</span>. Initializing adaptive session.
           </p>
         </div>
-        <div className="flex items-center justify-center sm:justify-start gap-4">
+        
+        {/* 🚀 NEW: The Button Layout has been updated here! */}
+        <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-4">
+          
+          <Link
+            to="/visuals"
+            className="w-full sm:w-auto bg-slate-900 border border-slate-700 text-slate-300 px-6 sm:px-8 py-4 rounded-xl font-black text-xs sm:text-sm uppercase tracking-widest hover:border-brand hover:text-brand transition-all flex items-center justify-center gap-3 shadow-xl active:scale-95"
+          >
+            <ImageIcon className="h-5 w-5" />
+            Study Visuals
+          </Link>
+
           <Link
             to="/ai-teacher"
             className="w-full sm:w-auto bg-brand text-white px-6 sm:px-8 py-4 rounded-xl font-black text-xs sm:text-sm uppercase tracking-widest hover:bg-brand-dark transition-all flex items-center justify-center gap-3 shadow-xl shadow-brand/20 active:scale-95"
@@ -194,6 +205,7 @@ export default function Dashboard() {
             <Cpu className="h-5 w-5" />
             AI Mentor
           </Link>
+
         </div>
       </div>
 
