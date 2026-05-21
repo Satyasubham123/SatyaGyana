@@ -1,7 +1,6 @@
 export const imageService = {
   async generateImage(prompt: string, subject: string): Promise<string> {
     try {
-      // We combine the subject and prompt to get better results from the AI
       const enhancedPrompt = `Educational ${subject} visual: ${prompt}, highly detailed, clear, school textbook style`;
 
       const response = await fetch('http://localhost:8000/api/generate-image', {
@@ -16,11 +15,9 @@ export const imageService = {
         throw new Error('Failed to generate image');
       }
 
-      // The Python backend sends back a physical file, so we read it as a "Blob"
-      const imageBlob = await response.blob();
-      
-      // We convert that file into a URL that an <img src="..."> tag can read!
-      return URL.createObjectURL(imageBlob);
+      // 🚀 UPDATED: We now read the Firebase URL directly from the JSON response!
+      const data = await response.json();
+      return data.image_url;
       
     } catch (error) {
       console.error("Error generating image:", error);
