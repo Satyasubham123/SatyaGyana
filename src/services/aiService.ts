@@ -13,7 +13,7 @@ export const aiService = {
       formattedContents.push({ role: 'user', parts: [{ text: currentInput.text }] });
 
       // 2. We changed 127.0.0.1 to localhost to bypass Chrome's security block!
-      const response = await fetch("http://localhost:8000/ask", {
+      const response = await fetch("https://gyanamitra.onrender.com/ask", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
