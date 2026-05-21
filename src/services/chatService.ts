@@ -41,15 +41,21 @@ export const chatService = {
   },
 
   /**
-   * 2. Fetches all permanent chat history for the sidebar (ignores temporary ones)
+   * 2. Fetches all permanent chat history for the sidebar (Hides chats older than 7 days)
    */
   async getUserChats(userId: string): Promise<ChatSession[]> {
     try {
       const chatsRef = collection(db, 'chats');
+      
+      // 🚀 NEW: Calculate the exact time 7 days ago
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
       const q = query(
         chatsRef, 
         where('userId', '==', userId), 
         where('isTemporary', '==', false),
+        where('createdAt', '>=', sevenDaysAgo), // 🚀 NEW: Filter out old chats
         orderBy('createdAt', 'desc')
       );
       
