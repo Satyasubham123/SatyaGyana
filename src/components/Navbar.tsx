@@ -18,28 +18,22 @@ export default function Navbar({ user, profile }: NavbarProps) {
   const [isAuthOpen, setIsAuthOpen] = useState(false); 
   const navigate = useNavigate();
 
-  // 🚀 HARD WIPE LOGOUT FUNCTION
   const handleLogout = async () => {
     try {
-      // 1. Tell Firebase to destroy the secure token
       await signOut(auth);
-      
-      // 2. HARD WIPE: Manually destroy all browser memory caches
       localStorage.clear();
       sessionStorage.clear();
-      
-      // 3. Force a hard browser redirect (Do NOT use React Router's navigate here)
-      // This guarantees the app restarts with a completely blank memory slate.
       window.location.href = '/';
     } catch (error) {
       console.error("Error destroying session:", error);
     }
   };
 
+  // 🚀 UPDATED: Swapped order and renamed to AI Mentor!
   const mainNav = [
     { name: 'Dashboard', path: '/dashboard', show: !!user },
-    { name: 'AI Teacher', path: '/ai-teacher', show: !!user },
-    { name: 'Study Visuals', path: '/visuals', show: !!user }, // 🚀 NEW: Added Visuals Link!
+    { name: 'Study Visuals', path: '/visuals', show: !!user }, 
+    { name: 'AI Mentor', path: '/ai-teacher', show: !!user },
     { name: 'Admin', path: '/admin', show: !!user && profile?.role === 'admin' },
   ];
 
@@ -61,7 +55,7 @@ export default function Navbar({ user, profile }: NavbarProps) {
               <div className="w-10 h-10 bg-brand rounded-xl flex items-center justify-center shadow-xl shadow-brand/20 group-hover:rotate-12 transition-transform duration-300 shrink-0">
                 <Sparkles className="h-5 w-5 text-white" />
               </div>
-              <span className="text-xl sm:text-2xl font-black tracking-tighter italic uppercase text-main group-hover:text-brand transition-all duration-300">
+              <span className="text-xl sm:text-2xl font-black tracking-tighter italic uppercase text-slate-900 dark:text-white group-hover:text-brand transition-all duration-300">
                 GyanMitra
               </span>
             </Link>
@@ -72,7 +66,8 @@ export default function Navbar({ user, profile }: NavbarProps) {
                 <Link
                   key={item.path}
                   to={item.path}
-                  className="text-[10px] font-black uppercase tracking-[0.2em] text-secondary hover:text-brand transition-all relative group whitespace-nowrap"
+                  // 🚀 UPDATED: Fixed text color to strictly be slate-800 or slate-200 for readability
+                  className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-800 dark:text-slate-200 hover:text-brand transition-all relative group whitespace-nowrap"
                 >
                   {item.name}
                   <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-brand transition-all group-hover:w-full"></span>
@@ -86,7 +81,7 @@ export default function Navbar({ user, profile }: NavbarProps) {
                 {secondaryNav.slice(0, 3).map(item => (
                   <Link 
                     key={item.path} to={item.path} 
-                    className="text-[9px] font-bold uppercase tracking-widest text-muted hover:text-main transition-colors"
+                    className="text-[9px] font-bold uppercase tracking-widest text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors"
                   >
                     {item.name}
                   </Link>
@@ -112,7 +107,7 @@ export default function Navbar({ user, profile }: NavbarProps) {
                    </Link>
                    <button
                      onClick={handleLogout}
-                     className="p-3 bg-bg-deep border border-border-strong rounded-xl text-muted hover:text-red-500 transition-all hover:shadow-lg shadow-red-500/10 shrink-0"
+                     className="p-3 bg-bg-deep border border-border-strong rounded-xl text-slate-500 hover:text-red-500 transition-all hover:shadow-lg shadow-red-500/10 shrink-0"
                      title="Logout"
                    >
                      <LogOut className="h-4 w-4" />
@@ -144,7 +139,7 @@ export default function Navbar({ user, profile }: NavbarProps) {
             )}
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className="text-secondary p-2 bg-bg-deep rounded-xl border border-border-strong"
+              className="text-slate-800 dark:text-slate-200 p-2 bg-bg-deep rounded-xl border border-border-strong"
             >
               {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
@@ -171,9 +166,9 @@ export default function Navbar({ user, profile }: NavbarProps) {
                   <div className="w-8 h-8 bg-brand rounded-lg flex items-center justify-center">
                     <Sparkles className="h-4 w-4 text-white" />
                   </div>
-                  <span className="font-black italic uppercase tracking-tighter text-main">Menu</span>
+                  <span className="font-black italic uppercase tracking-tighter text-slate-900 dark:text-white">Menu</span>
                 </div>
-                <button onClick={() => setIsOpen(false)} className="p-2 text-secondary bg-bg-deep rounded-lg border border-border-strong">
+                <button onClick={() => setIsOpen(false)} className="p-2 text-slate-500 bg-bg-deep rounded-lg border border-border-strong">
                   <X className="h-5 w-5" />
                 </button>
               </div>
@@ -187,8 +182,8 @@ export default function Navbar({ user, profile }: NavbarProps) {
                         key={item.path} to={item.path} onClick={() => setIsOpen(false)}
                         className="flex items-center justify-between p-4 bg-bg-deep border border-border-strong rounded-2xl hover:border-brand/40 group transition-all"
                       >
-                        <span className="text-xl font-black italic uppercase tracking-tighter text-main group-hover:text-brand">{item.name}</span>
-                        <ChevronRight className="h-5 w-5 text-muted group-hover:text-brand group-hover:translate-x-1 transition-all" />
+                        <span className="text-xl font-black italic uppercase tracking-tighter text-slate-900 dark:text-white group-hover:text-brand">{item.name}</span>
+                        <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-brand group-hover:translate-x-1 transition-all" />
                       </Link>
                     ))}
                   </div>
