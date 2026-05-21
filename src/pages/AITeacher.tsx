@@ -56,7 +56,6 @@ export default function AITeacher() {
     const history = await chatService.getUserChats(user.uid);
     console.log("History result from Firestore:", history);
     
-  
     setSessions(history);
     if (history.length > 0 && !activeSessionId) {
       setActiveSessionId(history[0].id);
@@ -209,12 +208,29 @@ export default function AITeacher() {
                   <MessageSquare className={`h-4 w-4 shrink-0 ${activeSessionId === session.id ? 'text-brand' : 'text-slate-500'}`} />
                   <span className="text-xs font-medium text-slate-300 truncate">{session.title}</span>
                 </div>
-                <button 
-                  onClick={(e) => deleteChat(e, session.id)}
-                  className="opacity-0 group-hover:opacity-100 p-1 hover:text-red-400 transition-opacity"
-                >
-                  <Trash2 className="h-3 w-3" />
-                </button>
+                
+                {/* 🚀 NEW EDIT AND DELETE BUTTONS */}
+                <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity">
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const newTitle = prompt("Enter new chat name:", session.title);
+                      if (newTitle) {
+                        chatService.renameChat(session.id, newTitle).then(loadSessions);
+                      }
+                    }}
+                    className="p-1 hover:text-blue-400 transition-colors"
+                  >
+                    <Edit2 className="h-3 w-3" />
+                  </button>
+                  <button 
+                    onClick={(e) => deleteChat(e, session.id)}
+                    className="p-1 hover:text-red-400 transition-colors"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                </div>
+
               </div>
             ))
           )}
