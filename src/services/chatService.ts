@@ -27,11 +27,17 @@ export const chatService = {
   async createChat(userId: string, title: string = "New Chat", isTemporary: boolean = false): Promise<string> {
     try {
       const chatsRef = collection(db, 'chats');
+      
+      // 🚀 NEW: Calculate the exact self-destruct time (7 days from now)
+      const expirationDate = new Date();
+      expirationDate.setDate(expirationDate.getDate() + 7);
+
       const docRef = await addDoc(chatsRef, {
         userId,
         title,
         isTemporary,
-        createdAt: serverTimestamp()
+        createdAt: serverTimestamp(),
+        expiresAt: expirationDate // 🚀 NEW: Tell Firebase when to delete this
       });
       return docRef.id;
     } catch (error) {
@@ -75,15 +81,19 @@ export const chatService = {
    */
   async saveMessage(chatId: string, sender: 'user' | 'ai', text: string, imageUrl?: string) {
     try {
-      // If it's a temporary chat session, we skip database saving to keep it purely local
       if (chatId === 'temporary-session') return;
+
+      // 🚀 NEW: Messages also need a self-destruct timer so they don't take up space!
+      const expirationDate = new Date();
+      expirationDate.setDate(expirationDate.getDate() + 7);
 
       const messagesRef = collection(db, 'chats', chatId, 'messages');
       await addDoc(messagesRef, {
         sender,
         text,
         imageUrl: imageUrl || null,
-        timestamp: serverTimestamp()
+        timestamp: serverTimestamp(),
+        expiresAt: expirationDate // 🚀 NEW: Tell Firebase when to delete the message
       });
     } catch (error) {
       console.error("Error saving message stream:", error);
