@@ -168,8 +168,9 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-2">First Name <span className="text-red-500">*</span></label>
                     <div className="relative">
                       <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                      {/* 🚀 UPDATE: FORCE UPPERCASE */}
                       <input 
-                        type="text" required value={firstName} onChange={e => setFirstName(e.target.value)}
+                        type="text" required value={firstName} onChange={e => setFirstName(e.target.value.toUpperCase())}
                         className="w-full bg-slate-800 border border-slate-700 p-3.5 pl-10 rounded-2xl text-white font-bold outline-none focus:border-brand transition-all text-sm"
                       />
                     </div>
@@ -178,8 +179,9 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-2">Middle Name</label>
                     <div className="relative">
                       <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 opacity-50" />
+                      {/* 🚀 UPDATE: FORCE UPPERCASE */}
                       <input 
-                        type="text" value={middleName} onChange={e => setMiddleName(e.target.value)}
+                        type="text" value={middleName} onChange={e => setMiddleName(e.target.value.toUpperCase())}
                         className="w-full bg-slate-800 border border-slate-700 p-3.5 pl-10 rounded-2xl text-white font-bold outline-none focus:border-brand transition-all text-sm"
                       />
                     </div>
@@ -190,8 +192,9 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-2">Last Name <span className="text-red-500">*</span></label>
                   <div className="relative">
                     <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                    {/* 🚀 UPDATE: FORCE UPPERCASE */}
                     <input 
-                      type="text" required value={lastName} onChange={e => setLastName(e.target.value)}
+                      type="text" required value={lastName} onChange={e => setLastName(e.target.value.toUpperCase())}
                       className="w-full bg-slate-800 border border-slate-700 p-4 pl-12 rounded-2xl text-white font-bold outline-none focus:border-brand transition-all"
                     />
                   </div>
