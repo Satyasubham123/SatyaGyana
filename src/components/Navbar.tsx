@@ -39,6 +39,7 @@ export default function Navbar({ user, profile }: NavbarProps) {
   const mainNav = [
     { name: 'Dashboard', path: '/dashboard', show: !!user },
     { name: 'AI Teacher', path: '/ai-teacher', show: !!user },
+    { name: 'Study Visuals', path: '/visuals', show: !!user }, // 🚀 NEW: Added Visuals Link!
     { name: 'Admin', path: '/admin', show: !!user && profile?.role === 'admin' },
   ];
 

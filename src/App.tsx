@@ -13,6 +13,7 @@ import QuizPage from './pages/QuizPage';
 import AITeacher from './pages/AITeacher';
 import Profile from './pages/Profile';
 import Subscription from './pages/Subscription';
+import { AIVisualizer } from './pages/AIVisualizer';
 
 // Components
 import Navbar from './components/Navbar';
@@ -58,11 +59,14 @@ function AppContent() {
           <Route path="/profile" element={user ? <Profile /> : <Navigate to="/" />} />
           <Route path="/subscription" element={user ? <Subscription /> : <Navigate to="/" />} />
 
+          {/* 🚀 NEW: AI Study Visuals Route */}
+          <Route path="/visuals" element={<ProtectedRoute><AIVisualizer /></ProtectedRoute>} />
+
           {/* ⚠️ Legacy routes (still using props to prevent TypeScript errors until we update them) */}
           <Route path="/verify-email" element={user && !user.emailVerified ? <VerifyEmail user={user} /> : <Navigate to="/dashboard" />} />
           <Route path="/class/:classId" element={<ProtectedRoute><ClassDetails user={user!} /></ProtectedRoute>} />
           <Route path="/quiz/:quizId" element={<ProtectedRoute><QuizPage user={user!} /></ProtectedRoute>} />
-          <Route path="/ai-teacher" element={<ProtectedRoute><AITeacher user={user!} profile={profile} /></ProtectedRoute>} />
+          <Route path="/ai-teacher" element={<ProtectedRoute><AITeacher /></ProtectedRoute>} />
         </Routes>
       </main>
     </div>
