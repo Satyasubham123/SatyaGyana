@@ -1,26 +1,26 @@
-export const imageService = {
-  async generateImage(prompt: string, subject: string): Promise<string> {
-    try {
-      const enhancedPrompt = `Educational ${subject} visual: ${prompt}, highly detailed, clear, school textbook style`;
+// Use the Render URL as the ultimate fallback so it never fails!
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://gyanamitra-backend.onrender.com';
 
-      const response = await fetch('http://localhost:8000/api/generate-image', {
+export const imageService = {
+  generateImage: async (prompt: string, subject: string): Promise<string> => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/generate-image`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ prompt: enhancedPrompt }),
+        // We combine the subject and prompt to give the AI better context!
+        body: JSON.stringify({ prompt: `A detailed educational diagram of ${subject}: ${prompt}` }), 
       });
 
       if (!response.ok) {
         throw new Error('Failed to generate image');
       }
 
-      // 🚀 UPDATED: We now read the Firebase URL directly from the JSON response!
       const data = await response.json();
-      return data.image_url;
-      
+      return data.image_url; // This is the ImgBB 3-day link!
     } catch (error) {
-      console.error("Error generating image:", error);
+      console.error('Error generating image:', error);
       throw error;
     }
   }
