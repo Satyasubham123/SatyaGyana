@@ -20,20 +20,21 @@ export interface ChatMessage {
   timestamp: any;
 }
 
-// Ensure this matches the rules: 'aiConversations'
 const CONVERSATIONS_COLLECTION = 'aiConversations';
 
 export const chatService = {
   
   async createChat(userId: string, title: string = "New Chat", isTemporary: boolean = false): Promise<string> {
     try {
+      if (!userId) throw new Error("Missing User ID");
+      
       const chatsRef = collection(db, CONVERSATIONS_COLLECTION);
       
       const expirationDate = new Date();
       expirationDate.setDate(expirationDate.getDate() + 7);
 
       const docRef = await addDoc(chatsRef, {
-        userId, // <--- CRITICAL: Permissions check this field
+        userId, 
         title,
         isTemporary,
         createdAt: serverTimestamp(),
@@ -50,9 +51,6 @@ export const chatService = {
     try {
       const chatsRef = collection(db, CONVERSATIONS_COLLECTION);
       
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
       const q = query(
         chatsRef, 
         where('userId', '==', userId), 
@@ -87,7 +85,8 @@ export const chatService = {
         expiresAt: expirationDate
       });
     } catch (error) {
-      console.error("Error saving message stream:", error);
+      console.error("Error saving message:", error);
+      throw error; // Re-throw to help UI handle the failure state
     }
   },
 
@@ -104,7 +103,7 @@ export const chatService = {
         ...doc.data()
       })) as ChatMessage[];
     } catch (error) {
-      console.error("Error loading message cluster:", error);
+      console.error("Error loading messages:", error);
       return [];
     }
   },
@@ -114,7 +113,7 @@ export const chatService = {
       const chatDocRef = doc(db, CONVERSATIONS_COLLECTION, chatId);
       await updateDoc(chatDocRef, { title: newTitle });
     } catch (error) {
-      console.error("Error updating chat title:", error);
+      console.error("Error renaming chat:", error);
       throw error;
     }
   },
