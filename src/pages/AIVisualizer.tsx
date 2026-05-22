@@ -14,9 +14,14 @@ export const AIVisualizer: React.FC = () => {
   const [subject, setSubject] = useState(SUBJECTS[1].id);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // 🚀 NEW: Cooldown States
+  const [isCooldown, setIsCooldown] = useState(false);
+  const [cooldownTimer, setCooldownTimer] = useState(0);
 
   const handleGenerate = async () => {
-    if (!prompt.trim()) return;
+    // 🚀 NEW: Block if cooldown is active
+    if (!prompt.trim() || isCooldown) return;
     
     setIsLoading(true);
     setImageUrl(null);
@@ -28,6 +33,21 @@ export const AIVisualizer: React.FC = () => {
       alert("Oops! The AI failed to draw that. Please try again.");
     } finally {
       setIsLoading(false);
+      
+      // 🚀 NEW: Start the 10-second Cooldown Timer
+      setIsCooldown(true);
+      let timeLeft = 10;
+      setCooldownTimer(timeLeft);
+
+      const timerInterval = setInterval(() => {
+        timeLeft -= 1;
+        setCooldownTimer(timeLeft);
+
+        if (timeLeft <= 0) {
+          clearInterval(timerInterval);
+          setIsCooldown(false);
+        }
+      }, 1000);
     }
   };
 
@@ -80,7 +100,6 @@ export const AIVisualizer: React.FC = () => {
                Describe It
             </h2>
             
-            {/* 🚀 THE FIXED TEXTAREA: White Box, Black Text, Visible Placeholder! */}
             <textarea
               className="w-full h-32 p-4 rounded-xl border border-gray-300 bg-white text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand resize-none transition-all"
               placeholder="e.g., A highly detailed cross-section of a plant cell..."
@@ -88,13 +107,22 @@ export const AIVisualizer: React.FC = () => {
               onChange={(e) => setPrompt(e.target.value)}
             />
             
+            {/* 🚀 UPDATED: Button handles disabled state and shows countdown */}
             <button
               onClick={handleGenerate}
-              disabled={isLoading || !prompt}
-              className="w-full mt-6 bg-brand text-white py-4 rounded-xl font-black uppercase tracking-widest text-xs shadow-xl active:scale-95 transition-all hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-3"
+              disabled={isLoading || !prompt || isCooldown}
+              className={`w-full mt-6 py-4 rounded-xl font-black uppercase tracking-widest text-xs shadow-xl transition-all flex justify-center items-center gap-3 ${
+                (isLoading || !prompt || isCooldown) 
+                ? 'bg-slate-700 text-slate-400 cursor-not-allowed opacity-70' 
+                : 'bg-brand text-white hover:bg-blue-600 active:scale-95'
+              }`}
             >
               {isLoading ? <Loader2 className="animate-spin w-4 h-4" /> : <FlaskConical className="w-4 h-4" />}
-              {isLoading ? 'Processing Neural Image...' : 'Generate Visual'}
+              {isLoading 
+                ? 'Processing Neural Image...' 
+                : isCooldown 
+                ? `Please wait ${cooldownTimer}s...` 
+                : 'Generate Visual'}
             </button>
           </div>
         </div>

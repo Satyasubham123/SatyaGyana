@@ -26,14 +26,16 @@ export default function AITeacher() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Load User's Chat History on Mount
+  // 🚀 NEW: Cooldown States
+  const [isCooldown, setIsCooldown] = useState(false);
+  const [cooldownTimer, setCooldownTimer] = useState(0);
+
   useEffect(() => {
     if (user) {
       loadSessions();
     }
   }, [user]);
 
-  // Load Messages when Active Session Changes
   useEffect(() => {
     if (activeSessionId) {
       loadMessages(activeSessionId);
@@ -42,20 +44,13 @@ export default function AITeacher() {
     }
   }, [activeSessionId]);
 
-  // Auto-scroll to bottom of chat
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
   const loadSessions = async () => {
-    if (!user) {
-      console.log("No user found, skipping load");
-      return;
-    }
-    console.log("Attempting to fetch chats for UID:", user.uid);
+    if (!user) return;
     const history = await chatService.getUserChats(user.uid);
-    console.log("History result from Firestore:", history);
-    
     setSessions(history);
     if (history.length > 0 && !activeSessionId) {
       setActiveSessionId(history[0].id);
@@ -79,7 +74,6 @@ export default function AITeacher() {
     }
   };
 
-  // 🚀 HANDLE IMAGE UPLOAD (Converts to Base64)
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -96,63 +90,71 @@ export default function AITeacher() {
     reader.readAsDataURL(file);
   };
 
-  // 🚀 THE MAIN SEND MESSAGE FUNCTION
   const handleSendMessage = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if ((!input.trim() && !selectedImage) || !user || isTyping) return;
+    
+    // 🚀 NEW: Block if cooldown is active
+    if ((!input.trim() && !selectedImage) || !user || isTyping || isCooldown) return;
 
-    // 1. Ensure we have an active chat session
     let currentChatId = activeSessionId;
     if (!currentChatId) {
       currentChatId = await chatService.createChat(user.uid, input.slice(0, 30) || "Image Query", false);
       setActiveSessionId(currentChatId);
-      await loadSessions(); // Refresh sidebar
+      await loadSessions();
     }
 
     const userMsgText = input.trim();
     const userMsgImage = selectedImage;
     
-    // Clear input UI immediately for good UX
     setInput('');
     setSelectedImage(null);
     setIsTyping(true);
 
-    // 2. Add user message to local UI
     const newUserMsg: ChatMessage = { sender: 'user', text: userMsgText, imageUrl: userMsgImage || undefined, timestamp: new Date() };
     setMessages(prev => [...prev, newUserMsg]);
 
-    // 3. Save user message to database
     await chatService.saveMessage(currentChatId, 'user', userMsgText, userMsgImage || undefined);
 
     try {
-      // 4. Format history for AI
       const aiHistory = messages.map(m => ({
         role: (m.sender === 'user' ? 'user' : 'model') as 'user' | 'model',
         text: m.text
       }));
 
-      // 5. Call Gemini AI via our new Service
       const aiResponseText = await aiService.sendMessage(aiHistory, {
         text: userMsgText || "Analyze this image and explain what you see in the context of school studies.",
         base64Image: userMsgImage || undefined
       });
 
-      // 6. Add AI response to local UI
       const newAiMsg: ChatMessage = { sender: 'ai', text: aiResponseText, timestamp: new Date() };
       setMessages(prev => [...prev, newAiMsg]);
 
-      // 7. Save AI response to database
       await chatService.saveMessage(currentChatId, 'ai', aiResponseText);
 
     } catch (error) {
       toast.error("AI synchronization failed.");
     } finally {
       setIsTyping(false);
+      
+      // 🚀 NEW: Start the 10-second Cooldown Timer
+      setIsCooldown(true);
+      let timeLeft = 10;
+      setCooldownTimer(timeLeft);
+
+      const timerInterval = setInterval(() => {
+        timeLeft -= 1;
+        setCooldownTimer(timeLeft);
+
+        if (timeLeft <= 0) {
+          clearInterval(timerInterval);
+          setIsCooldown(false);
+        }
+      }, 1000);
     }
   };
 
   const deleteChat = async (e: React.MouseEvent, chatId: string) => {
-    e.stopPropagation(); // Prevent clicking the chat row
+    e.stopPropagation();
     if (!window.confirm("Purge this conversation permanently?")) return;
     
     await chatService.deleteChat(chatId);
@@ -163,13 +165,13 @@ export default function AITeacher() {
     await loadSessions();
   };
 
-  if (!user) return null; // Or a loading spinner/auth redirect
+  if (!user) return null;
 
   return (
     <div className="flex h-[calc(100vh-80px)] bg-bg-deep overflow-hidden relative">
       <Toaster position="top-center" toastOptions={{ style: { background: '#0F172A', color: '#fff', border: '1px solid #1E293B', borderRadius: '16px' }}}/>
 
-      {/* 🚀 LEFT SIDEBAR (History) */}
+      {/* LEFT SIDEBAR */}
       <motion.div 
         initial={{ x: 0 }}
         animate={{ width: isSidebarOpen ? 300 : 0, opacity: isSidebarOpen ? 1 : 0 }}
@@ -209,7 +211,6 @@ export default function AITeacher() {
                   <span className="text-xs font-medium text-slate-300 truncate">{session.title}</span>
                 </div>
                 
-                {/* 🚀 NEW EDIT AND DELETE BUTTONS */}
                 <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity">
                   <button 
                     onClick={(e) => {
@@ -230,14 +231,13 @@ export default function AITeacher() {
                     <Trash2 className="h-3 w-3" />
                   </button>
                 </div>
-
               </div>
             ))
           )}
         </div>
       </motion.div>
 
-      {/* 🚀 MAIN CHAT AREA */}
+      {/* MAIN CHAT AREA */}
       <div className="flex-1 flex flex-col h-full relative">
         
         {/* Top Header */}
@@ -313,10 +313,9 @@ export default function AITeacher() {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* 🚀 INPUT AREA WITH IMAGE ATTACHMENT */}
+        {/* INPUT AREA */}
         <div className="p-4 bg-bg-deep shrink-0">
           <div className="max-w-4xl mx-auto">
-            {/* Image Preview Area */}
             <AnimatePresence>
               {selectedImage && (
                 <motion.div 
@@ -356,16 +355,27 @@ export default function AITeacher() {
                     handleSendMessage();
                   }
                 }}
-                placeholder="Ask GyanMitra AI..."
-                className="flex-1 bg-transparent border-none outline-none text-white text-sm resize-none py-3 px-2 min-h-[44px] max-h-32 custom-scrollbar"
+                placeholder={isCooldown ? `Please wait ${cooldownTimer} seconds...` : "Ask GyanMitra AI..."}
+                disabled={isCooldown}
+                className="flex-1 bg-transparent border-none outline-none text-white text-sm resize-none py-3 px-2 min-h-[44px] max-h-32 custom-scrollbar disabled:opacity-50"
                 rows={1}
               />
 
+              {/* 🚀 UPDATED: Send Button handles cooldown visually */}
               <button 
-                type="submit" disabled={isTyping || (!input.trim() && !selectedImage)}
-                className="p-3 bg-brand text-white rounded-full hover:bg-blue-600 transition-colors shrink-0 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-brand/20"
+                type="submit" 
+                disabled={isTyping || (!input.trim() && !selectedImage) || isCooldown}
+                className={`p-3 rounded-full transition-colors shrink-0 flex items-center justify-center min-w-[44px] ${
+                  (isTyping || (!input.trim() && !selectedImage) || isCooldown)
+                  ? 'bg-slate-800 text-slate-500 cursor-not-allowed opacity-70' 
+                  : 'bg-brand text-white hover:bg-blue-600 shadow-lg shadow-brand/20'
+                }`}
               >
-                <Send className="h-5 w-5 ml-1" />
+                {isCooldown ? (
+                  <span className="text-[10px] font-black">{cooldownTimer}s</span>
+                ) : (
+                  <Send className="h-5 w-5 ml-1" />
+                )}
               </button>
             </form>
             <p className="text-center text-[9px] font-bold uppercase tracking-[0.2em] text-slate-500 mt-3">
