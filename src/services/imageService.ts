@@ -6,15 +6,11 @@ export const imageService = {
       const response = await fetch(`${BACKEND_URL}/api/generate-image`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: `A detailed educational diagram of ${subject}: ${prompt}` }), 
+        body: JSON.stringify({ prompt: prompt, subject: subject }), 
       });
 
-      if (!response.ok) {
-        const errorDetails = await response.text();
-        console.error("🔴 Server Error generating image:", response.status, errorDetails);
-        throw new Error('Failed to generate image');
-      }
-
+      if (!response.ok) throw new Error('Failed to generate image');
+      
       const data = await response.json();
       return data.image_url; 
     } catch (error) {

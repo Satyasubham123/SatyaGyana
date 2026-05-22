@@ -22,12 +22,8 @@ export const aiService = {
         })
       });
 
-      if (!response.ok) {
-        const errorDetails = await response.text();
-        console.error("🔴 Server Error:", response.status, errorDetails);
-        throw new Error(`Backend Error ${response.status}`);
-      }
-
+      if (!response.ok) throw new Error(`Backend Error ${response.status}`);
+      
       const data = await response.json();
       return data.text;
 
