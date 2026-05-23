@@ -478,7 +478,7 @@ export default function AdminDashboard({ profile }: AdminDashboardProps) {
     setIsGeneratingQuiz(true);
     setGeneratedQuiz(null);
     try {
-      const apiKey = (import.meta.env as any).VITE_GEMINI_API_KEY?.trim();
+      const apiKey = import.meta.env['VITE_GEMINI_API_KEY']?.trim();
       
       if (!apiKey) {
         throw new Error("VITE_GEMINI_API_KEY configuration is missing!");
