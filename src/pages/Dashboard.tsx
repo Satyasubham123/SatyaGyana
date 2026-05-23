@@ -6,16 +6,14 @@ import { motion } from 'motion/react';
 import { 
   BookMarked, Trophy, Flame, MessageSquare, ArrowRight, Calculator, 
   Atom, BookText, History, Cpu, GraduationCap, Sparkles, Calendar, 
-  Play, CheckCircle, ChevronRight, Zap, Image as ImageIcon // 🚀 NEW: Added ImageIcon
+  Play, CheckCircle, ChevronRight, Zap, Image as ImageIcon, BookA
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import StatsSummary from '../components/StatsSummary';
 
 declare global {
-  interface ImportMeta {
-    readonly env: {
-      readonly VITE_GEMINI_API_KEY?: string;
-    };
+  interface ImportMetaEnv {
+    readonly VITE_GEMINI_API_KEY?: string;
   }
 }
 
@@ -50,7 +48,7 @@ export default function Dashboard() {
     if (!profile?.classLevel) return;
     try {
       const courses = await contentService.getCoursesByClass(profile.classLevel);
-      setDbCourses(Array.isArray(courses) ? courses : []); // 🚀 BULLETPROOF: Ensure array
+      setDbCourses(Array.isArray(courses) ? courses : []); 
     } catch (err) {
       console.error(err);
     }
@@ -61,21 +59,19 @@ export default function Dashboard() {
     try {
       const history = await contentService.getUserHistory(user.uid);
       const progress = await contentService.getUserProgress(user.uid);
-      setUserHistory(Array.isArray(history) ? history : []); // 🚀 BULLETPROOF
-      setUserProgress(Array.isArray(progress) ? progress : []); // 🚀 BULLETPROOF
+      setUserHistory(Array.isArray(history) ? history : []); 
+      setUserProgress(Array.isArray(progress) ? progress : []); 
     } catch (err) {
       console.error(err);
     }
   };
 
-  // 🚀 BULLETPROOF: Safely filter progress
   const getCourseProgress = (courseId: string) => {
     if (!Array.isArray(userProgress)) return 0;
     const courseProgress = userProgress.filter(p => p?.courseId === courseId && p?.completed);
     return courseProgress.length;
   };
 
-  // 🚀 BULLETPROOF: Safe fallback for history
   const safeHistory = Array.isArray(userHistory) ? userHistory : [];
   const lastViewedCourse = safeHistory[0] ? dbCourses.find(c => c.id === safeHistory[0].courseId) : null;
   const recentHistory = safeHistory.slice(1, 4).map(h => dbCourses.find(c => c.id === h.courseId)).filter(Boolean);
@@ -87,7 +83,6 @@ export default function Dashboard() {
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY?.trim();
       if (!apiKey) throw new Error("API Key missing!");
 
-      // 🚀 BULLETPROOF: Prevent crash if weakTopics is a string or undefined
       const safeWeakTopics = Array.isArray(profile.weakTopics) 
         ? profile.weakTopics.join(', ') 
         : (typeof profile.weakTopics === 'string' ? profile.weakTopics : 'None specified');
@@ -170,7 +165,6 @@ export default function Dashboard() {
     );
   }
 
-  // 🚀 BULLETPROOF: Safely parse numbers to prevent Math/NaN crashes
   const firstName = profile.firstName || profile.displayName?.split(' ')[0] || 'Student';
   const xp = Number(profile.totalXP) || Number(profile.xpPoints) || 0;
   const streak = Number(profile.streakCount) || 0;
@@ -185,27 +179,35 @@ export default function Dashboard() {
           <p className="text-secondary text-sm sm:text-base md:text-lg font-medium">
             You are at <span className="text-brand font-black underline decoration-brand/30 underline-offset-8 tracking-widest text-[10px] sm:text-xs uppercase">{profile?.classLevel || 'Unspecified'}</span>. Initializing adaptive session.
           </p>
-        </div>
-        
-        {/* 🚀 NEW: The Button Layout has been updated here! */}
-        <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-4">
           
-          <Link
-            to="/visuals"
-            className="w-full sm:w-auto bg-slate-900 border border-slate-700 text-slate-300 px-6 sm:px-8 py-4 rounded-xl font-black text-xs sm:text-sm uppercase tracking-widest hover:border-brand hover:text-brand transition-all flex items-center justify-center gap-3 shadow-xl active:scale-95"
-          >
-            <ImageIcon className="h-5 w-5" />
-            Study Visuals
-          </Link>
+          {/* 🚀 NEW: Added flex-wrap and the Dictionary Button! */}
+          <div className="mt-8 flex flex-wrap items-center justify-center sm:justify-start gap-4"> 
+            
+            <Link 
+              to="/dictionary" 
+              className="flex items-center justify-center gap-2 px-6 py-4 bg-bg-deep border border-border-strong rounded-xl text-slate-300 hover:text-white hover:border-brand/50 transition-all font-black text-xs sm:text-sm uppercase tracking-widest shadow-sm active:scale-95 w-full sm:w-auto"
+            >
+              <BookA className="w-5 h-5 text-purple-500" />
+              <span className="whitespace-nowrap">Dictionary</span>
+            </Link>
 
-          <Link
-            to="/ai-teacher"
-            className="w-full sm:w-auto bg-brand text-white px-6 sm:px-8 py-4 rounded-xl font-black text-xs sm:text-sm uppercase tracking-widest hover:bg-brand-dark transition-all flex items-center justify-center gap-3 shadow-xl shadow-brand/20 active:scale-95"
-          >
-            <Cpu className="h-5 w-5" />
-            AI Mentor
-          </Link>
+            <Link
+              to="/visuals"
+              className="w-full sm:w-auto bg-slate-900 border border-slate-700 text-slate-300 px-6 sm:px-8 py-4 rounded-xl font-black text-xs sm:text-sm uppercase tracking-widest hover:border-brand hover:text-brand transition-all flex items-center justify-center gap-3 shadow-xl active:scale-95"
+            >
+              <ImageIcon className="h-5 w-5" />
+              <span className="whitespace-nowrap">Study Visuals</span>
+            </Link>
 
+            <Link
+              to="/ai-teacher"
+              className="w-full sm:w-auto bg-brand text-white px-6 sm:px-8 py-4 rounded-xl font-black text-xs sm:text-sm uppercase tracking-widest hover:bg-brand-dark transition-all flex items-center justify-center gap-3 shadow-xl shadow-brand/20 active:scale-95"
+            >
+              <Cpu className="h-5 w-5" />
+              <span className="whitespace-nowrap">AI Mentor</span>
+            </Link>
+
+          </div>
         </div>
       </div>
 
