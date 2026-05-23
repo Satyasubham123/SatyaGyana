@@ -15,6 +15,7 @@ import Profile from './pages/Profile';
 import Subscription from './pages/Subscription';
 import { AIVisualizer } from './pages/AIVisualizer';
 import VisualDictionary from './pages/VisualDictionary';
+import AdminDashboard from './pages/AdminDashboard'; // 🚀 FIXED: Single, clean import
 
 // Components
 import Navbar from './components/Navbar';
@@ -59,6 +60,9 @@ function AppContent() {
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/profile" element={user ? <Profile /> : <Navigate to="/" />} />
           <Route path="/subscription" element={user ? <Subscription /> : <Navigate to="/" />} />
+
+          {/* 🚀 FIXED: Route path matches navbar ("/admin") and passes required props! */}
+          <Route path="/admin" element={<ProtectedRoute><AdminDashboard user={user!} profile={profile} /></ProtectedRoute>} />
 
           {/* 🚀 NEW: AI Study Visuals Route */}
           <Route path="/visuals" element={<ProtectedRoute><AIVisualizer /></ProtectedRoute>} />
