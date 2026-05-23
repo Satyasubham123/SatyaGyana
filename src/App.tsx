@@ -68,7 +68,9 @@ function AppContent() {
           <Route path="/class/:classId" element={<ProtectedRoute><ClassDetails user={user!} /></ProtectedRoute>} />
           <Route path="/quiz/:quizId" element={<ProtectedRoute><QuizPage user={user!} /></ProtectedRoute>} />
           <Route path="/ai-teacher" element={<ProtectedRoute><AITeacher /></ProtectedRoute>} />
-          <Route path="/visual-dictionary" element={<ProtectedRoute><VisualDictionary /></ProtectedRoute>} />
+          
+          {/* 🚀 FIXED: Changed from /visual-dictionary to /dictionary to match Navbar */}
+          <Route path="/dictionary" element={<ProtectedRoute><VisualDictionary /></ProtectedRoute>} />
         </Routes>
       </main>
     </div>
