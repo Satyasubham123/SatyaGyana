@@ -1,387 +1,143 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { 
-  Send, Sparkles, User, Brain, Paperclip, 
-  MessageSquare, Plus, MoreVertical, Trash2, 
-  Edit2, X, Image as ImageIcon, Loader2 
-} from 'lucide-react';
-import { useUser } from '../contexts/UserContext';
-import { chatService, ChatSession, ChatMessage } from '../services/chatService';
-import { aiService } from '../services/aiService';
-import { toast, Toaster } from 'react-hot-toast';
-import ReactMarkdown from 'react-markdown';
+import React, { useState, useEffect } from 'react';
+import { Send, Bot, User, Loader2, Globe, AlertCircle } from 'lucide-react';
+import axios from 'axios';
+
+interface Message {
+  id: string;
+  sender: 'user' | 'ai';
+  text: string;
+}
 
 export default function AITeacher() {
-  const { user } = useUser();
-  const [sessions, setSessions] = useState<ChatSession[]>([]);
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  
-  // Image Upload State
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [language, setLanguage] = useState('English');
+  const [cooldown, setCooldown] = useState(0);
 
-  // 🚀 NEW: Cooldown States
-  const [isCooldown, setIsCooldown] = useState(false);
-  const [cooldownTimer, setCooldownTimer] = useState(0);
-
+  // Handle 10-second spam protection cooldown
   useEffect(() => {
-    if (user) {
-      loadSessions();
+    if (cooldown > 0) {
+      const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
+      return () => clearTimeout(timer);
     }
-  }, [user]);
+  }, [cooldown]);
 
-  useEffect(() => {
-    if (activeSessionId) {
-      loadMessages(activeSessionId);
-    } else {
-      setMessages([]);
-    }
-  }, [activeSessionId]);
+  const handleSend = async () => {
+    if (!input.trim() || cooldown > 0 || isLoading) return;
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isTyping]);
-
-  const loadSessions = async () => {
-    if (!user) return;
-    const history = await chatService.getUserChats(user.uid);
-    setSessions(history);
-    if (history.length > 0 && !activeSessionId) {
-      setActiveSessionId(history[0].id);
-    }
-  };
-
-  const loadMessages = async (chatId: string) => {
-    const chatMsgs = await chatService.getChatMessages(chatId);
-    setMessages(chatMsgs);
-  };
-
-  const createNewChat = async () => {
-    if (!user) return;
-    try {
-      const newChatId = await chatService.createChat(user.uid, "New Conversation", false);
-      await loadSessions();
-      setActiveSessionId(newChatId);
-      setMessages([]);
-    } catch (error) {
-      toast.error("Failed to initialize new neural link.");
-    }
-  };
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 4 * 1024 * 1024) {
-      toast.error("Image too large. Limit is 4MB.");
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setSelectedImage(reader.result as string);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleSendMessage = async (e?: React.FormEvent) => {
-    e?.preventDefault();
-    
-    // 🚀 NEW: Block if cooldown is active
-    if ((!input.trim() && !selectedImage) || !user || isTyping || isCooldown) return;
-
-    let currentChatId = activeSessionId;
-    if (!currentChatId) {
-      currentChatId = await chatService.createChat(user.uid, input.slice(0, 30) || "Image Query", false);
-      setActiveSessionId(currentChatId);
-      await loadSessions();
-    }
-
-    const userMsgText = input.trim();
-    const userMsgImage = selectedImage;
-    
+    const userMessage = input.trim();
     setInput('');
-    setSelectedImage(null);
-    setIsTyping(true);
-
-    const newUserMsg: ChatMessage = { sender: 'user', text: userMsgText, imageUrl: userMsgImage || undefined, timestamp: new Date() };
-    setMessages(prev => [...prev, newUserMsg]);
-
-    await chatService.saveMessage(currentChatId, 'user', userMsgText, userMsgImage || undefined);
+    setMessages(prev => [...prev, { id: Date.now().toString(), sender: 'user', text: userMessage }]);
+    setIsLoading(true);
+    setCooldown(10); // Start 10s cooldown
 
     try {
-      const aiHistory = messages.map(m => ({
-        role: (m.sender === 'user' ? 'user' : 'model') as 'user' | 'model',
-        text: m.text
-      }));
-
-      const aiResponseText = await aiService.sendMessage(aiHistory, {
-        text: userMsgText || "Analyze this image and explain what you see in the context of school studies.",
-        base64Image: userMsgImage || undefined
+      // Calls your secure backend instead of exposing API keys
+      const response = await axios.post('https://gyanamitra.onrender.com/api/chat', {
+        prompt: userMessage,
+        targetLanguage: language,
+        history: [] 
       });
 
-      const newAiMsg: ChatMessage = { sender: 'ai', text: aiResponseText, timestamp: new Date() };
-      setMessages(prev => [...prev, newAiMsg]);
-
-      await chatService.saveMessage(currentChatId, 'ai', aiResponseText);
-
+      setMessages(prev => [...prev, { 
+        id: (Date.now() + 1).toString(), 
+        sender: 'ai', 
+        text: response.data.text 
+      }]);
     } catch (error) {
-      toast.error("AI synchronization failed.");
+      console.error("AI Error:", error);
+      setMessages(prev => [...prev, { 
+        id: (Date.now() + 1).toString(), 
+        sender: 'ai', 
+        text: "Sorry, I am experiencing high traffic. Please try again in a moment." 
+      }]);
     } finally {
-      setIsTyping(false);
-      
-      // 🚀 NEW: Start the 10-second Cooldown Timer
-      setIsCooldown(true);
-      let timeLeft = 10;
-      setCooldownTimer(timeLeft);
-
-      const timerInterval = setInterval(() => {
-        timeLeft -= 1;
-        setCooldownTimer(timeLeft);
-
-        if (timeLeft <= 0) {
-          clearInterval(timerInterval);
-          setIsCooldown(false);
-        }
-      }, 1000);
+      setIsLoading(false);
     }
   };
-
-  const deleteChat = async (e: React.MouseEvent, chatId: string) => {
-    e.stopPropagation();
-    if (!window.confirm("Purge this conversation permanently?")) return;
-    
-    await chatService.deleteChat(chatId);
-    if (activeSessionId === chatId) {
-      setActiveSessionId(null);
-      setMessages([]);
-    }
-    await loadSessions();
-  };
-
-  if (!user) return null;
 
   return (
-    <div className="flex h-[calc(100vh-80px)] bg-bg-deep overflow-hidden relative">
-      <Toaster position="top-center" toastOptions={{ style: { background: '#0F172A', color: '#fff', border: '1px solid #1E293B', borderRadius: '16px' }}}/>
-
-      {/* LEFT SIDEBAR */}
-      <motion.div 
-        initial={{ x: 0 }}
-        animate={{ width: isSidebarOpen ? 300 : 0, opacity: isSidebarOpen ? 1 : 0 }}
-        className="h-full bg-slate-900 border-r border-slate-800 flex flex-col shrink-0 overflow-hidden shadow-2xl relative z-20"
-      >
-        <div className="p-4 border-b border-slate-800">
-          <button 
-            onClick={createNewChat}
-            className="w-full flex items-center justify-between p-3 bg-brand/10 hover:bg-brand/20 border border-brand/30 rounded-xl transition-all group"
-          >
-            <span className="text-xs font-black uppercase tracking-widest text-brand flex items-center gap-2">
-              <Plus className="h-4 w-4" /> New Link
-            </span>
-            <Sparkles className="h-4 w-4 text-brand opacity-50 group-hover:opacity-100" />
-          </button>
+    <div className="flex flex-col h-[calc(100vh-80px)] max-w-4xl mx-auto p-4">
+      {/* Header & Language Selector */}
+      <div className="flex justify-between items-center bg-white p-4 rounded-t-2xl border-b border-gray-100 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-purple-100 rounded-lg"><Bot className="w-6 h-6 text-purple-600" /></div>
+          <div>
+            <h1 className="text-xl font-bold text-gray-800">GyanMitra Tutor</h1>
+            <p className="text-sm text-gray-500">Your AI Study Companion</p>
+          </div>
         </div>
-
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-2">
-          {sessions.length === 0 ? (
-             <div className="text-center p-4 opacity-50 mt-10">
-               <MessageSquare className="h-8 w-8 mx-auto mb-2 text-slate-500" />
-               <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">No active links</p>
-             </div>
-          ) : (
-            sessions.map((session) => (
-              <div 
-                key={session.id}
-                onClick={() => setActiveSessionId(session.id)}
-                className={`w-full text-left p-3 rounded-xl flex items-center justify-between group cursor-pointer transition-all ${
-                  activeSessionId === session.id 
-                    ? 'bg-slate-800 border-l-2 border-brand' 
-                    : 'hover:bg-slate-800/50 border-l-2 border-transparent'
-                }`}
-              >
-                <div className="flex items-center gap-3 overflow-hidden">
-                  <MessageSquare className={`h-4 w-4 shrink-0 ${activeSessionId === session.id ? 'text-brand' : 'text-slate-500'}`} />
-                  <span className="text-xs font-medium text-slate-300 truncate">{session.title}</span>
-                </div>
-                
-                <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity">
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const newTitle = prompt("Enter new chat name:", session.title);
-                      if (newTitle) {
-                        chatService.renameChat(session.id, newTitle).then(loadSessions);
-                      }
-                    }}
-                    className="p-1 hover:text-blue-400 transition-colors"
-                  >
-                    <Edit2 className="h-3 w-3" />
-                  </button>
-                  <button 
-                    onClick={(e) => deleteChat(e, session.id)}
-                    className="p-1 hover:text-red-400 transition-colors"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </motion.div>
-
-      {/* MAIN CHAT AREA */}
-      <div className="flex-1 flex flex-col h-full relative">
         
-        {/* Top Header */}
-        <div className="h-16 border-b border-slate-800 bg-slate-900/50 backdrop-blur-md flex items-center px-4 justify-between shrink-0 sticky top-0 z-10">
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="p-2 bg-slate-800 rounded-lg hover:bg-slate-700 transition-colors"
-            >
-              <MoreVertical className="h-4 w-4 text-slate-400" />
-            </button>
-            <div>
-               <h2 className="text-sm font-black uppercase tracking-widest text-white italic">GyanMitra AI</h2>
-               <p className="text-[9px] font-bold text-brand uppercase tracking-[0.2em]">Neural Mentor v2.0</p>
+        <div className="flex items-center gap-2 bg-gray-50 p-1.5 rounded-lg border border-gray-200">
+          <Globe className="w-4 h-4 text-gray-500" />
+          <select 
+            value={language} 
+            onChange={(e) => setLanguage(e.target.value)}
+            className="bg-transparent text-sm font-medium text-gray-700 focus:outline-none"
+          >
+            <option value="English">English</option>
+            <option value="Odia">ଓଡ଼ିଆ (Odia)</option>
+            <option value="Hindi">हिंदी (Hindi)</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Chat Messages */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-6 bg-gray-50/50">
+        {messages.map((msg) => (
+          <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <div className={`max-w-[80%] rounded-2xl p-4 shadow-sm ${
+              msg.sender === 'user' 
+                ? 'bg-purple-600 text-white rounded-br-none' 
+                : 'bg-white border border-gray-200 text-gray-800 rounded-bl-none'
+            }`}>
+              {msg.text}
             </div>
           </div>
-        </div>
-
-        {/* Chat Messages */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6 space-y-6">
-          {messages.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-center max-w-md mx-auto">
-              <div className="w-20 h-20 bg-brand/10 border border-brand/20 rounded-3xl flex items-center justify-center mb-6 shadow-2xl shadow-brand/10">
-                <Brain className="h-10 w-10 text-brand" />
-              </div>
-              <h3 className="text-2xl font-black italic uppercase tracking-tighter text-white mb-2">Initialize Core</h3>
-              <p className="text-slate-400 text-sm font-medium leading-relaxed">
-                I am your dedicated AI mentor. Ask me complex math problems, request historical summaries, or upload an image of a diagram you don't understand.
-              </p>
+        ))}
+        {isLoading && (
+          <div className="flex justify-start">
+            <div className="bg-white border border-gray-200 rounded-2xl p-4 rounded-bl-none shadow-sm flex items-center gap-2">
+              <Loader2 className="w-5 h-5 animate-spin text-purple-600" />
+              <span className="text-gray-500 text-sm animate-pulse">Thinking...</span>
             </div>
-          ) : (
-            messages.map((msg, idx) => (
-              <motion.div 
-                key={idx}
-                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                className={`flex gap-4 ${msg.sender === 'user' ? 'flex-row-reverse' : ''}`}
-              >
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                  msg.sender === 'user' ? 'bg-slate-800 border border-slate-700' : 'bg-brand shadow-lg shadow-brand/20'
-                }`}>
-                  {msg.sender === 'user' ? <User className="h-4 w-4 text-slate-300" /> : <Sparkles className="h-4 w-4 text-white" />}
-                </div>
-                
-                <div className={`max-w-[85%] sm:max-w-[75%] rounded-2xl p-4 ${
-                  msg.sender === 'user' 
-                    ? 'bg-slate-800 border border-slate-700 text-white rounded-tr-sm' 
-                    : 'bg-transparent border border-slate-800 text-slate-300 rounded-tl-sm'
-                }`}>
-                  {msg.imageUrl && (
-                    <div className="mb-3 rounded-xl overflow-hidden border border-slate-700">
-                      <img src={msg.imageUrl} alt="Uploaded query" className="max-w-full h-auto max-h-60 object-contain bg-slate-900" />
-                    </div>
-                  )}
-                  <div className="prose prose-invert prose-sm max-w-none prose-p:leading-relaxed prose-pre:bg-slate-900 prose-pre:border prose-pre:border-slate-800">
-                    <ReactMarkdown>{msg.text}</ReactMarkdown>
-                  </div>
-                </div>
-              </motion.div>
-            ))
-          )}
-          
-          {isTyping && (
-            <div className="flex gap-4">
-               <div className="w-8 h-8 rounded-lg bg-brand shadow-lg shadow-brand/20 flex items-center justify-center shrink-0">
-                  <Sparkles className="h-4 w-4 text-white" />
-               </div>
-               <div className="bg-transparent border border-slate-800 rounded-2xl rounded-tl-sm p-4 flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 text-brand animate-spin" />
-                  <span className="text-[10px] font-black uppercase tracking-widest text-brand">Processing...</span>
-               </div>
-            </div>
-          )}
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* INPUT AREA */}
-        <div className="p-4 bg-bg-deep shrink-0">
-          <div className="max-w-4xl mx-auto">
-            <AnimatePresence>
-              {selectedImage && (
-                <motion.div 
-                  initial={{ opacity: 0, y: 10, height: 0 }} animate={{ opacity: 1, y: 0, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
-                  className="mb-3 relative inline-block"
-                >
-                  <img src={selectedImage} alt="Preview" className="h-20 w-20 object-cover rounded-xl border-2 border-brand" />
-                  <button 
-                    onClick={() => setSelectedImage(null)}
-                    className="absolute -top-2 -right-2 bg-slate-800 text-white p-1 rounded-full border border-slate-700 hover:bg-red-500 transition-colors"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            <form onSubmit={handleSendMessage} className="relative flex items-end gap-2 bg-slate-900 border border-slate-700 rounded-3xl p-2 focus-within:border-brand/50 focus-within:ring-1 focus-within:ring-brand/50 transition-all shadow-xl">
-              
-              <input 
-                type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleImageUpload}
-              />
-              <button 
-                type="button" onClick={() => fileInputRef.current?.click()}
-                className="p-3 text-slate-400 hover:text-brand bg-slate-800 rounded-full transition-colors shrink-0"
-                title="Attach Image"
-              >
-                <ImageIcon className="h-5 w-5" />
-              </button>
-              
-              <textarea
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSendMessage();
-                  }
-                }}
-                placeholder={isCooldown ? `Please wait ${cooldownTimer} seconds...` : "Ask GyanMitra AI..."}
-                disabled={isCooldown}
-                className="flex-1 bg-transparent border-none outline-none text-white text-sm resize-none py-3 px-2 min-h-[44px] max-h-32 custom-scrollbar disabled:opacity-50"
-                rows={1}
-              />
-
-              {/* 🚀 UPDATED: Send Button handles cooldown visually */}
-              <button 
-                type="submit" 
-                disabled={isTyping || (!input.trim() && !selectedImage) || isCooldown}
-                className={`p-3 rounded-full transition-colors shrink-0 flex items-center justify-center min-w-[44px] ${
-                  (isTyping || (!input.trim() && !selectedImage) || isCooldown)
-                  ? 'bg-slate-800 text-slate-500 cursor-not-allowed opacity-70' 
-                  : 'bg-brand text-white hover:bg-blue-600 shadow-lg shadow-brand/20'
-                }`}
-              >
-                {isCooldown ? (
-                  <span className="text-[10px] font-black">{cooldownTimer}s</span>
-                ) : (
-                  <Send className="h-5 w-5 ml-1" />
-                )}
-              </button>
-            </form>
-            <p className="text-center text-[9px] font-bold uppercase tracking-[0.2em] text-slate-500 mt-3">
-              GyanMitra AI can process text and images. Verification of AI output is recommended.
-            </p>
           </div>
+        )}
+      </div>
+
+      {/* Input Area - Using your exact requested CSS fixes */}
+      <div className="bg-white p-4 rounded-b-2xl border-t border-gray-100 shadow-sm">
+        {cooldown > 0 && !isLoading && (
+          <div className="flex items-center gap-2 text-amber-600 text-xs mb-2 ml-1">
+            <AlertCircle className="w-3 h-3" /> Please wait {cooldown}s before sending another message.
+          </div>
+        )}
+        <div className="relative">
+          <textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
+            placeholder={`Ask your question in ${language}...`}
+            className="w-full h-32 p-4 rounded-xl border border-gray-300 bg-white text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none shadow-inner"
+            disabled={cooldown > 0 || isLoading}
+          />
+          <button
+            onClick={handleSend}
+            disabled={!input.trim() || cooldown > 0 || isLoading}
+            className={`absolute bottom-3 right-3 p-3 rounded-xl flex items-center justify-center transition-all ${
+              !input.trim() || cooldown > 0 || isLoading
+                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                : 'bg-purple-600 text-white hover:bg-purple-700 hover:shadow-lg active:scale-95'
+            }`}
+          >
+            <Send className="w-5 h-5 ml-0.5" />
+          </button>
         </div>
       </div>
     </div>
