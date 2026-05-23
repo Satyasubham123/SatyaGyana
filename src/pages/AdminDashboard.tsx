@@ -44,14 +44,6 @@ import { cn } from '../lib/utils';
 import { founderService, FounderProfileData } from '../services/founderService';
 import { FounderProfile } from '../components/FounderProfile';
 
-// This explicit declaration registers 'env' on import.meta globally, removing all red underlines!
-declare global {
-  interface ImportMeta {
-    readonly env: {
-      readonly VITE_GEMINI_API_KEY?: string;
-    };
-  }
-}
 
 interface AdminDashboardProps {
   user: FirebaseUser;
@@ -486,16 +478,17 @@ export default function AdminDashboard({ profile }: AdminDashboardProps) {
     setIsGeneratingQuiz(true);
     setGeneratedQuiz(null);
     try {
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY?.trim();
+      const apiKey = (import.meta.env as any).VITE_GEMINI_API_KEY?.trim();
       
       if (!apiKey) {
         throw new Error("VITE_GEMINI_API_KEY configuration is missing!");
       }
 
-      const designPrompt = `Generate an array of exactly 5 quiz questions on the topic "${quizGenForm.topic}" suited for "${quizGenForm.classLevel}".
+      // 🚀 FIXED: Changed the prompt to request exactly 20 questions instead of 5
+      const designPrompt = `Generate an array of exactly 20 quiz questions on the topic "${quizGenForm.topic}" suited for "${quizGenForm.classLevel}".
 The target difficulty structure is "${quizGenForm.difficulty}" and the items should be built in the formatting code of "${quizGenForm.format}".
 
-You must return a raw JSON array string containing exactly 5 question objects. Do not wrap the code inside markdown syntax like \`\`\`json. Return only the raw array data. 
+You must return a raw JSON array string containing exactly 20 question objects. Do not wrap the code inside markdown syntax like \`\`\`json. Return only the raw array data. 
 
 Each object must follow this scheme exactly:
 {
@@ -903,7 +896,7 @@ Each object must follow this scheme exactly:
                             ))}
                          </div>
                          <button className="text-[10px] font-black uppercase tracking-widest text-brand hover:text-white transition-colors flex items-center gap-2">
-                            Initialize Link <ChevronRight className="h-3 w-3" />
+                           Initialize Link <ChevronRight className="h-3 w-3" />
                          </button>
                       </div>
                    </div>
