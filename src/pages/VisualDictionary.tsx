@@ -30,8 +30,8 @@ export default function VisualDictionary() {
 
     try {
       // Connects to your FastAPI backend
-      const response = await axios.post('https://gyanamitra.onrender.com/api/dictionary/search', {        word: searchInput,
-        targetLanguage: 'Odia'
+// Change this to your REAL Render URL
+const response = await axios.post('https://gyanamitra.onrender.com/api/dictionary/search', {        targetLanguage: 'Odia'
       });
       
       setResult(response.data);
