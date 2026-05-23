@@ -14,6 +14,7 @@ import AITeacher from './pages/AITeacher';
 import Profile from './pages/Profile';
 import Subscription from './pages/Subscription';
 import { AIVisualizer } from './pages/AIVisualizer';
+import VisualDictionary from './pages/VisualDictionary';
 
 // Components
 import Navbar from './components/Navbar';
@@ -67,6 +68,7 @@ function AppContent() {
           <Route path="/class/:classId" element={<ProtectedRoute><ClassDetails user={user!} /></ProtectedRoute>} />
           <Route path="/quiz/:quizId" element={<ProtectedRoute><QuizPage user={user!} /></ProtectedRoute>} />
           <Route path="/ai-teacher" element={<ProtectedRoute><AITeacher /></ProtectedRoute>} />
+          <Route path="/visual-dictionary" element={<ProtectedRoute><VisualDictionary /></ProtectedRoute>} />
         </Routes>
       </main>
     </div>

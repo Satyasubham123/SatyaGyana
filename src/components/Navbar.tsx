@@ -29,11 +29,12 @@ export default function Navbar({ user, profile }: NavbarProps) {
     }
   };
 
-  // 🚀 UPDATED: Swapped order and renamed to AI Mentor!
+  // 🚀 UPDATED: Added Dictionary right next to AI Mentor!
   const mainNav = [
     { name: 'Dashboard', path: '/dashboard', show: !!user },
     { name: 'Study Visuals', path: '/visuals', show: !!user }, 
     { name: 'AI Mentor', path: '/ai-teacher', show: !!user },
+    { name: 'Dictionary', path: '/dictionary', show: !!user },
     { name: 'Admin', path: '/admin', show: !!user && profile?.role === 'admin' },
   ];
 
