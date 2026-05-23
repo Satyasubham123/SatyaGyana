@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, Bot, Loader2, Globe, AlertCircle, Image as ImageIcon, X } from 'lucide-react';
 import axios from 'axios';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface Message {
   id: string;
@@ -16,12 +18,16 @@ export default function AITeacher() {
   const [language, setLanguage] = useState('English');
   const [cooldown, setCooldown] = useState(0);
   
-  // New state for image handling
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Handle 10-second spam protection cooldown
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, isLoading]);
+
   useEffect(() => {
     if (cooldown > 0) {
       const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
@@ -29,7 +35,6 @@ export default function AITeacher() {
     }
   }, [cooldown]);
 
-  // Handle image selection
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -49,13 +54,11 @@ export default function AITeacher() {
   };
 
   const handleSend = async () => {
-    // Allow sending if there is text OR an image
     if ((!input.trim() && !selectedImage) || cooldown > 0 || isLoading) return;
 
     const userMessage = input.trim();
-    const currentPreview = imagePreview; // Capture current state before clearing
+    const currentPreview = imagePreview;
     
-    // 1. Add user message to UI immediately
     setMessages(prev => [...prev, { 
       id: Date.now().toString(), 
       sender: 'user', 
@@ -63,26 +66,21 @@ export default function AITeacher() {
       imageUrl: currentPreview 
     }]);
 
-    // 2. Clear inputs immediately for good UX
     setInput('');
     setSelectedImage(null);
     setImagePreview(null);
     setIsLoading(true);
-    setCooldown(10); // Start 10s cooldown
+    setCooldown(10); 
 
     try {
       let response;
-
-      // 3. Logic Fork: Is it an Image request or a Text request?
       if (currentPreview) {
-        // Send to Vision API
         response = await axios.post('https://gyanamitra.onrender.com/api/analyze-image', {
           image_base64: currentPreview,
           prompt: userMessage,
           targetLanguage: language
         });
       } else {
-        // Send to standard Chat API
         response = await axios.post('https://gyanamitra.onrender.com/api/chat', {
           prompt: userMessage,
           targetLanguage: language,
@@ -90,7 +88,6 @@ export default function AITeacher() {
         });
       }
 
-      // 4. Add AI response to UI
       setMessages(prev => [...prev, { 
         id: (Date.now() + 1).toString(), 
         sender: 'ai', 
@@ -110,23 +107,25 @@ export default function AITeacher() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-80px)] max-w-4xl mx-auto p-4">
-      {/* Header & Language Selector */}
-      <div className="flex justify-between items-center bg-white p-4 rounded-t-2xl border-b border-gray-100 shadow-sm">
+    <div className="flex flex-col h-[calc(100vh-80px)] max-w-4xl mx-auto p-4 relative">
+      {/* Header - Added Glassmorphism */}
+      <div className="flex justify-between items-center p-4 rounded-t-2xl border-b border-white/20 bg-white/70 backdrop-blur-md shadow-sm z-10 sticky top-0">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-purple-100 rounded-lg"><Bot className="w-6 h-6 text-purple-600" /></div>
+          <div className="p-2 bg-gradient-to-br from-purple-100 to-indigo-100 rounded-lg shadow-inner">
+            <Bot className="w-6 h-6 text-purple-600" />
+          </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-800">GyanMitra Tutor</h1>
-            <p className="text-sm text-gray-500">Your AI Study Companion</p>
+            <h1 className="text-xl font-bold text-gray-800 tracking-tight">GyanMitra Tutor</h1>
+            <p className="text-sm text-gray-500 font-medium">Your AI Study Companion</p>
           </div>
         </div>
         
-        <div className="flex items-center gap-2 bg-gray-50 p-1.5 rounded-lg border border-gray-200">
-          <Globe className="w-4 h-4 text-gray-500" />
+        <div className="flex items-center gap-2 bg-white/80 p-1.5 rounded-lg border border-gray-200 shadow-sm hover:shadow transition-all">
+          <Globe className="w-4 h-4 text-purple-500" />
           <select 
             value={language} 
             onChange={(e) => setLanguage(e.target.value)}
-            className="bg-transparent text-sm font-medium text-gray-700 focus:outline-none cursor-pointer"
+            className="bg-transparent text-sm font-semibold text-gray-700 focus:outline-none cursor-pointer"
           >
             <option value="English">English</option>
             <option value="Odia">ଓଡ଼ିଆ (Odia)</option>
@@ -136,55 +135,92 @@ export default function AITeacher() {
       </div>
 
       {/* Chat Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-6 bg-gray-50/50">
+      <div className="flex-1 overflow-y-auto p-4 space-y-6 bg-gray-50/30 scroll-smooth">
+        {messages.length === 0 && (
+          <div className="flex flex-col items-center justify-center h-full text-gray-400 space-y-4">
+            <Bot className="w-16 h-16 opacity-20" />
+            <p className="text-center font-medium">Hello! Upload a photo of your homework or ask a question.<br/>I can teach in English, Odia, and Hindi.</p>
+          </div>
+        )}
+
         {messages.map((msg) => (
-          <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[80%] rounded-2xl p-4 shadow-sm flex flex-col gap-2 ${
+          <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
+            <div className={`max-w-[85%] rounded-2xl p-5 shadow-sm flex flex-col gap-3 leading-relaxed ${
               msg.sender === 'user' 
-                ? 'bg-purple-600 text-white rounded-br-none' 
-                : 'bg-white border border-gray-200 text-gray-800 rounded-bl-none'
+                ? 'bg-gradient-to-br from-purple-600 to-indigo-600 text-white rounded-br-none' 
+                : 'bg-white border border-gray-100 text-gray-800 rounded-bl-none shadow-md'
             }`}>
-              {/* Display image if attached */}
               {msg.imageUrl && (
-                <img src={msg.imageUrl} alt="Uploaded" className="max-w-full rounded-lg max-h-64 object-cover" />
+                <img src={msg.imageUrl} alt="Uploaded" className="max-w-full rounded-xl max-h-72 object-cover border border-white/20 shadow-sm" />
               )}
-              {msg.text && <p className="whitespace-pre-wrap">{msg.text}</p>}
+              
+              {/* MAGICAL MARKDOWN RENDERER */}
+              {msg.text && (
+                <div className={`prose prose-sm md:prose-base max-w-none ${msg.sender === 'user' ? 'text-white prose-invert' : 'text-gray-800'}`}>
+                  {msg.sender === 'user' ? (
+                    <p className="whitespace-pre-wrap m-0">{msg.text}</p>
+                  ) : (
+                    <ReactMarkdown 
+                      remarkPlugins={[remarkGfm]}
+                      components={{
+                        // Custom styling for AI markdown elements
+                        h1: ({node, ...props}) => <h1 className="text-xl font-bold mt-4 mb-2" {...props} />,
+                        h2: ({node, ...props}) => <h2 className="text-lg font-bold mt-3 mb-2" {...props} />,
+                        h3: ({node, ...props}) => <h3 className="text-md font-bold mt-2 mb-1" {...props} />,
+                        ul: ({node, ...props}) => <ul className="list-disc pl-5 my-2 space-y-1" {...props} />,
+                        ol: ({node, ...props}) => <ol className="list-decimal pl-5 my-2 space-y-1" {...props} />,
+                        li: ({node, ...props}) => <li className="marker:text-purple-500" {...props} />,
+                        a: ({node, ...props}) => <a className="text-purple-600 hover:underline font-medium" {...props} />,
+                        code: ({node, inline, ...props}: any) => 
+                          inline 
+                            ? <code className="bg-gray-100 text-purple-700 px-1.5 py-0.5 rounded-md text-sm font-mono" {...props} />
+                            : <pre className="bg-gray-800 text-gray-100 p-3 rounded-xl overflow-x-auto my-2 text-sm font-mono shadow-inner"><code {...props} /></pre>
+                      }}
+                    >
+                      {msg.text}
+                    </ReactMarkdown>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         ))}
         {isLoading && (
-          <div className="flex justify-start">
-            <div className="bg-white border border-gray-200 rounded-2xl p-4 rounded-bl-none shadow-sm flex items-center gap-2">
-              <Loader2 className="w-5 h-5 animate-spin text-purple-600" />
-              <span className="text-gray-500 text-sm animate-pulse">Analyzing...</span>
+          <div className="flex justify-start animate-in fade-in duration-300">
+            <div className="bg-white border border-gray-100 rounded-2xl p-4 rounded-bl-none shadow-md flex items-center gap-3">
+              <div className="flex gap-1">
+                <span className="w-2 h-2 bg-purple-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                <span className="w-2 h-2 bg-purple-500 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                <span className="w-2 h-2 bg-purple-600 rounded-full animate-bounce"></span>
+              </div>
+              <span className="text-gray-500 text-sm font-medium tracking-wide">Analyzing...</span>
             </div>
           </div>
         )}
+        <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Area */}
-      <div className="bg-white p-4 rounded-b-2xl border-t border-gray-100 shadow-sm relative">
+      {/* Input Area - Glassmorphism */}
+      <div className="bg-white/80 backdrop-blur-md p-4 rounded-b-2xl border-t border-white/20 shadow-[0_-4px_20px_-15px_rgba(0,0,0,0.1)] relative z-10">
         {cooldown > 0 && !isLoading && (
-          <div className="flex items-center gap-2 text-amber-600 text-xs mb-2 ml-1">
-            <AlertCircle className="w-3 h-3" /> Please wait {cooldown}s before sending another message.
+          <div className="flex items-center gap-2 text-amber-600 text-xs mb-3 ml-2 font-medium bg-amber-50 w-fit px-3 py-1 rounded-full">
+            <AlertCircle className="w-3.5 h-3.5" /> Please wait {cooldown}s before sending again.
           </div>
         )}
         
-        {/* Image Preview Area */}
         {imagePreview && (
-          <div className="mb-3 relative inline-block">
-            <img src={imagePreview} alt="Preview" className="h-20 w-20 object-cover rounded-lg border-2 border-purple-200" />
+          <div className="mb-3 relative inline-block animate-in zoom-in-95 duration-200">
+            <img src={imagePreview} alt="Preview" className="h-20 w-20 object-cover rounded-xl border-2 border-purple-300 shadow-sm" />
             <button 
               onClick={removeImage}
-              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 transition-all hover:scale-110 shadow-md"
             >
               <X className="w-3 h-3" />
             </button>
           </div>
         )}
 
-        <div className="relative flex items-center gap-2">
-          {/* Hidden File Input & Upload Button */}
+        <div className="relative flex items-end gap-2">
           <input 
             type="file" 
             accept="image/*" 
@@ -194,14 +230,13 @@ export default function AITeacher() {
           />
           <button 
             onClick={() => fileInputRef.current?.click()}
-            className="p-3 text-gray-500 hover:text-purple-600 hover:bg-purple-50 rounded-xl transition-colors shrink-0"
+            className="p-3.5 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-xl transition-all shrink-0 border border-transparent hover:border-purple-100"
             disabled={isLoading || cooldown > 0}
             title="Upload an image (Homework, diagrams, math problems)"
           >
             <ImageIcon className="w-6 h-6" />
           </button>
 
-          {/* Text Area */}
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -211,22 +246,21 @@ export default function AITeacher() {
                 handleSend();
               }
             }}
-            placeholder={imagePreview ? "Ask a question about this image..." : `Ask your question in ${language}...`}
-            className="w-full h-14 p-4 rounded-xl border border-gray-300 bg-white text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none shadow-inner"
+            placeholder={imagePreview ? "Ask a question about this image..." : `Ask your question in ${language}... (Shift+Enter for new line)`}
+            className="w-full min-h-[56px] max-h-32 p-4 rounded-xl border border-gray-200 bg-white/50 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white resize-none shadow-inner transition-all leading-relaxed"
             disabled={cooldown > 0 || isLoading}
           />
 
-          {/* Send Button */}
           <button
             onClick={handleSend}
             disabled={(!input.trim() && !selectedImage) || cooldown > 0 || isLoading}
-            className={`p-3 rounded-xl flex items-center justify-center transition-all shrink-0 h-14 w-14 ${
+            className={`p-3.5 rounded-xl flex items-center justify-center transition-all shrink-0 shadow-sm ${
               (!input.trim() && !selectedImage) || cooldown > 0 || isLoading
-                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                : 'bg-purple-600 text-white hover:bg-purple-700 hover:shadow-lg active:scale-95'
+                ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
+                : 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:shadow-md hover:scale-105 active:scale-95'
             }`}
           >
-            <Send className="w-5 h-5" />
+            <Send className="w-5 h-5 ml-0.5" />
           </button>
         </div>
       </div>
