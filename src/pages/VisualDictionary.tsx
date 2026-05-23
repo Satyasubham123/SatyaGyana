@@ -29,10 +29,18 @@ export default function VisualDictionary() {
     setResult(null);
 
     try {
-      // Connects to your FastAPI backend
-// Change this to your REAL Render URL
-const response = await axios.post('https://gyanamitra.onrender.com/api/dictionary/search', {        targetLanguage: 'Odia'
-      });
+      // Corrected payload: includes both the 'word' and the 'targetLanguage' with strict headers
+      const response = await axios.post('https://gyanamitra.onrender.com/api/dictionary/search', 
+        {
+          word: searchInput.trim(),
+          targetLanguage: 'Odia'
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
       
       setResult(response.data);
     } catch (err) {
