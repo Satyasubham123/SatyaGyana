@@ -15,10 +15,11 @@ import Profile from './pages/Profile';
 import Subscription from './pages/Subscription';
 import { AIVisualizer } from './pages/AIVisualizer';
 import VisualDictionary from './pages/VisualDictionary';
-import AdminDashboard from './pages/AdminDashboard'; // 🚀 FIXED: Single, clean import
+import AdminDashboard from './pages/AdminDashboard'; 
 
 // Components
 import Navbar from './components/Navbar';
+import InstallAppBanner from './components/InstallAppBanner'; // ✅ Import is here
 
 // Protected Route Wrapper
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -77,6 +78,10 @@ function AppContent() {
           <Route path="/dictionary" element={<ProtectedRoute><VisualDictionary /></ProtectedRoute>} />
         </Routes>
       </main>
+
+      {/* 🚀 NEW: Global Install App Banner placed here so it hovers over everything */}
+      <InstallAppBanner />
+      
     </div>
   );
 }
