@@ -5,6 +5,7 @@ import { contentService } from '../services/contentService';
 import { motion } from 'motion/react';
 import { collection, getDocs, query } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { supabase } from '../lib/supabase';
 import { 
   BookMarked, Trophy, Flame, MessageSquare, ArrowRight, Calculator, 
   Atom, BookText, History, Cpu, GraduationCap, Sparkles, Calendar, 
@@ -13,7 +14,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import SecureBookReader from '../components/SecureBookReader';
-import { BookOpen } from 'lucide-react'; // Ensure BookOpen is in your lucide-react imports
+import { BookOpen } from 'lucide-react'; 
 import StatsSummary from '../components/StatsSummary';
 
 
@@ -54,26 +55,32 @@ export default function Dashboard() {
     }
   }, [profile?.classLevel, user]);
 
-  // --- ADD THIS EFFECT ---
+  // 🚀 FIXED: TypeScript Error and Supabase Query
   useEffect(() => {
-    if (profile) {
-      const fetchLibrary = async () => {
+    const currentClassLevel = profile?.classLevel; // Extract safely for TypeScript
+    
+    if (currentClassLevel) {
+      const fetchSupabaseLibrary = async () => {
         try {
-          const snapshot = await getDocs(query(collection(db, 'books')));
-          const allBooks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as any }));
+          const classNumber = currentClassLevel.replace('Class ', '').trim();
           
-          // Filter so they only see "All" books OR books for their specific class
-          const myBooks = allBooks.filter(b => 
-            b.targetClass === 'All' || b.targetClass === profile.classLevel
-          );
-          setBooks(myBooks);
+          const { data, error } = await supabase
+            .from('books')
+            .select('*')
+            .or(`class_level.eq.${classNumber},class_level.eq.All`);
+            
+          if (error) throw error;
+          
+          if (data) {
+            setBooks(data);
+          }
         } catch (error) {
-          console.error("Error fetching library:", error);
+          console.error("Error fetching library from Supabase:", error);
         }
       };
-      fetchLibrary();
+      fetchSupabaseLibrary();
     }
-  }, [profile]);
+  }, [profile?.classLevel]);
 
   const fetchCourses = async () => {
     if (!profile?.classLevel) return;
@@ -195,32 +202,49 @@ export default function Dashboard() {
       </div>
     );
   }
+
+  // 🚀 FIXED: Render Library updated for Supabase format (cover_url, pdf_url)
   const renderLibrary = () => (
     <div className="space-y-6 animate-in fade-in">
-      <div className="flex items-center gap-4 mb-8">
-        <div className="w-12 h-12 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-500">
-          <BookOpen className="h-6 w-6" />
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-500">
+            <BookOpen className="h-6 w-6" />
+          </div>
+          <div>
+            <h3 className="text-2xl font-black uppercase italic tracking-tighter text-white">Your Textbooks</h3>
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Books for {profile?.classLevel}</p>
+          </div>
         </div>
-        <div>
-          <h3 className="text-2xl font-black uppercase italic tracking-tighter text-white">Digital Library</h3>
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Secure Reading Materials</p>
-        </div>
+        <Link to="/library" className="px-4 py-2 bg-slate-800 hover:bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">
+          View Full Library →
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {books.map((book) => (
           <div 
             key={book.id} 
-            onClick={() => setReadingBookUrl(book.driveUrl)}
-            className="bg-slate-900 border border-border-strong p-6 rounded-3xl hover:border-indigo-500/50 hover:shadow-[0_0_30px_rgba(99,102,241,0.15)] transition-all cursor-pointer group"
+            onClick={() => setReadingBookUrl(book.pdf_url)} 
+            className="bg-slate-900 border border-border-strong p-6 rounded-3xl hover:border-indigo-500/50 hover:shadow-[0_0_30px_rgba(99,102,241,0.15)] transition-all cursor-pointer group flex gap-4"
           >
-            <div className="w-12 h-12 bg-slate-800 text-indigo-500 rounded-xl flex items-center justify-center mb-6 group-hover:bg-indigo-500 group-hover:text-white transition-all shadow-lg">
-              <BookOpen className="h-6 w-6" />
+            {/* Book Cover or Placeholder */}
+            <div className="w-20 h-28 bg-slate-950 rounded-lg overflow-hidden shrink-0 border border-slate-800 group-hover:border-indigo-500/50 transition-all">
+              {book.cover_url ? (
+                <img src={book.cover_url} alt={book.title} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-slate-700">
+                   <BookOpen className="w-8 h-8" />
+                </div>
+              )}
             </div>
-            <span className="px-3 py-1 bg-slate-800 text-slate-400 text-[9px] rounded font-black uppercase mb-3 inline-block border border-border-strong">
-              {book.folder}
-            </span>
-            <h4 className="text-lg font-black uppercase italic text-white line-clamp-2">{book.title}</h4>
+
+            <div className="flex flex-col justify-center">
+              <span className="px-2 py-1 bg-slate-800 text-slate-400 text-[9px] rounded font-black uppercase mb-2 inline-block border border-border-strong w-fit">
+                {book.branch || book.subject} 
+              </span>
+              <h4 className="text-sm font-black uppercase italic text-white line-clamp-3 leading-tight">{book.title}</h4>
+            </div>
           </div>
         ))}
 
@@ -233,6 +257,7 @@ export default function Dashboard() {
       </div>
     </div>
   );
+
   const AdminView = () => (
   <div className="max-w-2xl mx-auto mt-20 p-8 bg-slate-900 border border-purple-500/30 rounded-3xl text-center">
     
@@ -296,7 +321,6 @@ export default function Dashboard() {
             You are at <span className="text-brand font-black underline decoration-brand/30 underline-offset-8 tracking-widest text-[10px] sm:text-xs uppercase">{profile?.classLevel || 'Unspecified'}</span>. Initializing adaptive session.
           </p>
           
-          {/* 🚀 NEW: Added flex-wrap and the Dictionary Button! */}
           <div className="mt-8 flex flex-wrap items-center justify-center sm:justify-start gap-4"> 
             
             <Link 
@@ -541,4 +565,3 @@ export default function Dashboard() {
   </div>
 );
 }
-    
