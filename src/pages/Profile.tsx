@@ -114,7 +114,7 @@ export default function Profile() {
   };
 
   const completionPercent = calculateCompletion();
-  
+
   // Show loading skeleton if the context profile hasn't loaded yet
   if (!profile || !user) {
     return (
@@ -144,9 +144,14 @@ export default function Profile() {
         
         <div className="mb-10">
            <h1 className="text-3xl sm:text-5xl font-black uppercase italic tracking-tighter text-white flex items-center gap-3">
-             <UserIcon className="h-8 w-8 sm:h-10 sm:w-10 text-brand" /> Neural Identity
+             <UserIcon className="h-8 w-8 sm:h-10 sm:w-10 text-brand" />
+             {isAdmin ? "Admin Console" : "Neural Identity"}
            </h1>
-           <p className="text-slate-400 font-medium mt-2 text-sm sm:text-base">Manage your synchronization parameters and learning telemetry.</p>
+           <p className="text-slate-400 font-medium mt-2 text-sm sm:text-base">
+           {isAdmin
+            ? "Secure administrator access panel."
+            : "Manage your synchronization parameters and learning telemetry."}
+          </p>
         </div>
 
         <div className="flex gap-2 sm:gap-6 border-b border-slate-800/80 overflow-x-auto custom-scrollbar pb-1">
@@ -384,7 +389,7 @@ export default function Profile() {
   </>
 )}
             
-            {activeTab === 'overview' && (
+            {activeTab === 'overview' && !isAdmin && (
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 space-y-8">
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -418,7 +423,7 @@ export default function Profile() {
               </div>
             )}
 
-            {activeTab === 'edit' && (
+            {activeTab === 'edit' && !isAdmin && (
               <form onSubmit={handleSaveProfile} className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-[32px] p-6 sm:p-10 max-w-4xl shadow-2xl relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-brand/5 rounded-full blur-3xl pointer-events-none"></div>
                 
