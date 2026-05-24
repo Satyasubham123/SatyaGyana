@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Mail, Lock, User, ArrowRight, ShieldAlert, GraduationCap, BookOpen, MapPin } from 'lucide-react';
+import { X, Mail, Lock, User, ArrowRight, ShieldAlert, GraduationCap, BookOpen, MapPin, ShieldCheck } from 'lucide-react';
 import { 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
@@ -12,6 +12,7 @@ import { doc, setDoc } from 'firebase/firestore';
 import { auth, signInWithGoogle, db } from '../lib/firebase';
 
 type AuthMode = 'login' | 'signup' | 'forgot';
+type Designation = 'student' | 'admin'; // 🚀 NEW: Designation type
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -26,13 +27,14 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [password, setPassword] = useState('');
   
   // Registration States
+  const [designation, setDesignation] = useState<Designation>('student'); // 🚀 NEW: State for the toggle
   const [firstName, setFirstName] = useState('');
   const [middleName, setMiddleName] = useState('');
   const [lastName, setLastName] = useState('');
   const [classLevel, setClassLevel] = useState('');
   const [stateSelection, setStateSelection] = useState('');
   const [medium, setMedium] = useState('');
-  const [gender, setGender] = useState(''); // 🚀 NEW: Added gender state
+  const [gender, setGender] = useState('');
   
   // UI States
   const [error, setError] = useState('');
@@ -50,7 +52,8 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     setClassLevel('');
     setStateSelection('');
     setMedium('');
-    setGender(''); // 🚀 NEW: Reset gender
+    setGender('');
+    setDesignation('student'); // Reset to default
   };
 
   const switchMode = (newMode: AuthMode) => {
@@ -66,26 +69,40 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
     try {
       if (mode === 'signup') {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         
+        // 🚀 NEW: STRICT ADMIN SECURITY CHECK
+        if (designation === 'admin' && email.toLowerCase() !== 'biswalsatyasubham274@gmail.com') {
+          setError("SECURITY BREACH: Unauthorized email address for Admin designation.");
+          setIsLoading(false);
+          return;
+        }
+
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const generatedDisplayName = [firstName, middleName, lastName].filter(Boolean).join(' ');
         
         await updateProfile(userCredential.user, { displayName: generatedDisplayName });
         
-        // 🚀 UPDATED: Save gender to database!
-        await setDoc(doc(db, 'users', userCredential.user.uid), {
+        // 🚀 NEW: Dynamic database payload based on designation
+        const userData: any = {
           firstName: firstName.trim(),
           middleName: middleName.trim(),
           lastName: lastName.trim(),
           displayName: generatedDisplayName,
-          classLevel: classLevel,
-          state: stateSelection,
-          medium: medium,
-          gender: gender, 
           email: email,
+          role: designation, // Saves 'student' or 'admin'
           createdAt: new Date(),
           updatedAt: new Date()
-        }, { merge: true });
+        };
+
+        // Only add student fields if they are actually a student
+        if (designation === 'student') {
+          userData.classLevel = classLevel;
+          userData.state = stateSelection;
+          userData.medium = medium;
+          userData.gender = gender;
+        }
+        
+        await setDoc(doc(db, 'users', userCredential.user.uid), userData, { merge: true });
 
         await sendEmailVerification(userCredential.user);
         await auth.signOut();
@@ -161,8 +178,27 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           )}
 
           <form onSubmit={handleEmailAuth} className="space-y-4">
+            
             {mode === 'signup' && (
               <>
+                {/* 🚀 NEW: Designation Segmented Control */}
+                <div className="flex bg-slate-800 p-1.5 rounded-2xl mb-6 border border-slate-700 relative">
+                  <button
+                    type="button"
+                    onClick={() => setDesignation('student')}
+                    className={`flex-1 flex items-center justify-center gap-2 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all z-10 ${designation === 'student' ? 'bg-[#2563EB] text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
+                  >
+                    <User className="w-4 h-4" /> Student Node
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDesignation('admin')}
+                    className={`flex-1 flex items-center justify-center gap-2 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all z-10 ${designation === 'admin' ? 'bg-purple-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
+                  >
+                    <ShieldCheck className="w-4 h-4" /> Admin Override
+                  </button>
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-2">First Name <span className="text-red-500">*</span></label>
@@ -197,70 +233,74 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-2">Class <span className="text-red-500">*</span></label>
-                    <div className="relative">
-                      <GraduationCap className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-                      <select 
-                        required value={classLevel} onChange={e => setClassLevel(e.target.value)}
-                        className="w-full bg-slate-800 border border-slate-700 p-3.5 pl-10 rounded-2xl text-white font-bold outline-none focus:border-brand transition-all appearance-none cursor-pointer text-sm"
-                      >
-                        <option value="" disabled>Select</option>
-                        {['Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10'].map(c => <option key={c} value={c}>{c}</option>)}
-                      </select>
-                    </div>
-                  </div>
+                {/* 🚀 NEW: Conditional Wrapper for Student Fields */}
+                {designation === 'student' && (
+                  <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-300">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-2">Class <span className="text-red-500">*</span></label>
+                        <div className="relative">
+                          <GraduationCap className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                          <select 
+                            required value={classLevel} onChange={e => setClassLevel(e.target.value)}
+                            className="w-full bg-slate-800 border border-slate-700 p-3.5 pl-10 rounded-2xl text-white font-bold outline-none focus:border-brand transition-all appearance-none cursor-pointer text-sm"
+                          >
+                            <option value="" disabled>Select</option>
+                            {['Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10'].map(c => <option key={c} value={c}>{c}</option>)}
+                          </select>
+                        </div>
+                      </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-2">State/UT <span className="text-red-500">*</span></label>
-                    <div className="relative">
-                      <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-                      <select 
-                        required value={stateSelection} onChange={e => setStateSelection(e.target.value)}
-                        className="w-full bg-slate-800 border border-slate-700 p-3.5 pl-10 rounded-2xl text-white font-bold outline-none focus:border-brand transition-all appearance-none cursor-pointer text-sm"
-                      >
-                        <option value="" disabled>Select</option>
-                        {["Andaman and Nicobar Islands", "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chandigarh", "Chhattisgarh", "Dadra and Nagar Haveli and Daman and Diu", "Delhi", "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jammu and Kashmir", "Jharkhand", "Karnataka", "Kerala", "Ladakh", "Lakshadweep", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Puducherry", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal"].map(s => <option key={s} value={s}>{s}</option>)}
-                      </select>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-2">State/UT <span className="text-red-500">*</span></label>
+                        <div className="relative">
+                          <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                          <select 
+                            required value={stateSelection} onChange={e => setStateSelection(e.target.value)}
+                            className="w-full bg-slate-800 border border-slate-700 p-3.5 pl-10 rounded-2xl text-white font-bold outline-none focus:border-brand transition-all appearance-none cursor-pointer text-sm"
+                          >
+                            <option value="" disabled>Select</option>
+                            {["Andaman and Nicobar Islands", "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chandigarh", "Chhattisgarh", "Dadra and Nagar Haveli and Daman and Diu", "Delhi", "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jammu and Kashmir", "Jharkhand", "Karnataka", "Kerala", "Ladakh", "Lakshadweep", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Puducherry", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal"].map(s => <option key={s} value={s}>{s}</option>)}
+                          </select>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
 
-                {/* 🚀 NEW: Grid to balance Medium and Gender */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-2">Medium <span className="text-red-500">*</span></label>
-                    <div className="relative">
-                      <BookOpen className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-                      <select 
-                        required value={medium} onChange={e => setMedium(e.target.value)}
-                        className="w-full bg-slate-800 border border-slate-700 p-3.5 pl-10 rounded-2xl text-white font-bold outline-none focus:border-brand transition-all appearance-none cursor-pointer text-sm"
-                      >
-                        <option value="" disabled>Select</option>
-                        <option value="English">English</option>
-                        <option value="Hindi">Hindi</option>
-                        <option value="Odia">Odia</option>
-                      </select>
-                    </div>
-                  </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-2">Medium <span className="text-red-500">*</span></label>
+                        <div className="relative">
+                          <BookOpen className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                          <select 
+                            required value={medium} onChange={e => setMedium(e.target.value)}
+                            className="w-full bg-slate-800 border border-slate-700 p-3.5 pl-10 rounded-2xl text-white font-bold outline-none focus:border-brand transition-all appearance-none cursor-pointer text-sm"
+                          >
+                            <option value="" disabled>Select</option>
+                            <option value="English">English</option>
+                            <option value="Hindi">Hindi</option>
+                            <option value="Odia">Odia</option>
+                          </select>
+                        </div>
+                      </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-2">Gender <span className="text-red-500">*</span></label>
-                    <div className="relative">
-                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-                      <select 
-                        required value={gender} onChange={e => setGender(e.target.value)}
-                        className="w-full bg-slate-800 border border-slate-700 p-3.5 pl-10 rounded-2xl text-white font-bold outline-none focus:border-brand transition-all appearance-none cursor-pointer text-sm"
-                      >
-                        <option value="" disabled>Select</option>
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
-                        <option value="Other">Other</option>
-                      </select>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-2">Gender <span className="text-red-500">*</span></label>
+                        <div className="relative">
+                          <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                          <select 
+                            required value={gender} onChange={e => setGender(e.target.value)}
+                            className="w-full bg-slate-800 border border-slate-700 p-3.5 pl-10 rounded-2xl text-white font-bold outline-none focus:border-brand transition-all appearance-none cursor-pointer text-sm"
+                          >
+                            <option value="" disabled>Select</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                          </select>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
               </>
             )}
 
@@ -297,13 +337,14 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
             <button 
               type="submit" disabled={isLoading}
-              className="w-full py-4 mt-6 bg-[#2563EB] text-white rounded-2xl font-black uppercase tracking-[0.1em] text-xs shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2"
+              className={`w-full py-4 mt-6 text-white rounded-2xl font-black uppercase tracking-[0.1em] text-xs shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2 ${designation === 'admin' && mode === 'signup' ? 'bg-purple-600 hover:bg-purple-700 shadow-purple-600/30' : 'bg-[#2563EB] hover:bg-blue-600 shadow-blue-600/30'}`}
             >
               {isLoading ? 'PROCESSING...' : mode === 'login' ? 'AUTHENTICATE' : mode === 'signup' ? 'INITIALIZE NODE' : 'DISPATCH LINK'} 
               {!isLoading && <ArrowRight className="h-4 w-4" />}
             </button>
           </form>
 
+          {/* Hidden Google Auth logic remains same */}
           <div className="mt-8 pt-6 border-t border-slate-800">
             <button 
               onClick={handleGoogleAuth} type="button"
