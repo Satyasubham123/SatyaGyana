@@ -194,7 +194,6 @@ export default function Profile() {
                               <h2 className="text-3xl font-black italic uppercase tracking-tighter text-white">{profile.displayName || 'Student'}</h2>
                               <p className="text-brand font-bold text-sm mt-1">@{profile.username || user.uid.slice(0,8)}</p>
                               
-                              {/* 🚀 Quick Details Overview */}
                               <div className="mt-3 flex flex-wrap gap-2">
                                 {profile.classLevel && <span className="bg-slate-800 border border-slate-700 px-2 py-1 rounded-md text-[10px] font-bold text-slate-300 uppercase">{profile.classLevel}</span>}
                                 {profile.medium && <span className="bg-slate-800 border border-slate-700 px-2 py-1 rounded-md text-[10px] font-bold text-slate-300 uppercase">{profile.medium} Medium</span>}
@@ -307,10 +306,9 @@ export default function Profile() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-                  {/* 🚀 UPDATED: All signup fields are now fully mapped here! */}
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase text-slate-500 ml-1">First Name</label>
-                    <input name="firstName" value={formData.firstName || ''} onChange={handleInputChange} className="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand" />
+                    <label className="text-[10px] font-black uppercase text-slate-500 ml-1">First Name <span className="text-red-500">*</span></label>
+                    <input required name="firstName" value={formData.firstName || ''} onChange={handleInputChange} className="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand" />
                   </div>
                   
                   <div className="space-y-2">
@@ -319,29 +317,29 @@ export default function Profile() {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase text-slate-500 ml-1">Last Name</label>
-                    <input name="lastName" value={formData.lastName || ''} onChange={handleInputChange} className="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand" />
+                    <label className="text-[10px] font-black uppercase text-slate-500 ml-1">Last Name <span className="text-red-500">*</span></label>
+                    <input required name="lastName" value={formData.lastName || ''} onChange={handleInputChange} className="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand" />
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase text-slate-500 ml-1">Class Level</label>
-                    <select name="classLevel" value={formData.classLevel || ''} onChange={handleInputChange as any} className="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand cursor-pointer">
+                    <label className="text-[10px] font-black uppercase text-slate-500 ml-1">Class Level <span className="text-red-500">*</span></label>
+                    <select required name="classLevel" value={formData.classLevel || ''} onChange={handleInputChange as any} className="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand cursor-pointer">
                       <option className="bg-slate-950 text-white" value="" disabled>Select Level</option>
                       {['Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10'].map(c => <option className="bg-slate-950 text-white" key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase text-slate-500 ml-1">State / UT</label>
-                    <select name="state" value={formData.state || ''} onChange={handleInputChange as any} className="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand cursor-pointer">
+                    <label className="text-[10px] font-black uppercase text-slate-500 ml-1">State / UT <span className="text-red-500">*</span></label>
+                    <select required name="state" value={formData.state || ''} onChange={handleInputChange as any} className="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand cursor-pointer">
                       <option className="bg-slate-950 text-white" value="" disabled>Select State</option>
                       {["Andaman and Nicobar Islands", "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chandigarh", "Chhattisgarh", "Dadra and Nagar Haveli and Daman and Diu", "Delhi", "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jammu and Kashmir", "Jharkhand", "Karnataka", "Kerala", "Ladakh", "Lakshadweep", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Puducherry", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal"].map(s => <option className="bg-slate-950 text-white" key={s} value={s}>{s}</option>)}
                     </select>
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase text-slate-500 ml-1">Medium</label>
-                    <select name="medium" value={formData.medium || ''} onChange={handleInputChange as any} className="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand cursor-pointer">
+                    <label className="text-[10px] font-black uppercase text-slate-500 ml-1">Medium <span className="text-red-500">*</span></label>
+                    <select required name="medium" value={formData.medium || ''} onChange={handleInputChange as any} className="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand cursor-pointer">
                       <option className="bg-slate-950 text-white" value="" disabled>Select Medium</option>
                       <option className="bg-slate-950 text-white" value="English">English</option>
                       <option className="bg-slate-950 text-white" value="Hindi">Hindi</option>
@@ -350,13 +348,25 @@ export default function Profile() {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase text-slate-500 ml-1">Gender</label>
-                    <select name="gender" value={formData.gender || ''} onChange={handleInputChange as any} className="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand cursor-pointer">
+                    <label className="text-[10px] font-black uppercase text-slate-500 ml-1">Gender <span className="text-red-500">*</span></label>
+                    <select required name="gender" value={formData.gender || ''} onChange={handleInputChange as any} className="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand cursor-pointer">
                       <option className="bg-slate-950 text-white" value="" disabled>Select</option>
                       <option className="bg-slate-950 text-white" value="Male">Male</option>
                       <option className="bg-slate-950 text-white" value="Female">Female</option>
                       <option className="bg-slate-950 text-white" value="Other">Other</option>
                     </select>
+                  </div>
+
+                  {/* 🚀 NEW: Bio Field (Optional, spans both columns) */}
+                  <div className="space-y-2 sm:col-span-2">
+                    <label className="text-[10px] font-black uppercase text-slate-500 ml-1">Bio (Optional)</label>
+                    <textarea 
+                      name="bio" 
+                      value={formData.bio || ''} 
+                      onChange={handleInputChange as any} 
+                      placeholder="Tell us a little about your learning goals..."
+                      className="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand min-h-[100px] resize-y custom-scrollbar"
+                    />
                   </div>
                 </div>
               </form>
