@@ -5,7 +5,8 @@ import {
   getDocs, 
   query, 
   where, 
-  serverTimestamp 
+  serverTimestamp,
+  addDoc
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { UserProfile } from '../services/userService';
@@ -50,7 +51,7 @@ interface AdminDashboardProps {
   profile: UserProfile | null;
 }
 
-type Tab = 'overview' | 'course-creation' | 'courses' | 'sections' | 'playlists' | 'lessons' | 'students' | 'notifications' | 'ai-quiz' | 'submissions' | 'quizzes' | 'founder';
+type Tab = 'overview' | 'course-creation' | 'courses' | 'sections' | 'playlists' | 'lessons' | 'students' | 'notifications' | 'ai-quiz' | 'submissions' | 'quizzes' | 'founder' | 'books';
 
 export default function AdminDashboard({ profile }: AdminDashboardProps) {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
@@ -75,6 +76,14 @@ export default function AdminDashboard({ profile }: AdminDashboardProps) {
   const [confirmDelete, setConfirmDelete] = useState<{ type: 'course'|'section'|'playlist'|'lesson', id: string, name: string, parentData?: any } | null>(null);
   const [isMovingLesson, setIsMovingLesson] = useState<Lesson | null>(null);
   const [moveTarget, setMoveTarget] = useState({ courseId: '', sectionId: '', playlistId: '' });
+  // --- NEW BOOKS STATE ---
+  const [books, setBooks] = useState<any[]>([]);
+  const [bookForm, setBookForm] = useState({
+    title: '',
+    targetClass: 'All',
+    folder: 'General',
+    driveUrl: ''
+  });
   
   const [founderForm, setFounderForm] = useState<FounderProfileData>({
     name: 'Satyasubham Biswal',
@@ -262,6 +271,39 @@ export default function AdminDashboard({ profile }: AdminDashboardProps) {
       setIsProcessing(false);
     }
   };
+
+  const handleAddBook = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsProcessing(true);
+    try {
+      // Add the book document directly to a 'books' collection
+      await addDoc(collection(db, 'books'), {
+        ...bookForm,
+        createdAt: serverTimestamp(),
+        isActive: true
+      });
+      
+      alert("Book linked successfully!");
+      setBookForm({ title: '', targetClass: 'All', folder: 'General', driveUrl: '' });
+      
+      // Fetch books to update the list (we will create fetchBooks next)
+      const snapshot = await getDocs(query(collection(db, 'books')));
+      setBooks(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Run this once when the component loads to get existing books
+  useEffect(() => {
+    if (profile?.role === 'admin' && activeTab === 'books') {
+      getDocs(query(collection(db, 'books'))).then(snapshot => {
+        setBooks(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      });
+    }
+  }, [profile, activeTab]);
 
   const handleUpdateFounderProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -599,6 +641,98 @@ Each object must follow this scheme exactly:
       </div>
     );
   }
+
+  const renderBooks = () => (
+    <div className="space-y-8">
+      <div className="bg-slate-900 p-8 rounded-[32px] border border-border-strong shadow-2xl">
+        <div className="flex items-center gap-4 mb-8">
+          <div className="w-12 h-12 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-500 border border-indigo-500/20">
+            <BookOpen className="h-6 w-6" />
+          </div>
+          <div>
+            <h3 className="text-2xl font-black uppercase italic tracking-tighter text-white">Digital Library</h3>
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Secure Book Distribution</p>
+          </div>
+        </div>
+
+        <form onSubmit={handleAddBook} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Book Title</label>
+              <input 
+                type="text" placeholder="e.g. Advanced Physics Part 1" 
+                value={bookForm.title} onChange={e => setBookForm({...bookForm, title: e.target.value})}
+                className="w-full bg-slate-800 border border-border-strong p-4 rounded-xl text-white font-bold outline-none focus:border-indigo-500"
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Google Drive Link (Viewer Mode)</label>
+              <input 
+                type="url" placeholder="Paste Google Drive share link here" 
+                value={bookForm.driveUrl} onChange={e => setBookForm({...bookForm, driveUrl: e.target.value})}
+                className="w-full bg-slate-800 border border-border-strong p-4 rounded-xl text-white font-bold outline-none focus:border-indigo-500"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Target Class</label>
+              <select 
+                value={bookForm.targetClass} onChange={e => setBookForm({...bookForm, targetClass: e.target.value})}
+                className="w-full bg-slate-800 border border-border-strong p-4 rounded-xl text-white font-bold text-sm outline-none focus:border-indigo-500 appearance-none"
+              >
+                {['All', 'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10'].map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Library Folder</label>
+              <select 
+                value={bookForm.folder} onChange={e => setBookForm({...bookForm, folder: e.target.value})}
+                className="w-full bg-slate-800 border border-border-strong p-4 rounded-xl text-white font-bold text-sm outline-none focus:border-indigo-500 appearance-none"
+              >
+                {['General', 'Mathematics', 'Science', 'History', 'Literature'].map(f => <option key={f} value={f}>{f}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <button 
+            type="submit" disabled={isProcessing}
+            className="w-full bg-indigo-600 text-white py-4 rounded-xl font-black uppercase tracking-widest text-xs shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2"
+          >
+            {isProcessing ? <Zap className="h-4 w-4 animate-spin" /> : <BookOpen className="h-4 w-4" />}
+            Publish to Library
+          </button>
+        </form>
+      </div>
+
+      {/* Book List */}
+      <div className="space-y-4">
+        {books.map((book, idx) => (
+          <div key={idx} className="p-6 bg-slate-900 border border-border-strong rounded-2xl flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-slate-800 rounded-xl flex items-center justify-center text-indigo-500">
+                <BookOpen className="h-5 w-5" />
+              </div>
+              <div>
+                <h5 className="text-lg font-black uppercase tracking-tighter text-white italic">{book.title}</h5>
+                <div className="flex gap-2 mt-1">
+                  <span className="px-2 py-0.5 bg-slate-800 text-slate-400 text-[9px] rounded font-black uppercase">{book.targetClass}</span>
+                  <span className="px-2 py-0.5 bg-slate-800 text-slate-400 text-[9px] rounded font-black uppercase">{book.folder}</span>
+                </div>
+              </div>
+            </div>
+            <a 
+              href={book.driveUrl} target="_blank" rel="noreferrer"
+              className="p-3 bg-slate-800 text-slate-400 hover:text-white transition-all rounded-xl"
+            ><Globe className="h-5 w-5" /></a>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 
   const renderOverview = () => (
     <div className="space-y-8">
@@ -2027,6 +2161,7 @@ Each object must follow this scheme exactly:
               { id: 'course-creation', icon: <PlusCircle className="h-4 w-4" />, label: 'Creator' },
               { id: 'courses', icon: <Layers className="h-4 w-4" />, label: 'Vault' },
               { id: 'students', icon: <Users className="h-4 w-4" />, label: 'Students' },
+              { id: 'books', icon: <BookOpen className="h-4 w-4" />, label: 'Library' },
               { id: 'ai-quiz', icon: <Sparkles className="h-4 w-4" />, label: 'AI Quiz' },
               { id: 'founder', icon: <Shield className="h-4 w-4" />, label: 'Founder' },
             ].map(tab => (
@@ -2082,6 +2217,7 @@ Each object must follow this scheme exactly:
                 {activeTab === 'students' && renderStudents()}
                 {activeTab === 'submissions' && renderSubmissions()}
                 {activeTab === 'ai-quiz' && renderAIQuizGenerator()}
+                {activeTab === 'books' && renderBooks()}
                 {activeTab === 'founder' && renderFounderSettings()}
                 {(activeTab === 'notifications' || activeTab === 'quizzes') && (
                   <div className="py-40 text-center bg-slate-900 border-2 border-dashed border-border-strong rounded-[40px]">

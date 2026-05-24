@@ -3,12 +3,16 @@ import { useUser } from '../contexts/UserContext';
 import { updateUserProfile } from '../services/userService';
 import { contentService } from '../services/contentService';
 import { motion } from 'motion/react';
+import { collection, getDocs, query } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 import { 
   BookMarked, Trophy, Flame, MessageSquare, ArrowRight, Calculator, 
   Atom, BookText, History, Cpu, GraduationCap, Sparkles, Calendar, 
   Play, CheckCircle, ChevronRight, Zap, Image as ImageIcon, BookA
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import SecureBookReader from '../components/SecureBookReader';
+import { BookOpen } from 'lucide-react'; // Ensure BookOpen is in your lucide-react imports
 import StatsSummary from '../components/StatsSummary';
 
 declare global {
@@ -36,6 +40,9 @@ export default function Dashboard() {
   const [dbCourses, setDbCourses] = useState<any[]>([]);
   const [userHistory, setUserHistory] = useState<any[]>([]);
   const [userProgress, setUserProgress] = useState<any[]>([]);
+  const [books, setBooks] = useState<any[]>([]);
+  const [readingBookUrl, setReadingBookUrl] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
     if (profile?.classLevel && user) {
@@ -43,6 +50,27 @@ export default function Dashboard() {
       fetchUserData();
     }
   }, [profile?.classLevel, user]);
+
+  // --- ADD THIS EFFECT ---
+  useEffect(() => {
+    if (profile) {
+      const fetchLibrary = async () => {
+        try {
+          const snapshot = await getDocs(query(collection(db, 'books')));
+          const allBooks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as any }));
+          
+          // Filter so they only see "All" books OR books for their specific class
+          const myBooks = allBooks.filter(b => 
+            b.targetClass === 'All' || b.targetClass === profile.classLevel
+          );
+          setBooks(myBooks);
+        } catch (error) {
+          console.error("Error fetching library:", error);
+        }
+      };
+      fetchLibrary();
+    }
+  }, [profile]);
 
   const fetchCourses = async () => {
     if (!profile?.classLevel) return;
@@ -164,10 +192,48 @@ export default function Dashboard() {
       </div>
     );
   }
+  const renderLibrary = () => (
+    <div className="space-y-6 animate-in fade-in">
+      <div className="flex items-center gap-4 mb-8">
+        <div className="w-12 h-12 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-500">
+          <BookOpen className="h-6 w-6" />
+        </div>
+        <div>
+          <h3 className="text-2xl font-black uppercase italic tracking-tighter text-white">Digital Library</h3>
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Secure Reading Materials</p>
+        </div>
+      </div>
 
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {books.map((book) => (
+          <div 
+            key={book.id} 
+            onClick={() => setReadingBookUrl(book.driveUrl)}
+            className="bg-slate-900 border border-border-strong p-6 rounded-3xl hover:border-indigo-500/50 hover:shadow-[0_0_30px_rgba(99,102,241,0.15)] transition-all cursor-pointer group"
+          >
+            <div className="w-12 h-12 bg-slate-800 text-indigo-500 rounded-xl flex items-center justify-center mb-6 group-hover:bg-indigo-500 group-hover:text-white transition-all shadow-lg">
+              <BookOpen className="h-6 w-6" />
+            </div>
+            <span className="px-3 py-1 bg-slate-800 text-slate-400 text-[9px] rounded font-black uppercase mb-3 inline-block border border-border-strong">
+              {book.folder}
+            </span>
+            <h4 className="text-lg font-black uppercase italic text-white line-clamp-2">{book.title}</h4>
+          </div>
+        ))}
+
+        {books.length === 0 && (
+           <div className="col-span-full py-20 text-center bg-slate-800/10 border-2 border-dashed border-border-strong rounded-3xl">
+              <BookOpen className="h-10 w-10 text-slate-700 mx-auto mb-4 opacity-50" />
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">No books assigned to your class yet.</p>
+           </div>
+        )}
+      </div>
+    </div>
+  );
   const firstName = profile.firstName || profile.displayName?.split(' ')[0] || 'Student';
   const xp = Number(profile.totalXP) || Number(profile.xpPoints) || 0;
   const streak = Number(profile.streakCount) || 0;
+  
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 sm:py-16 bg-bg-deep min-h-screen">
@@ -244,7 +310,33 @@ export default function Dashboard() {
       <div className="mb-12 -mx-4 sm:mx-0">
          <StatsSummary />
       </div>
+      <div className="flex flex-wrap gap-4 mb-10">
+  
+        <button
+         onClick={() => setActiveTab('overview')}
+        className={`px-6 py-3 rounded-xl font-black uppercase text-xs tracking-widest transition-all ${
+          activeTab === 'overview'
+            ? 'bg-brand text-white'
+            : 'bg-slate-900 border border-border-strong text-slate-400'
+       }`}
+      >
+        Overview
+      </button>
 
+      <button
+        onClick={() => setActiveTab('library')}
+        className={`px-6 py-3 rounded-xl font-black uppercase text-xs tracking-widest transition-all ${
+          activeTab === 'library'
+            ? 'bg-indigo-600 text-white'
+            : 'bg-slate-900 border border-border-strong text-slate-400'
+        }`}
+      >
+        Library
+       </button>
+
+      </div>
+      
+    {activeTab === 'overview' && (
       <div className="grid grid-cols-12 gap-8">
         <div className="col-span-12 lg:col-span-8 space-y-12">
             {lastViewedCourse && (
@@ -385,6 +477,16 @@ export default function Dashboard() {
            </div>
         </div>
       </div>
+      )}
+{activeTab === 'library' && renderLibrary()}
+{/* This pops up over everything when a book is clicked */}
+{readingBookUrl && (
+  <SecureBookReader 
+    driveUrl={readingBookUrl} 
+    onClose={() => setReadingBookUrl(null)} 
+  />
+)}
+      
     </div>
   );
 }
