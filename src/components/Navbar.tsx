@@ -3,7 +3,7 @@ import { User, signOut } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import { User as UserIcon, LogOut, Menu, X, Sparkles, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { UserProfile } from '../services/userService';
 import AuthModal from './AuthModal'; 
 
@@ -16,7 +16,7 @@ export default function Navbar({ user, profile }: NavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false); 
   
-  // 🚀 ADMIN CHECK
+  // Role Check
   const isAdmin = profile?.role === 'admin';
 
   const handleLogout = async () => {
@@ -30,7 +30,7 @@ export default function Navbar({ user, profile }: NavbarProps) {
     }
   };
 
-  // 🚀 DYNAMIC MAIN NAV
+  // Main Navigation based on Role
   const mainNav = isAdmin
     ? [
         { name: 'Control Tower', path: '/admin', show: true },
@@ -42,7 +42,7 @@ export default function Navbar({ user, profile }: NavbarProps) {
         { name: 'Dictionary', path: '/dictionary', show: !!user },
       ];
 
-  // 🚀 SECONDARY NAV
+  // Secondary Navigation (About, Privacy, etc.)
   const secondaryNav = [
     { name: 'About', path: '/about' },
     { name: 'Privacy', path: '/privacy' },
@@ -143,16 +143,16 @@ export default function Navbar({ user, profile }: NavbarProps) {
               </Link>
             )}
             <button
-              onClick={() => setIsOpen(!isOpen)}
+              onClick={() => setIsOpen(true)}
               className="text-slate-800 dark:text-slate-200 p-2 bg-bg-deep rounded-xl border border-border-strong"
             >
-              {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              <Menu className="h-6 w-6" />
             </button>
           </div>
         </div>
       </div>
 
-      {/* 🚀 MOBILE DRAWER MENU */}
+      {/* 🚀 BULLETPROOF MOBILE DRAWER MENU */}
       <AnimatePresence>
         {isOpen && (
           <>
@@ -166,7 +166,7 @@ export default function Navbar({ user, profile }: NavbarProps) {
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
               className="md:hidden fixed inset-y-0 right-0 w-full max-w-[320px] bg-white dark:bg-bg-surface border-l border-border-strong z-50 flex flex-col shadow-2xl"
             >
-              <div className="p-6 flex items-center justify-between border-b border-border-strong">
+              <div className="p-6 flex items-center justify-between border-b border-border-strong shrink-0">
                 <div className="flex items-center space-x-3">
                   <div className="w-8 h-8 bg-brand rounded-lg flex items-center justify-center">
                     <Sparkles className="h-4 w-4 text-white" />
@@ -178,36 +178,36 @@ export default function Navbar({ user, profile }: NavbarProps) {
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-6 space-y-8">
+              {/* Scrollable Menu Area */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
                 
                 {/* 1. Main Navigation */}
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.3em] text-brand mb-6 pl-2 border-l-2 border-brand">Navigation</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.3em] text-brand mb-4 pl-2 border-l-2 border-brand">Navigation</p>
                   <div className="space-y-3">
                     {mainNav.map((item) => item.show && (
                       <Link
                         key={item.path} to={item.path} onClick={() => setIsOpen(false)}
                         className="flex items-center justify-between p-4 bg-bg-deep border border-border-strong rounded-2xl hover:border-brand/40 group transition-all"
                       >
-                        <span className="text-xl font-black italic uppercase tracking-tighter text-slate-900 dark:text-white group-hover:text-brand">{item.name}</span>
+                        <span className="text-lg font-black italic uppercase tracking-tighter text-slate-900 dark:text-white group-hover:text-brand">{item.name}</span>
                         <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-brand group-hover:translate-x-1 transition-all" />
                       </Link>
                     ))}
                   </div>
                 </div>
 
-                {/* 2. Secondary Navigation */}
+                {/* 2. Secondary Navigation (About, Privacy, etc.) */}
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-6 pl-2 border-l-2 border-slate-500">More</p>
-                  <div className="grid grid-cols-2 gap-3">
+                  <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-4 pl-2 border-l-2 border-slate-500">More Pages</p>
+                  <div className="flex flex-col space-y-3">
                     {secondaryNav.map((item) => (
                       <Link
                         key={item.path} to={item.path} onClick={() => setIsOpen(false)}
-                        className="p-3 bg-bg-deep border border-border-strong rounded-xl text-center hover:border-brand/40 transition-all"
+                        className="p-4 bg-bg-deep border border-border-strong rounded-2xl text-slate-600 dark:text-slate-400 font-bold uppercase tracking-widest text-[11px] hover:border-brand/40 transition-all flex justify-between items-center"
                       >
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-600 dark:text-slate-400">
-                          {item.name}
-                        </span>
+                        {item.name}
+                        <ChevronRight className="h-4 w-4 opacity-50" />
                       </Link>
                     ))}
                   </div>
@@ -215,8 +215,8 @@ export default function Navbar({ user, profile }: NavbarProps) {
 
               </div>
 
-              {/* 3. Logout Section */}
-              <div className="p-6 border-t border-border-strong bg-bg-deep/50">
+              {/* 3. Logout / Login Section */}
+              <div className="p-6 border-t border-border-strong bg-bg-deep/50 shrink-0">
                 {user ? (
                   <button
                     onClick={handleLogout}
