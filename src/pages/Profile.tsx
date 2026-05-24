@@ -26,7 +26,6 @@ export default function Profile() {
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState<Partial<UserProfile>>({});
 
-  // 🚀 DYNAMIC TABS: Overview and Edit are excluded for Admin
   const tabs = isAdmin 
     ? [
         { id: 'profile', label: 'Admin Access', icon: <Shield className="h-4 w-4" /> },
@@ -104,7 +103,6 @@ export default function Profile() {
 
   const completionPercent = calculateCompletion();
   
-  // ✅ FIX 2: Better XP Progress System
   const totalXp = profile?.totalXP || profile?.xpPoints || 0;
   const currentLevelXP = totalXp % 1000;
   const progress = (currentLevelXP / 1000) * 100;
@@ -135,7 +133,6 @@ export default function Profile() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative pt-12">
         
-        {/* ✅ FIX 4: Student Friendly Text */}
         <div className="mb-10">
            <h1 className="text-3xl sm:text-5xl font-black uppercase italic tracking-tighter text-white flex items-center gap-3">
              <UserIcon className="h-8 w-8 sm:h-10 sm:w-10 text-brand" /> {isAdmin ? "Admin Console" : "Student Profile"}
@@ -166,7 +163,6 @@ export default function Profile() {
             
             {activeTab === 'profile' && (
               isAdmin ? (
-                // 🚀 Clean Admin View
                 <div className="p-8 bg-slate-900 border border-purple-500/30 rounded-[32px] text-center shadow-2xl">
                     <Shield className="h-16 w-16 text-purple-500 mx-auto mb-4" />
                     <h2 className="text-3xl font-black uppercase tracking-tighter text-white">System Administrator</h2>
@@ -186,7 +182,6 @@ export default function Profile() {
                         
                         <div className="px-8 pb-8 relative">
                            <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-[2rem] border-4 border-slate-900 bg-slate-800 overflow-hidden shadow-[0_0_30px_rgba(59,130,246,0.3)] absolute -top-16">
-                             {/* ✅ FIX 3: Avatar onError handling */}
                              <img 
                                src={profile.avatarUrl || user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`} 
                                alt="Avatar" 
@@ -198,6 +193,14 @@ export default function Profile() {
                            <div className="pt-20">
                               <h2 className="text-3xl font-black italic uppercase tracking-tighter text-white">{profile.displayName || 'Student'}</h2>
                               <p className="text-brand font-bold text-sm mt-1">@{profile.username || user.uid.slice(0,8)}</p>
+                              
+                              {/* 🚀 Quick Details Overview */}
+                              <div className="mt-3 flex flex-wrap gap-2">
+                                {profile.classLevel && <span className="bg-slate-800 border border-slate-700 px-2 py-1 rounded-md text-[10px] font-bold text-slate-300 uppercase">{profile.classLevel}</span>}
+                                {profile.medium && <span className="bg-slate-800 border border-slate-700 px-2 py-1 rounded-md text-[10px] font-bold text-slate-300 uppercase">{profile.medium} Medium</span>}
+                                {profile.state && <span className="bg-slate-800 border border-slate-700 px-2 py-1 rounded-md text-[10px] font-bold text-slate-300 uppercase">{profile.state}</span>}
+                              </div>
+
                               <p className="mt-4 text-slate-400 text-sm font-medium leading-relaxed">
                                 {profile.bio || <span className="italic opacity-50">No bio added yet.</span>}
                               </p>
@@ -222,7 +225,6 @@ export default function Profile() {
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6 mb-8 relative z-10">
                            <div>
                               <p className="text-xs font-black uppercase tracking-widest text-brand mb-2 flex items-center gap-2"><Zap className="h-4 w-4" /> Current Level</p>
-                              {/* ✅ FIX 5: Mobile Text Size */}
                               <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black italic uppercase tracking-tighter text-white">Tier {profile.level || 1}</h2>
                            </div>
                            <div className="text-left sm:text-right">
@@ -236,7 +238,6 @@ export default function Profile() {
                              <span>Level {(profile.level || 1) + 1}</span>
                            </div>
                            <div className="h-3 w-full bg-slate-800 rounded-full overflow-hidden border border-slate-700/50">
-                              {/* ✅ FIX 2 APPLIED */}
                               <div className="h-full bg-gradient-to-r from-brand to-cyan-400" style={{ width: `${progress}%` }}></div>
                            </div>
                         </div>
@@ -269,7 +270,6 @@ export default function Profile() {
                 <div className="bg-slate-900/60 border border-slate-800 rounded-[32px] p-6 sm:p-8 h-[500px] flex flex-col">
                   <h3 className="text-sm font-black uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2"><Activity className="h-5 w-5 text-brand" /> Signal Feed</h3>
                   <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-4">
-                    {/* ✅ FIX 1: Loading Spinner for Signals */}
                     {isLoadingSignals ? (
                       <div className="h-full flex items-center justify-center">
                         <Loader2 className="h-6 w-6 animate-spin text-brand" />
@@ -299,7 +299,6 @@ export default function Profile() {
               <form onSubmit={handleSaveProfile} className="bg-slate-900/60 border border-slate-800 rounded-[32px] p-6 sm:p-10 max-w-4xl shadow-2xl relative">
                 <div className="mb-8 border-b border-slate-800/80 pb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
                    <div>
-                      {/* ✅ FIX 4: Student friendly text */}
                       <h2 className="text-2xl font-black italic uppercase tracking-tighter text-white">Edit Profile</h2>
                    </div>
                    <button type="submit" disabled={isSaving} className="px-8 py-4 bg-brand hover:bg-blue-600 text-white rounded-xl font-black uppercase text-xs transition-all flex items-center gap-2">
@@ -308,22 +307,48 @@ export default function Profile() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                  {/* 🚀 UPDATED: All signup fields are now fully mapped here! */}
                   <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase text-slate-500 ml-1">First Name</label>
                     <input name="firstName" value={formData.firstName || ''} onChange={handleInputChange} className="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand" />
                   </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-slate-500 ml-1">Middle Name</label>
+                    <input name="middleName" value={formData.middleName || ''} onChange={handleInputChange} className="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand" />
+                  </div>
+
                   <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase text-slate-500 ml-1">Last Name</label>
                     <input name="lastName" value={formData.lastName || ''} onChange={handleInputChange} className="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand" />
                   </div>
+
                   <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase text-slate-500 ml-1">Class Level</label>
-                    {/* ✅ FIX 6: Dark options */}
                     <select name="classLevel" value={formData.classLevel || ''} onChange={handleInputChange as any} className="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand cursor-pointer">
                       <option className="bg-slate-950 text-white" value="" disabled>Select Level</option>
                       {['Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10'].map(c => <option className="bg-slate-950 text-white" key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-slate-500 ml-1">State / UT</label>
+                    <select name="state" value={formData.state || ''} onChange={handleInputChange as any} className="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand cursor-pointer">
+                      <option className="bg-slate-950 text-white" value="" disabled>Select State</option>
+                      {["Andaman and Nicobar Islands", "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chandigarh", "Chhattisgarh", "Dadra and Nagar Haveli and Daman and Diu", "Delhi", "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jammu and Kashmir", "Jharkhand", "Karnataka", "Kerala", "Ladakh", "Lakshadweep", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Puducherry", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal"].map(s => <option className="bg-slate-950 text-white" key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-slate-500 ml-1">Medium</label>
+                    <select name="medium" value={formData.medium || ''} onChange={handleInputChange as any} className="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand cursor-pointer">
+                      <option className="bg-slate-950 text-white" value="" disabled>Select Medium</option>
+                      <option className="bg-slate-950 text-white" value="English">English</option>
+                      <option className="bg-slate-950 text-white" value="Hindi">Hindi</option>
+                      <option className="bg-slate-950 text-white" value="Odia">Odia</option>
+                    </select>
+                  </div>
+
                   <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase text-slate-500 ml-1">Gender</label>
                     <select name="gender" value={formData.gender || ''} onChange={handleInputChange as any} className="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand cursor-pointer">
@@ -344,7 +369,7 @@ export default function Profile() {
                    <h2 className="text-3xl font-black uppercase italic tracking-tighter text-white">System Preferences</h2>
                    <div className="pt-8 border-t border-slate-800/80 w-full max-w-md mt-6">
                      <button onClick={handleSignOut} className="w-full flex items-center justify-center gap-2 px-8 py-4 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-xl font-black uppercase tracking-widest text-xs transition-all">
-                       <LogOut className="h-4 w-4" /> Log Out {/* ✅ FIX 4 */}
+                       <LogOut className="h-4 w-4" /> Log Out
                      </button>
                    </div>
                 </div>
