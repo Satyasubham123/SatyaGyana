@@ -239,6 +239,24 @@ export default function Dashboard() {
     <div className="max-w-7xl mx-auto px-4 py-8 sm:py-16 bg-bg-deep min-h-screen">
       <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 sm:gap-8 mb-10 text-center sm:text-left">
         <div>
+          {/* Temporary Code Logo - Satya Badge Edition */}
+          <div className="flex items-center gap-4 mb-6 animate-in fade-in slide-in-from-left-4 duration-700">
+            {/* The Badge */}
+            <div className="bg-gradient-to-br from-brand to-indigo-600 text-white px-6 h-14 rounded-2xl flex items-center justify-center font-black text-2xl shadow-xl shadow-brand/30 border border-white/20 uppercase tracking-widest italic">
+              Satya
+            </div>
+            
+            {/* The Subtext */}
+            <div className="flex flex-col justify-center">
+              <span className="text-xl font-black tracking-tighter text-main uppercase leading-none mb-1">
+                Gyana<span className="text-brand">Mitra</span>
+              </span>
+              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500">
+                Knowledge Network
+              </span>
+            </div>
+          </div>
+        
           <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-black uppercase italic tracking-tighter mb-4 text-main leading-tight">
             NAMASTE, {firstName.toUpperCase()}!
           </h1>
