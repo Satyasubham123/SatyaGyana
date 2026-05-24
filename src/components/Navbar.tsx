@@ -17,6 +17,7 @@ export default function Navbar({ user, profile }: NavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false); 
   const navigate = useNavigate();
+  const isAdmin = profile?.role === 'admin';
 
   const handleLogout = async () => {
     try {
@@ -30,12 +31,15 @@ export default function Navbar({ user, profile }: NavbarProps) {
   };
 
   // 🚀 UPDATED: Added Dictionary right next to AI Mentor!
-  const mainNav = [
+  const mainNav = isAdmin
+    ?[
+      { name: 'Control Tower', path: '/admin', show: true },
+    ]
+    : [
     { name: 'Dashboard', path: '/dashboard', show: !!user },
     { name: 'Study Visuals', path: '/visuals', show: !!user }, 
     { name: 'AI Mentor', path: '/ai-teacher', show: !!user },
     { name: 'Dictionary', path: '/dictionary', show: !!user },
-    { name: 'Admin', path: '/admin', show: !!user && profile?.role === 'admin' },
   ];
 
   const secondaryNav = [
