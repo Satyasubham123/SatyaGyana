@@ -16,6 +16,7 @@ export default function Navbar({ user, profile }: NavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false); 
   
+  // Role Check
   const isAdmin = profile?.role === 'admin';
 
   const handleLogout = async () => {
@@ -29,6 +30,7 @@ export default function Navbar({ user, profile }: NavbarProps) {
     }
   };
 
+  // Main Navigation based on Role
   const mainNav = isAdmin
     ? [
         { name: 'Control Tower', path: '/admin', show: true },
@@ -40,6 +42,7 @@ export default function Navbar({ user, profile }: NavbarProps) {
         { name: 'Dictionary', path: '/dictionary', show: !!user },
       ];
 
+  // Secondary Navigation (About, Privacy, etc.)
   const secondaryNav = [
     { name: 'About', path: '/about' },
     { name: 'Privacy', path: '/privacy' },
@@ -126,6 +129,7 @@ export default function Navbar({ user, profile }: NavbarProps) {
              )}
           </div>
 
+          {/* Mobile Menu Button */}
           <div className="md:hidden flex items-center space-x-4">
             {user && (
               <Link to="/profile" className="shrink-0">
@@ -140,7 +144,7 @@ export default function Navbar({ user, profile }: NavbarProps) {
             )}
             <button
               onClick={() => setIsOpen(true)}
-              className="text-slate-800 dark:text-slate-200 p-2 bg-bg-deep rounded-xl border border-border-strong"
+              className="text-slate-800 dark:text-slate-200 p-2 bg-slate-900 rounded-xl border border-slate-700 shadow-md"
             >
               <Menu className="h-6 w-6" />
             </button>
@@ -148,61 +152,69 @@ export default function Navbar({ user, profile }: NavbarProps) {
         </div>
       </div>
 
+      {/* 🚀 BULLETPROOF MOBILE DRAWER */}
       <AnimatePresence>
         {isOpen && (
           <>
+            {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setIsOpen(false)}
-              className="md:hidden fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-40"
+              className="md:hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[100]"
             />
+            
+            {/* Drawer Container - Forced 100vh */}
             <motion.div
               initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="md:hidden fixed inset-y-0 right-0 w-full max-w-[320px] bg-white dark:bg-bg-surface border-l border-border-strong z-50 flex flex-col shadow-2xl"
+              className="md:hidden fixed inset-y-0 right-0 w-[85vw] max-w-[340px] bg-slate-950 border-l border-slate-800 z-[101] flex flex-col h-[100dvh] shadow-2xl"
             >
-              <div className="p-6 flex items-center justify-between border-b border-border-strong shrink-0 bg-bg-surface">
+              
+              {/* Header - Fixed Height */}
+              <div className="flex-none p-5 flex items-center justify-between border-b border-slate-800 bg-slate-900/50">
                 <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-brand rounded-lg flex items-center justify-center">
+                  <div className="w-8 h-8 bg-brand rounded-lg flex items-center justify-center shadow-lg shadow-brand/20">
                     <Sparkles className="h-4 w-4 text-white" />
                   </div>
-                  <span className="font-black italic uppercase tracking-tighter text-slate-900 dark:text-white">Menu</span>
+                  <span className="font-black italic uppercase tracking-tighter text-white">Menu</span>
                 </div>
-                <button onClick={() => setIsOpen(false)} className="p-2 text-slate-500 bg-bg-deep rounded-lg border border-border-strong">
+                <button onClick={() => setIsOpen(false)} className="p-2 text-slate-400 bg-slate-900 rounded-lg border border-slate-700 hover:text-white">
                   <X className="h-5 w-5" />
                 </button>
               </div>
 
-              {/* 🚀 FIXED MOBILE AREA: Added min-h-0 so the scroll area doesn't collapse */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar min-h-0 bg-bg-surface">
+              {/* Middle Section - Scrollable, min-h-0 prevents collapse */}
+              <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-8 custom-scrollbar">
                 
-                {/* Main Navigation */}
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.3em] text-brand mb-4 pl-2 border-l-2 border-brand">Navigation</p>
-                  <div className="flex flex-col space-y-3">
-                    {mainNav.map((item) => item.show && (
-                      <Link
-                        key={item.path} to={item.path} onClick={() => setIsOpen(false)}
-                        className="p-4 bg-slate-900/50 border border-slate-800 rounded-2xl flex justify-between items-center text-white font-black uppercase tracking-widest text-xs hover:border-brand transition-all shadow-sm"
-                      >
-                        {item.name}
-                        <ChevronRight className="h-4 w-4 text-brand" />
-                      </Link>
-                    ))}
+                {/* 1. Main Navigation */}
+                {mainNav.some(item => item.show) && (
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-brand mb-4 pl-2 border-l-2 border-brand">Navigation</p>
+                    <div className="flex flex-col space-y-3">
+                      {mainNav.map((item) => item.show && (
+                        <Link
+                          key={item.path} to={item.path} onClick={() => setIsOpen(false)}
+                          className="p-4 bg-slate-900 border border-slate-800 rounded-2xl flex justify-between items-center text-white font-black uppercase tracking-widest text-xs hover:border-brand hover:bg-slate-800 transition-all shadow-md"
+                        >
+                          {item.name}
+                          <ChevronRight className="h-4 w-4 text-brand" />
+                        </Link>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
 
-                {/* Secondary Navigation */}
+                {/* 2. Secondary Navigation (Visible Pages) */}
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-4 pl-2 border-l-2 border-slate-500">More Pages</p>
                   <div className="flex flex-col space-y-3">
                     {secondaryNav.map((item) => (
                       <Link
                         key={item.path} to={item.path} onClick={() => setIsOpen(false)}
-                        className="p-4 bg-slate-900/50 border border-slate-800 rounded-2xl text-slate-400 font-bold uppercase tracking-widest text-[10px] hover:border-brand/40 transition-all flex justify-between items-center shadow-sm"
+                        className="p-4 bg-slate-800 border border-slate-700 rounded-xl text-white font-bold uppercase tracking-widest text-[11px] hover:border-brand/50 hover:bg-slate-700 transition-all flex justify-between items-center shadow-sm"
                       >
                         {item.name}
-                        <ChevronRight className="h-4 w-4 opacity-50" />
+                        <ChevronRight className="h-4 w-4 text-slate-400" />
                       </Link>
                     ))}
                   </div>
@@ -210,11 +222,12 @@ export default function Navbar({ user, profile }: NavbarProps) {
 
               </div>
 
-              <div className="p-6 border-t border-border-strong bg-bg-deep shrink-0">
+              {/* Footer - Logout/Login */}
+              <div className="flex-none p-5 border-t border-slate-800 bg-slate-900/50">
                 {user ? (
                   <button
                     onClick={handleLogout}
-                    className="w-full py-4 bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white font-black uppercase tracking-widest text-[10px] rounded-xl shadow-lg shadow-red-500/10 active:scale-95 transition-all flex items-center justify-center gap-2"
+                    className="w-full py-4 bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white font-black uppercase tracking-widest text-[11px] rounded-xl shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
                     <LogOut className="h-4 w-4" />
                     Sign Out
@@ -225,13 +238,14 @@ export default function Navbar({ user, profile }: NavbarProps) {
                       setIsOpen(false); 
                       setIsAuthOpen(true); 
                     }}
-                    className="w-full py-4 bg-brand text-white font-black uppercase tracking-widest text-[10px] rounded-xl shadow-lg shadow-brand/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+                    className="w-full py-4 bg-brand text-white font-black uppercase tracking-widest text-[11px] rounded-xl shadow-lg shadow-brand/20 active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
                     <UserIcon className="h-4 w-4" />
                     Log In / Sign Up
                   </button>
                 )}
               </div>
+
             </motion.div>
           </>
         )}
