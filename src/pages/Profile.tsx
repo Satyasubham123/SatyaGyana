@@ -20,6 +20,7 @@ type TabType = 'profile' | 'overview' | 'edit' | 'settings';
 
 export default function Profile() {
   const { user, profile } = useUser();
+  const isAdmin = profile?.role === 'admin';
   
   const [signals, setSignals] = useState<ActivitySignal[]>([]);
   const [activeTab, setActiveTab] = useState<TabType>('profile');
@@ -113,8 +114,7 @@ export default function Profile() {
   };
 
   const completionPercent = calculateCompletion();
-  const isAdmin = profile?.role === 'admin';
-
+  
   // Show loading skeleton if the context profile hasn't loaded yet
   if (!profile || !user) {
     return (
