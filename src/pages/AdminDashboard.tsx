@@ -11,8 +11,8 @@ import {
 import { db } from '../lib/firebase';
 import { supabase } from '../lib/supabase'; // 🚀 ADDED SUPABASE IMPORT
 import { UserProfile } from '../services/userService';
-import { contentService, Course, Section, Playlist, Lesson, Submission } from '../services/contentService';
-import { motion, AnimatePresence } from 'framer-motion';
+import * as contentService from '../services/contentServiceSupabase';
+import { Course, Section, Playlist, Lesson, Submission } from '../services/contentService';import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LayoutDashboard, 
   Users, 
