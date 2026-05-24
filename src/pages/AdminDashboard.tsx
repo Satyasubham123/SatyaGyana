@@ -285,14 +285,14 @@ export default function AdminDashboard({ profile }: AdminDashboardProps) {
 
   // 🚀 UPDATED: Fetch Books from SUPABASE
   const fetchSupabaseBooks = async () => {
-    try {
-      const { data, error } = await supabase.from('books').select('*');
-      if (error) throw error;
-      setBooks(data || []);
-    } catch (err) {
-      console.error("Error fetching books:", err);
-    }
-  };
+  try {
+    const { data, error } = await supabase.from('books').select('*');
+    if (error) throw error;
+    setBooks(data || []);
+  } catch (err) {
+    console.error("Error fetching books:", err);
+  }
+};
 
   // Run this once when the component loads to get existing books
   useEffect(() => {
@@ -306,28 +306,39 @@ export default function AdminDashboard({ profile }: AdminDashboardProps) {
     e.preventDefault();
     setIsProcessing(true);
     try {
+      // Mapping the state (bookForm) to the Database columns
       const { error } = await supabase.from('books').insert([{
         title: bookForm.title,
-        class_level: bookForm.classLevel,
+        // If it's 'All', save 'All', otherwise clean the string
+        class_level: bookForm.classLevel === 'All' ? 'All' : bookForm.classLevel.replace('Class ', ''),
         subject: bookForm.subject,
-        branch: bookForm.subject === 'Social Science' ? bookForm.branch : null,
-        cover_url: bookForm.coverUrl || null,
-        pdf_url: bookForm.pdfUrl
+        branch: bookForm.branch || null, // Optional branch
+        pdf_url: bookForm.pdfUrl,        // Mapped from state.pdfUrl
+        cover_url: bookForm.coverUrl || ''
       }]);
 
       if (error) throw error;
       
-      alert("Book linked successfully to Supabase!");
-      setBookForm({ title: '', classLevel: '', subject: '', branch: '', coverUrl: '', pdfUrl: '' });
-      fetchSupabaseBooks();
+      alert("Book successfully deployed to Supabase Library!");
+      
+      // Reset the state with the exact keys defined in your useState
+      setBookForm({ 
+        title: '', 
+        classLevel: 'All', 
+        subject: 'General', 
+        branch: '', 
+        coverUrl: '', 
+        pdfUrl: '' 
+      });
+      
+      fetchSupabaseBooks(); // Refresh the list
     } catch (err: any) {
-      console.error(err);
+      console.error(err); 
       alert("Error saving book: " + err.message);
     } finally {
       setIsProcessing(false);
     }
   };
-
   // 🚀 NEW: Delete Book from SUPABASE
   const handleDeleteBook = async (id: string) => {
     if(!window.confirm("Are you sure you want to delete this book?")) return;
@@ -702,11 +713,12 @@ Each object must follow this scheme exactly:
                 required
               />
             </div>
-
+            
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Target Class *</label>
               <select 
-                value={bookForm.classLevel} onChange={e => setBookForm({...bookForm, classLevel: e.target.value})}
+                value={bookForm.classLevel} 
+                onChange={e => setBookForm({...bookForm, classLevel: e.target.value})}
                 className="w-full bg-slate-800 border border-border-strong p-4 rounded-xl text-white font-bold text-sm outline-none focus:border-indigo-500 appearance-none"
                 required
               >
@@ -718,7 +730,8 @@ Each object must follow this scheme exactly:
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Subject *</label>
               <select 
-                value={bookForm.subject} onChange={e => setBookForm({...bookForm, subject: e.target.value, branch: ''})}
+                value={bookForm.subject} 
+                onChange={e => setBookForm({...bookForm, subject: e.target.value, branch: ''})}
                 className="w-full bg-slate-800 border border-border-strong p-4 rounded-xl text-white font-bold text-sm outline-none focus:border-indigo-500 appearance-none"
                 required
               >
@@ -730,7 +743,8 @@ Each object must follow this scheme exactly:
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Branch</label>
               <select 
-                value={bookForm.branch} onChange={e => setBookForm({...bookForm, branch: e.target.value})}
+                value={bookForm.branch} 
+                onChange={e => setBookForm({...bookForm, branch: e.target.value})}
                 className="w-full bg-slate-800 border border-border-strong p-4 rounded-xl text-white font-bold text-sm outline-none focus:border-indigo-500 appearance-none disabled:opacity-50"
                 disabled={bookForm.subject !== 'Social Science'}
               >
@@ -769,7 +783,7 @@ Each object must follow this scheme exactly:
         </form>
       </div>
 
-      {/* Supabase Book List */}
+      {/* Book List */}
       <div className="space-y-4">
         {books.map((book) => (
           <div key={book.id} className="p-6 bg-slate-900 border border-border-strong rounded-2xl flex items-center justify-between group">
@@ -807,7 +821,6 @@ Each object must follow this scheme exactly:
       </div>
     </div>
   );
-
   const renderOverview = () => (
     <div className="space-y-8">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
