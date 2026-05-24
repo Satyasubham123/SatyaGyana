@@ -4,6 +4,12 @@ import { UserProvider, useUser } from './contexts/UserContext';
 import { isProfileComplete } from './services/userService';
 
 // Pages
+import About from './pages/About';
+import Privacy from './pages/Privacy';
+import Contact from './pages/Contact';
+import Terms from './pages/Terms';
+import RefundPolicy from './pages/RefundPolicy';
+import Disclaimer from './pages/Disclaimer';
 import LandingPage from './pages/LandingPage';
 import Dashboard from './pages/Dashboard';
 import VerifyEmail from './pages/VerifyEmail';
@@ -61,7 +67,12 @@ function AppContent() {
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/profile" element={user ? <Profile /> : <Navigate to="/" />} />
           <Route path="/subscription" element={user ? <Subscription /> : <Navigate to="/" />} />
-
+          <Route path="/about" element={<About />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/refund-policy" element={<RefundPolicy />} />
+          <Route path="/disclaimer" element={<Disclaimer />} />
           {/* 🚀 FIXED: Route path matches navbar ("/admin") and passes required props! */}
           <Route path="/admin" element={<ProtectedRoute><AdminDashboard user={user!} profile={profile} /></ProtectedRoute>} />
 
