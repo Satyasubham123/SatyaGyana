@@ -113,6 +113,7 @@ export default function Profile() {
   };
 
   const completionPercent = calculateCompletion();
+  const isAdmin = profile?.role === 'admin';
 
   // Show loading skeleton if the context profile hasn't loaded yet
   if (!profile || !user) {
@@ -178,10 +179,67 @@ export default function Profile() {
             transition={{ duration: 0.3, ease: "easeOut" }} 
             className="mt-8"
           >
-            
             {activeTab === 'profile' && (
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                <div className="lg:col-span-5 space-y-8">
+  <>
+    {isAdmin ? (
+
+      <div className="max-w-2xl mx-auto mt-10 p-10 bg-slate-900 border border-purple-500/30 rounded-[32px] text-center shadow-2xl">
+        
+        <div className="w-24 h-24 bg-purple-900/20 rounded-full flex items-center justify-center mx-auto mb-6">
+          <Shield className="h-10 w-10 text-purple-500" />
+        </div>
+
+        <h2 className="text-3xl font-black italic uppercase text-white mb-2">
+          Admin Profile
+        </h2>
+
+        <p className="text-slate-400 font-medium mb-8">
+          You are currently logged in as a System Founder.
+        </p>
+
+        <div className="space-y-4 text-left bg-slate-800/50 border border-slate-700 rounded-2xl p-6 mb-8">
+          
+          <div>
+            <p className="text-[10px] uppercase tracking-widest text-slate-500 mb-1">
+              Display Name
+            </p>
+            <p className="text-white font-bold">
+              {profile.displayName || 'Admin'}
+            </p>
+          </div>
+
+          <div>
+            <p className="text-[10px] uppercase tracking-widest text-slate-500 mb-1">
+              Email
+            </p>
+            <p className="text-white font-bold">
+              {user.email}
+            </p>
+          </div>
+
+          <div>
+            <p className="text-[10px] uppercase tracking-widest text-slate-500 mb-1">
+              Role
+            </p>
+            <p className="text-purple-400 font-black uppercase">
+              {profile.role}
+            </p>
+          </div>
+
+        </div>
+
+        <button
+          onClick={handleSignOut}
+          className="w-full py-4 bg-red-500/10 hover:bg-red-500 hover:text-white text-red-500 border border-red-500/20 rounded-2xl font-black uppercase text-xs tracking-widest transition-all"
+        >
+          Purge Access Node
+        </button>
+      </div>
+
+    ) : (
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="lg:col-span-5 space-y-8">
                    <div className="bg-slate-900/60 backdrop-blur-2xl border border-slate-800 rounded-[32px] overflow-hidden shadow-2xl relative group hover:border-brand/30 transition-all">
                       <div className="h-32 bg-gradient-to-br from-brand/20 via-blue-900/40 to-slate-900 relative">
                          {profile.isPremium && (
@@ -316,9 +374,16 @@ export default function Profile() {
                      </div>
                    </div>
                 </div>
-              </div>
-            )}
+              
 
+        {/* PASTE YOUR EXISTING STUDENT PROFILE JSX HERE */}
+
+      </div>
+
+    )}
+  </>
+)}
+            
             {activeTab === 'overview' && (
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 space-y-8">

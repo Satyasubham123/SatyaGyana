@@ -8,12 +8,14 @@ import { db } from '../lib/firebase';
 import { 
   BookMarked, Trophy, Flame, MessageSquare, ArrowRight, Calculator, 
   Atom, BookText, History, Cpu, GraduationCap, Sparkles, Calendar, 
-  Play, CheckCircle, ChevronRight, Zap, Image as ImageIcon, BookA
+  Play, CheckCircle, ChevronRight, Zap, Image as ImageIcon, BookA,
+  ShieldCheck
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import SecureBookReader from '../components/SecureBookReader';
 import { BookOpen } from 'lucide-react'; // Ensure BookOpen is in your lucide-react imports
 import StatsSummary from '../components/StatsSummary';
+
 
 declare global {
   interface ImportMetaEnv {
@@ -43,6 +45,7 @@ export default function Dashboard() {
   const [books, setBooks] = useState<any[]>([]);
   const [readingBookUrl, setReadingBookUrl] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
+  const isAdmin = profile?.role === 'admin';
 
   useEffect(() => {
     if (profile?.classLevel && user) {
@@ -230,6 +233,31 @@ export default function Dashboard() {
       </div>
     </div>
   );
+  const AdminView = () => (
+  <div className="max-w-2xl mx-auto mt-20 p-8 bg-slate-900 border border-purple-500/30 rounded-3xl text-center">
+    
+    <div className="w-20 h-20 bg-purple-500/10 rounded-3xl flex items-center justify-center mx-auto mb-6">
+      <ShieldCheck className="h-10 w-10 text-purple-500" />
+    </div>
+
+    <h2 className="text-3xl font-black uppercase tracking-tighter text-white mb-3">
+      Admin Control Tower
+    </h2>
+
+    <p className="text-slate-400 text-sm mb-10">
+      System operations and user management
+    </p>
+
+    <div className="grid grid-cols-1 gap-4">
+      <Link
+        to="/admin-dashboard"
+        className="p-6 bg-slate-800 border border-slate-700 rounded-2xl hover:border-purple-500 hover:bg-slate-800/80 transition-all font-black uppercase text-xs tracking-widest text-white"
+      >
+        Manage System
+      </Link>
+    </div>
+  </div>
+);
   const firstName = profile.firstName || profile.displayName?.split(' ')[0] || 'Student';
   const xp = Number(profile.totalXP) || Number(profile.xpPoints) || 0;
   const streak = Number(profile.streakCount) || 0;
@@ -237,6 +265,10 @@ export default function Dashboard() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 sm:py-16 bg-bg-deep min-h-screen">
+      {isAdmin ? (
+        <AdminView />
+      ) : (
+      <>
       <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 sm:gap-8 mb-10 text-center sm:text-left">
         <div>
           {/* Temporary Code Logo - Satya Badge Edition */}
@@ -504,7 +536,9 @@ export default function Dashboard() {
     onClose={() => setReadingBookUrl(null)} 
   />
 )}
-      
-    </div>
-  );
+      </>
+    )}
+  </div>
+);
 }
+    
