@@ -9,6 +9,7 @@ import {
   addDoc
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { supabase } from '../lib/supabase'; // 🚀 ADDED SUPABASE IMPORT
 import { UserProfile } from '../services/userService';
 import { contentService, Course, Section, Playlist, Lesson, Submission } from '../services/contentService';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -45,13 +46,23 @@ import { cn } from '../lib/utils';
 import { founderService, FounderProfileData } from '../services/founderService';
 import { FounderProfile } from '../components/FounderProfile';
 
-
 interface AdminDashboardProps {
   user: FirebaseUser;
   profile: UserProfile | null;
 }
 
 type Tab = 'overview' | 'course-creation' | 'courses' | 'sections' | 'playlists' | 'lessons' | 'students' | 'notifications' | 'ai-quiz' | 'submissions' | 'quizzes' | 'founder' | 'books';
+
+// 🚀 ADDED: Subjects and Branches for the Library Form
+const SUBJECTS = [
+  "English", "Odia", "Hindi", "Mathematics", "Science", 
+  "Social Science", "Language IT", "General Knowledge", 
+  "Moral Science", "Physical Education", "Art Education"
+];
+
+const SOCIAL_SCIENCE_BRANCHES = [
+  "History", "Geography", "Political Science/Civics", "Economics"
+];
 
 export default function AdminDashboard({ profile }: AdminDashboardProps) {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
@@ -76,13 +87,16 @@ export default function AdminDashboard({ profile }: AdminDashboardProps) {
   const [confirmDelete, setConfirmDelete] = useState<{ type: 'course'|'section'|'playlist'|'lesson', id: string, name: string, parentData?: any } | null>(null);
   const [isMovingLesson, setIsMovingLesson] = useState<Lesson | null>(null);
   const [moveTarget, setMoveTarget] = useState({ courseId: '', sectionId: '', playlistId: '' });
-  // --- NEW BOOKS STATE ---
+  
+  // 🚀 UPDATED BOOKS STATE FOR SUPABASE
   const [books, setBooks] = useState<any[]>([]);
   const [bookForm, setBookForm] = useState({
     title: '',
-    targetClass: 'All',
-    folder: 'General',
-    driveUrl: ''
+    classLevel: '',
+    subject: '',
+    branch: '',
+    coverUrl: '',
+    pdfUrl: ''
   });
   
   const [founderForm, setFounderForm] = useState<FounderProfileData>({
@@ -204,15 +218,12 @@ export default function AdminDashboard({ profile }: AdminDashboardProps) {
   const fetchInitialData = async () => {
     setIsLoading(true);
     try {
-      // 🚀 FIXED: Fetch ALL users from the database, removing the strict 'where' clause
       const [_users, _courses, _founder] = await Promise.all([
         getDocs(collection(db, 'users')), 
         contentService.getCourses(true), 
         founderService.getProfile()
       ]);
 
-      // 🚀 FIXED: Manually filter out the admins. 
-      // This ensures ANY normal user (even old test accounts with blank roles) will show up!
       const allUsers = _users.docs.map(d => d.data() as UserProfile);
       const studentList = allUsers.filter(u => u.role !== 'admin');
       
@@ -272,38 +283,63 @@ export default function AdminDashboard({ profile }: AdminDashboardProps) {
     }
   };
 
-  const handleAddBook = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsProcessing(true);
+  // 🚀 UPDATED: Fetch Books from SUPABASE
+  const fetchSupabaseBooks = async () => {
     try {
-      // Add the book document directly to a 'books' collection
-      await addDoc(collection(db, 'books'), {
-        ...bookForm,
-        createdAt: serverTimestamp(),
-        isActive: true
-      });
-      
-      alert("Book linked successfully!");
-      setBookForm({ title: '', targetClass: 'All', folder: 'General', driveUrl: '' });
-      
-      // Fetch books to update the list (we will create fetchBooks next)
-      const snapshot = await getDocs(query(collection(db, 'books')));
-      setBooks(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const { data, error } = await supabase.from('books').select('*');
+      if (error) throw error;
+      setBooks(data || []);
     } catch (err) {
-      console.error(err);
-    } finally {
-      setIsProcessing(false);
+      console.error("Error fetching books:", err);
     }
   };
 
   // Run this once when the component loads to get existing books
   useEffect(() => {
     if (profile?.role === 'admin' && activeTab === 'books') {
-      getDocs(query(collection(db, 'books'))).then(snapshot => {
-        setBooks(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      });
+      fetchSupabaseBooks();
     }
   }, [profile, activeTab]);
+
+  // 🚀 UPDATED: Add Book to SUPABASE
+  const handleAddBook = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsProcessing(true);
+    try {
+      const { error } = await supabase.from('books').insert([{
+        title: bookForm.title,
+        class_level: bookForm.classLevel,
+        subject: bookForm.subject,
+        branch: bookForm.subject === 'Social Science' ? bookForm.branch : null,
+        cover_url: bookForm.coverUrl || null,
+        pdf_url: bookForm.pdfUrl
+      }]);
+
+      if (error) throw error;
+      
+      alert("Book linked successfully to Supabase!");
+      setBookForm({ title: '', classLevel: '', subject: '', branch: '', coverUrl: '', pdfUrl: '' });
+      fetchSupabaseBooks();
+    } catch (err: any) {
+      console.error(err);
+      alert("Error saving book: " + err.message);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // 🚀 NEW: Delete Book from SUPABASE
+  const handleDeleteBook = async (id: string) => {
+    if(!window.confirm("Are you sure you want to delete this book?")) return;
+    try {
+      const { error } = await supabase.from('books').delete().eq('id', id);
+      if (error) throw error;
+      fetchSupabaseBooks();
+    } catch (err: any) {
+      console.error(err);
+      alert("Error deleting book: " + err.message);
+    }
+  };
 
   const handleUpdateFounderProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -526,7 +562,6 @@ export default function AdminDashboard({ profile }: AdminDashboardProps) {
         throw new Error("VITE_GEMINI_API_KEY configuration is missing!");
       }
 
-      // 🚀 FIXED: Changed the prompt to request exactly 20 questions instead of 5
       const designPrompt = `Generate an array of exactly 20 quiz questions on the topic "${quizGenForm.topic}" suited for "${quizGenForm.classLevel}".
 The target difficulty structure is "${quizGenForm.difficulty}" and the items should be built in the formatting code of "${quizGenForm.format}".
 
@@ -642,6 +677,7 @@ Each object must follow this scheme exactly:
     );
   }
 
+  // 🚀 REBUILT: Supabase Render Books View
   const renderBooks = () => (
     <div className="space-y-8">
       <div className="bg-slate-900 p-8 rounded-[32px] border border-border-strong shadow-2xl">
@@ -650,15 +686,15 @@ Each object must follow this scheme exactly:
             <BookOpen className="h-6 w-6" />
           </div>
           <div>
-            <h3 className="text-2xl font-black uppercase italic tracking-tighter text-white">Digital Library</h3>
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Secure Book Distribution</p>
+            <h3 className="text-2xl font-black uppercase italic tracking-tighter text-white">Digital Library Hub</h3>
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Supabase Sync Active</p>
           </div>
         </div>
 
         <form onSubmit={handleAddBook} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Book Title</label>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="space-y-2 lg:col-span-3">
+              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Book Title *</label>
               <input 
                 type="text" placeholder="e.g. Advanced Physics Part 1" 
                 value={bookForm.title} onChange={e => setBookForm({...bookForm, title: e.target.value})}
@@ -666,68 +702,106 @@ Each object must follow this scheme exactly:
                 required
               />
             </div>
-            
+
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Google Drive Link (Viewer Mode)</label>
-              <input 
-                type="url" placeholder="Paste Google Drive share link here" 
-                value={bookForm.driveUrl} onChange={e => setBookForm({...bookForm, driveUrl: e.target.value})}
-                className="w-full bg-slate-800 border border-border-strong p-4 rounded-xl text-white font-bold outline-none focus:border-indigo-500"
+              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Target Class *</label>
+              <select 
+                value={bookForm.classLevel} onChange={e => setBookForm({...bookForm, classLevel: e.target.value})}
+                className="w-full bg-slate-800 border border-border-strong p-4 rounded-xl text-white font-bold text-sm outline-none focus:border-indigo-500 appearance-none"
                 required
+              >
+                <option value="">Select...</option>
+                {['All', '6', '7', '8', '9', '10'].map(c => <option key={c} value={c}>{c === 'All' ? 'All Classes' : `Class ${c}`}</option>)}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Subject *</label>
+              <select 
+                value={bookForm.subject} onChange={e => setBookForm({...bookForm, subject: e.target.value, branch: ''})}
+                className="w-full bg-slate-800 border border-border-strong p-4 rounded-xl text-white font-bold text-sm outline-none focus:border-indigo-500 appearance-none"
+                required
+              >
+                <option value="">Select...</option>
+                {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Branch</label>
+              <select 
+                value={bookForm.branch} onChange={e => setBookForm({...bookForm, branch: e.target.value})}
+                className="w-full bg-slate-800 border border-border-strong p-4 rounded-xl text-white font-bold text-sm outline-none focus:border-indigo-500 appearance-none disabled:opacity-50"
+                disabled={bookForm.subject !== 'Social Science'}
+              >
+                <option value="">Select...</option>
+                {SOCIAL_SCIENCE_BRANCHES.map(b => <option key={b} value={b}>{b}</option>)}
+              </select>
+            </div>
+
+            <div className="space-y-2 lg:col-span-3">
+              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Cover Image URL</label>
+              <input 
+                type="url" placeholder="Optional image link..." 
+                value={bookForm.coverUrl} onChange={e => setBookForm({...bookForm, coverUrl: e.target.value})}
+                className="w-full bg-slate-800 border border-border-strong p-4 rounded-xl text-white font-bold outline-none focus:border-indigo-500 text-xs"
               />
             </div>
 
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Target Class</label>
-              <select 
-                value={bookForm.targetClass} onChange={e => setBookForm({...bookForm, targetClass: e.target.value})}
-                className="w-full bg-slate-800 border border-border-strong p-4 rounded-xl text-white font-bold text-sm outline-none focus:border-indigo-500 appearance-none"
-              >
-                {['All', 'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10'].map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Library Folder</label>
-              <select 
-                value={bookForm.folder} onChange={e => setBookForm({...bookForm, folder: e.target.value})}
-                className="w-full bg-slate-800 border border-border-strong p-4 rounded-xl text-white font-bold text-sm outline-none focus:border-indigo-500 appearance-none"
-              >
-                {['General', 'Mathematics', 'Science', 'History', 'Literature'].map(f => <option key={f} value={f}>{f}</option>)}
-              </select>
+            <div className="space-y-2 lg:col-span-3">
+              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">PDF Document URL *</label>
+              <input 
+                type="url" placeholder="Direct link to PDF..." 
+                value={bookForm.pdfUrl} onChange={e => setBookForm({...bookForm, pdfUrl: e.target.value})}
+                className="w-full bg-slate-800 border border-border-strong p-4 rounded-xl text-white font-bold outline-none focus:border-indigo-500 text-xs"
+                required
+              />
             </div>
           </div>
 
           <button 
             type="submit" disabled={isProcessing}
-            className="w-full bg-indigo-600 text-white py-4 rounded-xl font-black uppercase tracking-widest text-xs shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2"
+            className="w-full bg-indigo-600 text-white py-4 rounded-xl font-black uppercase tracking-widest text-xs shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
           >
             {isProcessing ? <Zap className="h-4 w-4 animate-spin" /> : <BookOpen className="h-4 w-4" />}
-            Publish to Library
+            Publish to Supabase Library
           </button>
         </form>
       </div>
 
-      {/* Book List */}
+      {/* Supabase Book List */}
       <div className="space-y-4">
-        {books.map((book, idx) => (
-          <div key={idx} className="p-6 bg-slate-900 border border-border-strong rounded-2xl flex items-center justify-between">
+        {books.map((book) => (
+          <div key={book.id} className="p-6 bg-slate-900 border border-border-strong rounded-2xl flex items-center justify-between group">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-slate-800 rounded-xl flex items-center justify-center text-indigo-500">
-                <BookOpen className="h-5 w-5" />
+              <div className="w-12 h-16 bg-slate-950 rounded-lg flex items-center justify-center border border-slate-800 overflow-hidden shrink-0">
+                {book.cover_url ? (
+                   <img src={book.cover_url} className="w-full h-full object-cover" />
+                ) : (
+                   <BookOpen className="h-5 w-5 text-indigo-500" />
+                )}
               </div>
               <div>
-                <h5 className="text-lg font-black uppercase tracking-tighter text-white italic">{book.title}</h5>
-                <div className="flex gap-2 mt-1">
-                  <span className="px-2 py-0.5 bg-slate-800 text-slate-400 text-[9px] rounded font-black uppercase">{book.targetClass}</span>
-                  <span className="px-2 py-0.5 bg-slate-800 text-slate-400 text-[9px] rounded font-black uppercase">{book.folder}</span>
+                <h5 className="text-lg font-black uppercase tracking-tighter text-white italic line-clamp-1">{book.title}</h5>
+                <div className="flex gap-2 mt-2 flex-wrap">
+                  <span className="px-2 py-0.5 bg-slate-800 text-slate-400 text-[9px] rounded font-black uppercase">Class {book.class_level}</span>
+                  <span className="px-2 py-0.5 bg-slate-800 text-slate-400 text-[9px] rounded font-black uppercase">{book.subject}</span>
+                  {book.branch && <span className="px-2 py-0.5 bg-slate-800 text-slate-400 text-[9px] rounded font-black uppercase">{book.branch}</span>}
                 </div>
               </div>
             </div>
-            <a 
-              href={book.driveUrl} target="_blank" rel="noreferrer"
-              className="p-3 bg-slate-800 text-slate-400 hover:text-white transition-all rounded-xl"
-            ><Globe className="h-5 w-5" /></a>
+            <div className="flex gap-2 shrink-0">
+                <a 
+                  href={book.pdf_url} target="_blank" rel="noreferrer"
+                  className="p-3 bg-slate-800 text-slate-400 hover:text-white transition-all rounded-xl"
+                  title="View PDF"
+                ><Globe className="h-5 w-5" /></a>
+                <button 
+                  onClick={() => handleDeleteBook(book.id)}
+                  className="p-3 bg-slate-800 text-slate-400 hover:text-red-500 hover:bg-red-500/10 transition-all rounded-xl"
+                  title="Delete Book"
+                ><Trash2 className="h-5 w-5" /></button>
+            </div>
           </div>
         ))}
       </div>
@@ -1979,7 +2053,6 @@ Each object must follow this scheme exactly:
                 <tr>
                    <th className="px-6 sm:px-10 py-4 sm:py-6 text-[10px] font-black uppercase tracking-widest text-slate-500">Student Identity</th>
                    <th className="px-6 sm:px-10 py-4 sm:py-6 text-[10px] font-black uppercase tracking-widest text-slate-500">Grade Level</th>
-                   {/* 🚀 NEW: State Column Header */}
                    <th className="px-6 sm:px-10 py-4 sm:py-6 text-[10px] font-black uppercase tracking-widest text-slate-500">State / UT</th>
                    <th className="px-6 sm:px-10 py-4 sm:py-6 text-[10px] font-black uppercase tracking-widest text-slate-500">Tier Status</th>
                    <th className="px-6 sm:px-10 py-4 sm:py-6 text-[10px] font-black uppercase tracking-widest text-slate-500 text-right">Actions</th>
@@ -2000,7 +2073,6 @@ Each object must follow this scheme exactly:
                      <td className="px-6 sm:px-10 py-4 sm:py-6 whitespace-nowrap">
                         <span className="px-3 sm:px-4 py-1 sm:py-1.5 bg-slate-800 rounded-lg text-[9px] sm:text-[10px] font-black uppercase tracking-widest border border-border-strong">{s.classLevel || 'Sector Unset'}</span>
                      </td>
-                     {/* 🚀 NEW: State Data Cell */}
                      <td className="px-6 sm:px-10 py-4 sm:py-6 whitespace-nowrap">
                         <span className="px-3 py-1 bg-orange-500/10 text-orange-400 border border-orange-500/20 rounded-full text-[10px] font-black uppercase tracking-widest">
                            {s.state || 'Unknown'}
@@ -2026,6 +2098,7 @@ Each object must follow this scheme exactly:
        </div>
     </div>
   );
+
   const renderModals = () => (
     <AnimatePresence>
       {confirmDelete && (

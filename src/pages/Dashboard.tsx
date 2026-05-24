@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useUser } from '../contexts/UserContext';
 import { updateUserProfile } from '../services/userService';
-import { contentService } from '../services/contentService';
+import * as contentServiceSupabase from '../services/contentServiceSupabase';
 import { motion } from 'motion/react';
+import { contentService } from '../services/contentService';
 import { collection, getDocs, query } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { supabase } from '../lib/supabase';
@@ -85,7 +86,9 @@ export default function Dashboard() {
   const fetchCourses = async () => {
     if (!profile?.classLevel) return;
     try {
-      const courses = await contentService.getCoursesByClass(profile.classLevel);
+      const courses = await contentServiceSupabase.getCourses();
+      const filtered = courses?.filter(c => c.class_level === profile.classLevel) || [];
+      setDbCourses(filtered);
       setDbCourses(Array.isArray(courses) ? courses : []); 
     } catch (err) {
       console.error(err);
