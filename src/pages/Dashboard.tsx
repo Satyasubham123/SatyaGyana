@@ -250,7 +250,7 @@ export default function Dashboard() {
 
     <div className="grid grid-cols-1 gap-4">
       <Link
-        to="/admin-dashboard"
+        to="/admin"
         className="p-6 bg-slate-800 border border-slate-700 rounded-2xl hover:border-purple-500 hover:bg-slate-800/80 transition-all font-black uppercase text-xs tracking-widest text-white"
       >
         Manage System
