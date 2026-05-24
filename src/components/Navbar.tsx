@@ -16,7 +16,6 @@ export default function Navbar({ user, profile }: NavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false); 
   
-  // Role Check
   const isAdmin = profile?.role === 'admin';
 
   const handleLogout = async () => {
@@ -30,7 +29,6 @@ export default function Navbar({ user, profile }: NavbarProps) {
     }
   };
 
-  // Main Navigation based on Role
   const mainNav = isAdmin
     ? [
         { name: 'Control Tower', path: '/admin', show: true },
@@ -42,7 +40,6 @@ export default function Navbar({ user, profile }: NavbarProps) {
         { name: 'Dictionary', path: '/dictionary', show: !!user },
       ];
 
-  // Secondary Navigation (About, Privacy, etc.)
   const secondaryNav = [
     { name: 'About', path: '/about' },
     { name: 'Privacy', path: '/privacy' },
@@ -129,7 +126,6 @@ export default function Navbar({ user, profile }: NavbarProps) {
              )}
           </div>
 
-          {/* Mobile Layout Elements */}
           <div className="md:hidden flex items-center space-x-4">
             {user && (
               <Link to="/profile" className="shrink-0">
@@ -152,7 +148,6 @@ export default function Navbar({ user, profile }: NavbarProps) {
         </div>
       </div>
 
-      {/* 🚀 BULLETPROOF MOBILE DRAWER MENU */}
       <AnimatePresence>
         {isOpen && (
           <>
@@ -166,7 +161,7 @@ export default function Navbar({ user, profile }: NavbarProps) {
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
               className="md:hidden fixed inset-y-0 right-0 w-full max-w-[320px] bg-white dark:bg-bg-surface border-l border-border-strong z-50 flex flex-col shadow-2xl"
             >
-              <div className="p-6 flex items-center justify-between border-b border-border-strong shrink-0">
+              <div className="p-6 flex items-center justify-between border-b border-border-strong shrink-0 bg-bg-surface">
                 <div className="flex items-center space-x-3">
                   <div className="w-8 h-8 bg-brand rounded-lg flex items-center justify-center">
                     <Sparkles className="h-4 w-4 text-white" />
@@ -178,33 +173,33 @@ export default function Navbar({ user, profile }: NavbarProps) {
                 </button>
               </div>
 
-              {/* Scrollable Menu Area */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
+              {/* 🚀 FIXED MOBILE AREA: Added min-h-0 so the scroll area doesn't collapse */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar min-h-0 bg-bg-surface">
                 
-                {/* 1. Main Navigation */}
+                {/* Main Navigation */}
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-[0.3em] text-brand mb-4 pl-2 border-l-2 border-brand">Navigation</p>
-                  <div className="space-y-3">
+                  <div className="flex flex-col space-y-3">
                     {mainNav.map((item) => item.show && (
                       <Link
                         key={item.path} to={item.path} onClick={() => setIsOpen(false)}
-                        className="flex items-center justify-between p-4 bg-bg-deep border border-border-strong rounded-2xl hover:border-brand/40 group transition-all"
+                        className="p-4 bg-slate-900/50 border border-slate-800 rounded-2xl flex justify-between items-center text-white font-black uppercase tracking-widest text-xs hover:border-brand transition-all shadow-sm"
                       >
-                        <span className="text-lg font-black italic uppercase tracking-tighter text-slate-900 dark:text-white group-hover:text-brand">{item.name}</span>
-                        <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-brand group-hover:translate-x-1 transition-all" />
+                        {item.name}
+                        <ChevronRight className="h-4 w-4 text-brand" />
                       </Link>
                     ))}
                   </div>
                 </div>
 
-                {/* 2. Secondary Navigation (About, Privacy, etc.) */}
+                {/* Secondary Navigation */}
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-4 pl-2 border-l-2 border-slate-500">More Pages</p>
                   <div className="flex flex-col space-y-3">
                     {secondaryNav.map((item) => (
                       <Link
                         key={item.path} to={item.path} onClick={() => setIsOpen(false)}
-                        className="p-4 bg-bg-deep border border-border-strong rounded-2xl text-slate-600 dark:text-slate-400 font-bold uppercase tracking-widest text-[11px] hover:border-brand/40 transition-all flex justify-between items-center"
+                        className="p-4 bg-slate-900/50 border border-slate-800 rounded-2xl text-slate-400 font-bold uppercase tracking-widest text-[10px] hover:border-brand/40 transition-all flex justify-between items-center shadow-sm"
                       >
                         {item.name}
                         <ChevronRight className="h-4 w-4 opacity-50" />
@@ -215,12 +210,11 @@ export default function Navbar({ user, profile }: NavbarProps) {
 
               </div>
 
-              {/* 3. Logout / Login Section */}
-              <div className="p-6 border-t border-border-strong bg-bg-deep/50 shrink-0">
+              <div className="p-6 border-t border-border-strong bg-bg-deep shrink-0">
                 {user ? (
                   <button
                     onClick={handleLogout}
-                    className="w-full py-4 bg-red-500 text-white font-black uppercase tracking-widest text-[10px] rounded-xl shadow-lg shadow-red-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+                    className="w-full py-4 bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white font-black uppercase tracking-widest text-[10px] rounded-xl shadow-lg shadow-red-500/10 active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
                     <LogOut className="h-4 w-4" />
                     Sign Out
