@@ -37,6 +37,7 @@ export default function Navbar({ user, profile }: NavbarProps) {
       ]
     : [
         { name: 'Dashboard', path: '/dashboard', show: !!user },
+        { name: 'Library', path: '/library', show: !!user },
         { name: 'Study Visuals', path: '/visuals', show: !!user }, 
         { name: 'AI Mentor', path: '/ai-teacher', show: !!user },
         { name: 'Dictionary', path: '/dictionary', show: !!user },

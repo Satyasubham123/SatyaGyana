@@ -21,6 +21,7 @@ import Profile from './pages/Profile';
 import Subscription from './pages/Subscription';
 import { AIVisualizer } from './pages/AIVisualizer';
 import VisualDictionary from './pages/VisualDictionary';
+import Library from './pages/Library';
 import AdminDashboard from './pages/AdminDashboard'; 
 
 // Components
@@ -69,6 +70,7 @@ function AppContent() {
           <Route path="/subscription" element={user ? <Subscription /> : <Navigate to="/" />} />
           <Route path="/about" element={<About />} />
           <Route path="/privacy" element={<Privacy />} />
+          <Route path="/library" element={<ProtectedRoute><Library /></ProtectedRoute>} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/refund-policy" element={<RefundPolicy />} />
