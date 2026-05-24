@@ -192,26 +192,26 @@ export default function Navbar({ user, profile }: NavbarProps) {
                   </div>
                 </div>
                 {/* Secondary Nav Section */}
-<div>
-  <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-6 pl-2 border-l-2 border-slate-500">
-    More
-  </p>
+             <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-6 pl-2 border-l-2 border-slate-500">
+                More
+              </p>
 
-  <div className="grid grid-cols-2 gap-3">
-    {secondaryNav.map((item) => (
-      <Link
-        key={item.path}
-        to={item.path}
-        onClick={() => setIsOpen(false)}
-        className="p-3 bg-bg-deep border border-border-strong rounded-xl text-center hover:border-brand/40 transition-all"
-      >
-        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-600 dark:text-slate-400">
-          {item.name}
-        </span>
-      </Link>
-    ))}
-  </div>
-</div>
+             <div className="grid grid-cols-2 gap-3">
+               {secondaryNav.map((item) => (
+                 <Link
+                   key={item.path}
+                   to={item.path}
+                   onClick={() => setIsOpen(false)}
+                   className="p-3 bg-bg-deep border border-border-strong rounded-xl text-center hover:border-brand/40 transition-all"
+                 >
+                   <span className="text-[10px] font-bold uppercase tracking-widest text-slate-600 dark:text-slate-400">
+                     {item.name}
+                   </span>
+                 </Link>
+               ))}
+             </div>
+           </div>
               </div>
 
               <div className="p-6 border-t border-border-strong bg-bg-deep/50">
