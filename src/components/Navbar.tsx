@@ -15,6 +15,8 @@ interface NavbarProps {
 export default function Navbar({ user, profile }: NavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false); 
+  
+  // 🚀 ADMIN CHECK
   const isAdmin = profile?.role === 'admin';
 
   const handleLogout = async () => {
@@ -28,18 +30,19 @@ export default function Navbar({ user, profile }: NavbarProps) {
     }
   };
 
-  // 🚀 UPDATED: Added Dictionary right next to AI Mentor!
+  // 🚀 DYNAMIC MAIN NAV
   const mainNav = isAdmin
-    ?[
-      { name: 'Control Tower', path: '/admin', show: true },
-    ]
+    ? [
+        { name: 'Control Tower', path: '/admin', show: true },
+      ]
     : [
-    { name: 'Dashboard', path: '/dashboard', show: !!user },
-    { name: 'Study Visuals', path: '/visuals', show: !!user }, 
-    { name: 'AI Mentor', path: '/ai-teacher', show: !!user },
-    { name: 'Dictionary', path: '/dictionary', show: !!user },
-  ];
+        { name: 'Dashboard', path: '/dashboard', show: !!user },
+        { name: 'Study Visuals', path: '/visuals', show: !!user }, 
+        { name: 'AI Mentor', path: '/ai-teacher', show: !!user },
+        { name: 'Dictionary', path: '/dictionary', show: !!user },
+      ];
 
+  // 🚀 SECONDARY NAV
   const secondaryNav = [
     { name: 'About', path: '/about' },
     { name: 'Privacy', path: '/privacy' },
@@ -69,7 +72,6 @@ export default function Navbar({ user, profile }: NavbarProps) {
                 <Link
                   key={item.path}
                   to={item.path}
-                  // 🚀 UPDATED: Fixed text color to strictly be slate-800 or slate-200 for readability
                   className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-800 dark:text-slate-200 hover:text-brand transition-all relative group whitespace-nowrap"
                 >
                   {item.name}
@@ -150,7 +152,7 @@ export default function Navbar({ user, profile }: NavbarProps) {
         </div>
       </div>
 
-      {/* Mobile Drawer Menu */}
+      {/* 🚀 MOBILE DRAWER MENU */}
       <AnimatePresence>
         {isOpen && (
           <>
@@ -177,6 +179,8 @@ export default function Navbar({ user, profile }: NavbarProps) {
               </div>
 
               <div className="flex-1 overflow-y-auto p-6 space-y-8">
+                
+                {/* 1. Main Navigation */}
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-[0.3em] text-brand mb-6 pl-2 border-l-2 border-brand">Navigation</p>
                   <div className="space-y-3">
@@ -191,29 +195,27 @@ export default function Navbar({ user, profile }: NavbarProps) {
                     ))}
                   </div>
                 </div>
-                {/* Secondary Nav Section */}
-             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-6 pl-2 border-l-2 border-slate-500">
-                More
-              </p>
 
-             <div className="grid grid-cols-2 gap-3">
-               {secondaryNav.map((item) => (
-                 <Link
-                   key={item.path}
-                   to={item.path}
-                   onClick={() => setIsOpen(false)}
-                   className="p-3 bg-bg-deep border border-border-strong rounded-xl text-center hover:border-brand/40 transition-all"
-                 >
-                   <span className="text-[10px] font-bold uppercase tracking-widest text-slate-600 dark:text-slate-400">
-                     {item.name}
-                   </span>
-                 </Link>
-               ))}
-             </div>
-           </div>
+                {/* 2. Secondary Navigation */}
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-6 pl-2 border-l-2 border-slate-500">More</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {secondaryNav.map((item) => (
+                      <Link
+                        key={item.path} to={item.path} onClick={() => setIsOpen(false)}
+                        className="p-3 bg-bg-deep border border-border-strong rounded-xl text-center hover:border-brand/40 transition-all"
+                      >
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-600 dark:text-slate-400">
+                          {item.name}
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+
               </div>
 
+              {/* 3. Logout Section */}
               <div className="p-6 border-t border-border-strong bg-bg-deep/50">
                 {user ? (
                   <button
