@@ -981,7 +981,7 @@ Each object must follow this scheme exactly:
                       value={courseForm.classLevel} onChange={e => setCourseForm({...courseForm, classLevel: e.target.value})}
                       className="w-full bg-slate-800 border border-border-strong p-5 rounded-2xl text-white font-black uppercase tracking-widest text-[11px] outline-none focus:border-brand transition-all appearance-none"
                     >
-                      {["Class 6", "Class 7", "Class 8", "Class 9", "Class 10", "Class 11", "Class 12"].map(c => <option key={c} value={c}>{c}</option>)}
+                      {['All',"Class 6", "Class 7", "Class 8", "Class 9", "Class 10"].map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
                   <div className="space-y-2">
