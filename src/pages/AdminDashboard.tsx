@@ -45,6 +45,7 @@ import {
 import { cn } from '../lib/utils';
 import { founderService, FounderProfileData } from '../services/founderService';
 import { FounderProfile } from '../components/FounderProfile';
+import { BookUploader } from '../components/BookUploader';
 
 interface AdminDashboardProps {
   user: FirebaseUser;
@@ -339,18 +340,32 @@ export default function AdminDashboard({ profile }: AdminDashboardProps) {
       setIsProcessing(false);
     }
   };
-  // 🚀 NEW: Delete Book from SUPABASE
-  const handleDeleteBook = async (id: string) => {
-    if(!window.confirm("Are you sure you want to delete this book?")) return;
+  
+
+  // 🚀 UPDATED: Delete Book from SUPABASE (Storage & Database)
+  const handleDeleteBook = async (book: any) => {
+    if(!window.confirm("Are you sure you want to delete this book completely?")) return;
+    setIsProcessing(true);
     try {
-      const { error } = await supabase.from('books').delete().eq('id', id);
+      // 1. Delete from Storage folder
+      const fileName = book.pdf_url.split('/').pop(); 
+      if (fileName) {
+        await supabase.storage.from('books').remove([fileName]);
+      }
+
+      // 2. Delete from Database list
+      const { error } = await supabase.from('books').delete().eq('id', book.id);
       if (error) throw error;
+
       fetchSupabaseBooks();
     } catch (err: any) {
       console.error(err);
       alert("Error deleting book: " + err.message);
+    } finally {
+      setIsProcessing(false);
     }
   };
+  
 
   const handleUpdateFounderProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -811,7 +826,7 @@ Each object must follow this scheme exactly:
                   title="View PDF"
                 ><Globe className="h-5 w-5" /></a>
                 <button 
-                  onClick={() => handleDeleteBook(book.id)}
+                  onClick={() => handleDeleteBook(book)}
                   className="p-3 bg-slate-800 text-slate-400 hover:text-red-500 hover:bg-red-500/10 transition-all rounded-xl"
                   title="Delete Book"
                 ><Trash2 className="h-5 w-5" /></button>
@@ -2319,3 +2334,4 @@ Each object must follow this scheme exactly:
     </div>
   );
 }
+
