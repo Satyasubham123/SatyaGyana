@@ -342,21 +342,24 @@ export default function AdminDashboard({ profile }: AdminDashboardProps) {
   };
   
 
-  // 🚀 UPDATED: Delete Book from SUPABASE (Storage & Database)
+  // 🚀 BULLETPROOF: Delete Book from SUPABASE (Storage & Database)
   const handleDeleteBook = async (book: any) => {
     if(!window.confirm("Are you sure you want to delete this book completely?")) return;
     setIsProcessing(true);
     try {
-      // 1. Delete from Storage folder
-      const fileName = book.pdf_url.split('/').pop(); 
-      if (fileName) {
-        await supabase.storage.from('books').remove([fileName]);
+      // 1. Only try to delete from Storage if it's actually a Supabase file
+      if (book.pdf_url && book.pdf_url.includes('supabase.co')) {
+        const fileName = book.pdf_url.split('/').pop(); 
+        if (fileName) {
+          await supabase.storage.from('books').remove([fileName]);
+        }
       }
 
-      // 2. Delete from Database list
+      // 2. ALWAYS delete the record from the database, no matter what
       const { error } = await supabase.from('books').delete().eq('id', book.id);
       if (error) throw error;
 
+      // 3. Refresh UI
       fetchSupabaseBooks();
     } catch (err: any) {
       console.error(err);
