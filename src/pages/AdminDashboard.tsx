@@ -893,7 +893,7 @@ Each object must follow this scheme exactly:
       </div>
     </div>
   );
-  
+
   const renderCourseCreation = () => (
     <div className="space-y-8">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -2331,3 +2331,4 @@ Each object must follow this scheme exactly:
   );
 }
 
+// testing push
