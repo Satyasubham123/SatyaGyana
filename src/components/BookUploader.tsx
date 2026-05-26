@@ -34,4 +34,4 @@ export const BookUploader = ({ onUploadSuccess }: { onUploadSuccess: (url: strin
       {uploading && <p className="text-brand text-xs mt-2">Uploading to Supabase...</p>}
     </div>
   );
-};
+};   
