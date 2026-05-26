@@ -9,7 +9,6 @@ export const BookUploader = ({ onUploadSuccess }: { onUploadSuccess: (url: strin
     if (!file) return;
     setUploading(true);
 
-    // This pushes the file directly to your 'books' bucket
     const { data, error } = await supabase.storage
       .from('books')
       .upload(`${Date.now()}_${file.name}`, file);
@@ -25,7 +24,13 @@ export const BookUploader = ({ onUploadSuccess }: { onUploadSuccess: (url: strin
 
   return (
     <div className="p-4 border-2 border-dashed border-slate-700 rounded-xl bg-slate-800">
-      <input type="file" accept="application/pdf" onChange={uploadFile} disabled={uploading} className="text-white text-sm" />
+      <input 
+        type="file" 
+        accept="application/pdf" 
+        onChange={uploadFile} 
+        disabled={uploading} 
+        className="text-white text-sm w-full" 
+      />
       {uploading && <p className="text-brand text-xs mt-2">Uploading to Supabase...</p>}
     </div>
   );

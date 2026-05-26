@@ -722,16 +722,6 @@ Each object must follow this scheme exactly:
 
         <form onSubmit={handleAddBook} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="space-y-2 lg:col-span-3">
-              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Book Title *</label>
-              <input 
-                type="text" placeholder="e.g. Advanced Physics Part 1" 
-                value={bookForm.title} onChange={e => setBookForm({...bookForm, title: e.target.value})}
-                className="w-full bg-slate-800 border border-border-strong p-4 rounded-xl text-white font-bold outline-none focus:border-indigo-500"
-                required
-              />
-            </div>
-            
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Target Class *</label>
               <select 
@@ -780,20 +770,22 @@ Each object must follow this scheme exactly:
               />
             </div>
 
+            {/* 🚀 HERE IS THE NEW UPLOADER REPLACEMENT */}
             <div className="space-y-2 lg:col-span-3">
-              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">PDF Document URL *</label>
-              <input 
-                type="url" placeholder="Direct link to PDF..." 
-                value={bookForm.pdfUrl} onChange={e => setBookForm({...bookForm, pdfUrl: e.target.value})}
-                className="w-full bg-slate-800 border border-border-strong p-4 rounded-xl text-white font-bold outline-none focus:border-indigo-500 text-xs"
-                required
+              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Upload PDF File (Permanent Storage) *</label>
+              <BookUploader 
+                onUploadSuccess={(url) => setBookForm({...bookForm, pdfUrl: url})} 
               />
+              <p className="text-[9px] text-slate-500 uppercase tracking-widest mt-2 ml-4">
+                {bookForm.pdfUrl ? "✅ File Ready for Deployment" : "Select a PDF to upload to Supabase Storage"}
+              </p>
             </div>
+
           </div>
 
           <button 
-            type="submit" disabled={isProcessing}
-            className="w-full bg-indigo-600 text-white py-4 rounded-xl font-black uppercase tracking-widest text-xs shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            type="submit" disabled={isProcessing || !bookForm.pdfUrl}
+            className="w-full bg-indigo-600 text-white py-4 rounded-xl font-black uppercase tracking-widest text-xs shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isProcessing ? <Zap className="h-4 w-4 animate-spin" /> : <BookOpen className="h-4 w-4" />}
             Publish to Supabase Library
@@ -839,6 +831,7 @@ Each object must follow this scheme exactly:
       </div>
     </div>
   );
+
   const renderOverview = () => (
     <div className="space-y-8">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
@@ -868,7 +861,7 @@ Each object must follow this scheme exactly:
                 onClick={() => setActiveTab('courses')}
                 className="w-full sm:w-auto bg-white text-brand px-10 py-5 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl hover:scale-105 active:scale-95 transition-all"
                >
-                 Open Payload Bays
+                Open Payload Bays
                </button>
             </div>
          </div>
@@ -900,7 +893,7 @@ Each object must follow this scheme exactly:
       </div>
     </div>
   );
-
+  
   const renderCourseCreation = () => (
     <div className="space-y-8">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
