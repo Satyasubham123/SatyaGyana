@@ -29,7 +29,7 @@ export default function VisualDictionary() {
     setResult(null);
 
     try {
-      const response = await axios.post('https://SatyaGyana.onrender.com/api/dictionary/search', 
+      const response = await axios.post('https://gyanamitra.onrender.com/api/dictionary/search', 
         {
           word: searchInput.trim(),
           targetLanguage: 'Odia'
