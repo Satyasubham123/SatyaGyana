@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Search, BookOpen, Library as LibraryIcon, Loader2, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
+import SecureBookReader from '../components/SecureBookReader'; // 🚀 IMPORT ADDED
+
 const SUBJECTS = [
   "English", "Odia", "Hindi", "Mathematics", "Science", 
   "Social Science", "Language IT", "General Knowledge", 
@@ -12,7 +14,6 @@ const SOCIAL_SCIENCE_BRANCHES = [
   "History", "Geography", "Political Science/Civics", "Economics"
 ];
 
-// Define what a Book looks like
 interface Book {
   id: string;
   title: string;
@@ -31,18 +32,17 @@ export default function Library() {
   
   const [books, setBooks] = useState<Book[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // 🚀 STATE ADDED TO TRACK WHICH BOOK IS OPEN
+  const [readingBookUrl, setReadingBookUrl] = useState<string | null>(null);
 
-  // Reset branch if subject changes away from Social Science
   const handleSubjectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedSubject(e.target.value);
     setSelectedBranch('');
   };
 
-  // 🚀 FETCH BOOKS FROM SUPABASE
-  // 🚀 FETCH BOOKS FROM SUPABASE
   useEffect(() => {
     const fetchBooks = async () => {
-      // Don't fetch if they haven't picked a class
       if (!selectedClass) {
         setBooks([]);
         return;
@@ -53,7 +53,6 @@ export default function Library() {
       try {
         let query = supabase.from('books').select('*');
 
-        // 🚀 THE FIX: Fetch books for the specific class OR books tagged for "All"
         if (selectedClass === 'All') {
           query = query.eq('class_level', 'All');
         } else {
@@ -92,7 +91,7 @@ export default function Library() {
   }, [selectedClass, selectedSubject, selectedBranch, searchQuery]);
 
   return (
-    <div className="min-h-screen bg-bg-deep pt-24 px-4 pb-24">
+    <div className="min-h-screen bg-bg-deep pt-24 px-4 pb-24 relative">
       <div className="max-w-7xl mx-auto space-y-8">
         
         {/* Header */}
@@ -163,7 +162,7 @@ export default function Library() {
           </div>
         </div>
 
-        {/* 🚀 BOOKS DISPLAY AREA */}
+        {/* BOOKS DISPLAY AREA */}
         <div className="min-h-[400px]">
           {!selectedClass ? (
             <div className="py-20 text-center flex flex-col items-center">
@@ -198,14 +197,13 @@ export default function Library() {
                         <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-4">{book.branch || book.subject}</p>
                         
                         <div className="mt-auto">
-                          <a 
-                            href={book.pdf_url} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
+                          {/* 🚀 CHANGED FROM <a> TAG TO BUTTON FOR SECURE READER */}
+                          <button 
+                            onClick={() => setReadingBookUrl(book.pdf_url)}
                             className="w-full py-3 bg-brand/10 text-brand rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-brand hover:text-white transition-all flex items-center justify-center gap-2"
                           >
-                            <Download className="w-3 h-3" /> Read / Download
-                          </a>
+                            <BookOpen className="w-3 h-3" /> Read in App
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -221,6 +219,15 @@ export default function Library() {
         </div>
 
       </div>
+
+      {/* 🚀 SECURE BOOK READER OVERLAY */}
+      {readingBookUrl && (
+        <SecureBookReader 
+          driveUrl={readingBookUrl} 
+          onClose={() => setReadingBookUrl(null)} 
+        />
+      )}
+      
     </div>
   );
 }
