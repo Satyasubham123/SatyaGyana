@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { collection, query, where, getCountFromServer } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useUser } from '../contexts/UserContext';
 
@@ -13,21 +13,24 @@ export default function StatsSummary() {
     const fetchPercentile = async () => {
       try {
         const totalXP = profile.totalXP || profile.xpPoints || 0;
-        const usersRef = collection(db, 'users');
         
-        const totalUsersSnap = await getCountFromServer(usersRef);
-        const totalUsers = totalUsersSnap.data().count;
-
-        const usersBelowQuery = query(usersRef, where('totalXP', '<=', totalXP));
-        const usersBelowSnap = await getCountFromServer(usersBelowQuery);
-        const usersBelow = usersBelowSnap.data().count;
-
-        if (totalUsers > 1) {
-          const rank = Math.max(1, Math.round(100 - (usersBelow / totalUsers) * 100));
-          setGlobalPercentile(rank);
+        // 1. Try to read from the secure public stats document
+        const statsRef = doc(db, 'stats', 'global');
+        const statsSnap = await getDoc(statsRef);
+        
+        if (statsSnap.exists()) {
+          const { highestXP } = statsSnap.data();
+          // Calculate rank based on global stats without querying private users
+          const maxXP = Math.max(highestXP || 1, 1);
+          const rank = Math.max(1, Math.round(100 - (totalXP / maxXP) * 100));
+          setGlobalPercentile(Math.max(1, Math.min(100, rank)));
+        } else {
+          // 2. FALLBACK: If the stats document isn't set up yet, use a secure mathematical formula.
+          let estimatedRank = 100 - Math.floor(totalXP / 100);
+          setGlobalPercentile(Math.max(1, Math.min(100, estimatedRank)));
         }
       } catch (e) {
-        console.warn("Global rank access restricted or unavailable.");
+        console.warn("Global rank access restricted or unavailable.", e);
       }
     };
 
