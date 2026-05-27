@@ -17,6 +17,9 @@ export default defineConfig(({ mode }) => {
           name: 'GyanaMitra',
           short_name: 'GyanaMitra',
           theme_color: '#ffffff',
+          display: 'standalone', // 🚀 Forces full-screen app mode
+          background_color: '#ffffff',
+          start_url: '/',
           icons: [
             {
               src: '/pwa-192x192.png',
