@@ -50,4 +50,4 @@ export default defineConfig(({ mode }) => {
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
     },
   };
-});
+})

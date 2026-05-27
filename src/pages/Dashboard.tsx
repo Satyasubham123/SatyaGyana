@@ -316,7 +316,7 @@ export default function Dashboard() {
             </div>
             <div className="flex flex-col justify-center">
               <span className="text-xl font-black tracking-tighter text-main uppercase leading-none mb-1">
-                Gyana<span className="text-brand">Mitra</span>
+                Satya<span className="text-brand">Gyana</span>
               </span>
               <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500">
                 Knowledge Network
