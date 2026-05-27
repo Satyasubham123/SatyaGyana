@@ -16,13 +16,7 @@ import { Link } from 'react-router-dom';
 import { updateUserProfile, UserProfile } from '../services/userService';
 import { cn } from '../lib/utils';
 
-declare global {
-  interface ImportMeta {
-    readonly env: {
-      readonly VITE_GEMINI_API_KEY?: string;
-    };
-  }
-}
+// Removed the conflicting ImportMeta declaration from here!
 
 interface AIQuizGenProps {
   user: FirebaseUser;

@@ -119,7 +119,8 @@ export default function AdminDashboard({ profile }: AdminDashboardProps) {
   const [courseForm, setCourseForm] = useState({
     title: '',
     classLevel: 'Class 10',
-    subject: 'math',
+    subject: 'Mathematics', // Updated to match your SUBJECTS array
+    branch: '',             // 🚀 ADDED: Branch tracking
     description: '',
     thumbnail: 'https://images.unsplash.com/photo-1509228468518-180dd482755c?auto=format&fit=crop&q=80&w=400',
     board: 'CBSE',
@@ -401,7 +402,8 @@ export default function AdminDashboard({ profile }: AdminDashboardProps) {
       setCourseForm({
         title: '',
         classLevel: 'Class 10',
-        subject: 'math',
+        subject: 'Mathematics',
+        branch: '',
         description: '',
         thumbnail: 'https://images.unsplash.com/photo-1509228468518-180dd482755c?auto=format&fit=crop&q=80&w=400',
         board: 'CBSE',
@@ -687,6 +689,7 @@ Each object must follow this scheme exactly:
       title: course.title,
       classLevel: course.classLevel,
       subject: course.subject,
+      branch: (course as any).branch || '', // 🚀 ADDED: Load existing branch if it has one
       description: course.description,
       thumbnail: course.thumbnail,
       board: course.board || 'CBSE',
@@ -900,12 +903,13 @@ Each object must follow this scheme exactly:
                     setCourseForm({
                       title: '',
                       classLevel: 'Class 10',
-                      subject: 'math',
+                      subject: 'Mathematics', // 🚀 Capital 'M' to match your list
+                      branch: '',             // 🚀 ADDED: Required to prevent the TypeScript error!
                       description: '',
                       thumbnail: 'https://images.unsplash.com/photo-1509228468518-180dd482755c?auto=format&fit=crop&q=80&w=400',
                       board: 'CBSE',
                       isPublished: false
-                    });
+               });
                     setActiveTab('courses');
                   }}
                   className="bg-slate-800 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-700 transition-all"
@@ -955,7 +959,7 @@ Each object must follow this scheme exactly:
                   <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-white">Grid Classification</h4>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Target Tier</label>
                     <select 
@@ -968,16 +972,21 @@ Each object must follow this scheme exactly:
                   <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Subject Node</label>
                     <select 
-                      value={courseForm.subject} onChange={e => setCourseForm({...courseForm, subject: e.target.value})}
+                      value={courseForm.subject} onChange={e => setCourseForm({...courseForm, subject: e.target.value, branch: ''})}
                       className="w-full bg-slate-800 border border-border-strong p-5 rounded-2xl text-white font-black uppercase tracking-widest text-[11px] outline-none focus:border-brand transition-all appearance-none"
                     >
-                      {[
-                        { id: 'math', name: 'Mathematics' },
-                        { id: 'science', name: 'Science' },
-                        { id: 'english', name: 'English' },
-                        { id: 'social', name: 'Social' },
-                        { id: 'cs', name: 'CS' },
-                      ].map(s => <option key={s.id} value={s.id}>{s.name.toUpperCase()}</option>)}
+                      {SUBJECTS.map(s => <option key={s} value={s}>{s.toUpperCase()}</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Branch Sub-Node</label>
+                    <select 
+                      value={courseForm.branch} onChange={e => setCourseForm({...courseForm, branch: e.target.value})}
+                      className="w-full bg-slate-800 border border-border-strong p-5 rounded-2xl text-white font-black uppercase tracking-widest text-[11px] outline-none focus:border-brand transition-all appearance-none disabled:opacity-30 disabled:cursor-not-allowed"
+                      disabled={courseForm.subject !== 'Social Science'}
+                    >
+                      <option value="">N/A</option>
+                      {SOCIAL_SCIENCE_BRANCHES.map(b => <option key={b} value={b}>{b.toUpperCase()}</option>)}
                     </select>
                   </div>
                 </div>
