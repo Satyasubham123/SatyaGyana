@@ -1,4 +1,5 @@
 import express from 'express';
+import cors from 'cors'; // 🚀 ADDED CORS IMPORT
 import path from 'path';
 import { fileURLToPath } from 'url';
 import crypto from 'crypto';
@@ -84,6 +85,19 @@ function sendApiError(res: express.Response, error: any) {
 async function startServer() {
   const app = express();
   const PORT = Number(process.env.PORT || 3000);
+
+  // 🚀 ADDED CORS CONFIGURATION
+  app.use(cors({
+    origin: [
+      'https://satyagyana.firebaseapp.com', 
+      'https://satyagyana.web.app',
+      'https://gyanamitra-35109.web.app',
+      'https://gyanamitra-35109.firebaseapp.com',
+      'http://localhost:5173'
+    ],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+  }));
 
   app.use(express.json());
 
