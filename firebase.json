@@ -3,6 +3,7 @@
     "rules": "firestore.rules"
   },
   "hosting": {
+    "site": "satyagyana",
     "public": "dist/client",
     "ignore": [
       "firebase.json",
