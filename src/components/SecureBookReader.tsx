@@ -70,7 +70,6 @@ export default function SecureBookReader({ driveUrl, onClose }: SecureBookReader
               src={driveUrl.includes('google.com') ? driveUrl : `${driveUrl}#toolbar=0&navpanes=0`} 
               className="w-full h-full border-none"
               title="Secure Document Reader"
-              sandbox="allow-scripts allow-same-origin" 
             />
           </div>
         </motion.div>
