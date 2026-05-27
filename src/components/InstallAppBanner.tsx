@@ -19,7 +19,7 @@ export default function InstallAppBanner() {
     const handleAppInstalled = () => {
       setIsVisible(false);
       setDeferredPrompt(null);
-      console.log('SatyArthaGyana App was installed!');
+      console.log('SatyaGyana App was installed!');
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -55,9 +55,9 @@ export default function InstallAppBanner() {
       <div className="max-w-md mx-auto bg-slate-900 border border-brand/30 shadow-2xl shadow-brand/20 rounded-2xl p-4 flex items-center justify-between gap-4">
         
         <div className="flex items-center gap-3">
-          <img src="/pwa-192x192.png" alt="SatyArthaGyana Icon" className="w-12 h-12 rounded-xl" />
+          <img src="/pwa-192x192.png" alt="SatyaGyana Icon" className="w-12 h-12 rounded-xl" />
           <div className="flex flex-col">
-            <span className="text-white font-bold leading-tight text-lg">SatyArthaGyana App</span>
+            <span className="text-white font-bold leading-tight text-lg">SatyaGyana App</span>
             <span className="text-slate-400 text-xs">Install for a faster, better experience.</span>
           </div>
         </div>
