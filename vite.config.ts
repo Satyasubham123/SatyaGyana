@@ -14,8 +14,8 @@ export default defineConfig(({ mode }) => {
       VitePWA({ 
         registerType: 'autoUpdate',
         manifest: {
-          name: 'GyanaMitra',
-          short_name: 'GyanaMitra',
+          name: 'SatyaGyana',
+          short_name: 'SatyaGyana',
           theme_color: '#ffffff',
           display: 'standalone', // 🚀 Forces full-screen app mode
           background_color: '#ffffff',

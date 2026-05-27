@@ -1,10 +1,10 @@
 {
-  "projectId": "gyanamitra-35109",
+  "projectId": "SatyaGyana-35109",
   "appId": "1:751778652985:web:124b73d9ede0fa00d67ee8",
   "apiKey": "AIzaSyAc3gMK4ukkOI6Vw8FWcVaMeF8_w9jrtQg",
-  "authDomain": "gyanamitra-35109.firebaseapp.com",
+  "authDomain": "SatyaGyana-35109.firebaseapp.com",
   "firestoreDatabaseId": "(default)",
-  "storageBucket": "gyanamitra-35109.firebasestorage.app",
+  "storageBucket": "SatyaGyana-35109.firebasestorage.app",
   "messagingSenderId": "751778652985",
   "measurementId": "G-20LE1CBNX"
 }

@@ -1,4 +1,4 @@
-const BACKEND_URL = "https://gyanamitra.onrender.com"; 
+const BACKEND_URL = "https://SatyaGyana.onrender.com"; 
 
 const SYSTEM_INSTRUCTION = `You are GyanMitra AI, a brilliant and friendly educational assistant. 
 Your primary users are school students in grades 6 to 10. Always explain concepts simply, use fun analogies, and keep a supportive tone. 

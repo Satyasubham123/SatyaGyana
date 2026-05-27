@@ -1,4 +1,4 @@
-const BACKEND_URL = "https://gyanamitra.onrender.com";
+const BACKEND_URL = "https://SatyaGyana.onrender.com";
 
 export const imageService = {
   generateImage: async (prompt: string, subject: string): Promise<string> => {

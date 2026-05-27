@@ -75,13 +75,13 @@ export default function AITeacher() {
     try {
       let response;
       if (currentPreview) {
-        response = await axios.post('https://gyanamitra.onrender.com/api/analyze-image', {
+        response = await axios.post('https://SatyaGyana.onrender.com/api/analyze-image', {
           image_base64: currentPreview,
           prompt: userMessage,
           targetLanguage: language
         });
       } else {
-        response = await axios.post('https://gyanamitra.onrender.com/api/chat', {
+        response = await axios.post('https://SatyaGyana.onrender.com/api/chat', {
           prompt: userMessage,
           targetLanguage: language,
           history: [] 
