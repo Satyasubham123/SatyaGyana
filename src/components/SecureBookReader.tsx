@@ -3,7 +3,7 @@ import { X, BookOpen, ShieldAlert } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface SecureBookReaderProps {
-  driveUrl: string; // We keep this prop name so we don't break existing code, but it now accepts ANY pdf url!
+  driveUrl: string; // Accepts your Supabase PDF URLs
   onClose: () => void;
 }
 
@@ -22,6 +22,14 @@ export default function SecureBookReader({ driveUrl, onClose }: SecureBookReader
     e.preventDefault();
   };
 
+  // 1. We encode your Supabase URL
+  const encodedUrl = encodeURIComponent(driveUrl);
+  
+  // 2. We force mobile devices to use the Google Web Viewer to prevent native downloads
+  const secureViewerUrl = driveUrl.includes('google.com') 
+    ? driveUrl 
+    : `https://docs.google.com/gview?url=${encodedUrl}&embedded=true`;
+
   return (
     <AnimatePresence>
       <motion.div 
@@ -37,8 +45,8 @@ export default function SecureBookReader({ driveUrl, onClose }: SecureBookReader
           exit={{ scale: 0.95, y: 20 }}
           className="w-full max-w-6xl h-full max-h-[90vh] bg-slate-900 border border-slate-700 rounded-3xl shadow-2xl flex flex-col overflow-hidden relative"
         >
-          {/* Top Control Bar */}
-          <div className="flex items-center justify-between p-4 bg-slate-900 border-b border-slate-800 shrink-0">
+          {/* Top Control Bar - Notice z-20 so it stays above the hidden iframe top */}
+          <div className="flex items-center justify-between p-4 bg-slate-900 border-b border-slate-800 shrink-0 relative z-20">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center border border-indigo-500/20">
                 <BookOpen className="w-5 h-5 text-indigo-500" />
@@ -61,16 +69,22 @@ export default function SecureBookReader({ driveUrl, onClose }: SecureBookReader
           </div>
 
           {/* PDF Viewer Area */}
-          <div className="flex-1 w-full bg-slate-950 relative">
-            {/* We append #toolbar=0&navpanes=0 to standard PDF links 
-               to hide the default download/print buttons in standard browsers.
-               (Note: Google Drive links might ignore this, but standard Supabase Storage links will respect it).
+          <div className="flex-1 w-full bg-slate-950 relative overflow-hidden flex flex-col">
+            {/* Security Hack: We make the iframe taller than the container (calc 100% + 56px) 
+               and use a negative top margin (-mt-[56px]) to shove the Google Viewer's 
+               native "Pop-out" and "Download" toolbar entirely off the screen! 
             */}
             <iframe 
-              src={driveUrl.includes('google.com') ? driveUrl : `${driveUrl}#toolbar=0&navpanes=0`} 
-              className="w-full h-full border-none"
+              src={secureViewerUrl} 
+              className="w-full h-[calc(100%+56px)] -mt-[56px] border-none"
               title="Secure Document Reader"
             />
+
+            {/* Invisible overlay to prevent users from long-pressing to copy images/text/links */}
+            <div 
+              className="absolute inset-0 z-10 pointer-events-none"
+              onContextMenu={(e) => e.preventDefault()}
+            ></div>
           </div>
         </motion.div>
       </motion.div>
