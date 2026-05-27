@@ -65,16 +65,21 @@ export default function SecureBookReader({ driveUrl, onClose }: SecureBookReader
             </button>
           </div>
 
-          <div className="flex-1 w-full bg-slate-950 relative overflow-hidden flex flex-col">
-            {/* We no longer need the negative margin hack because Mozilla's viewer is clean! */}
+          {/* PDF Viewer Area */}
+          <div className="flex-1 w-full bg-[#525659] relative overflow-hidden flex flex-col">
+            
+            {/* 🚀 SECURITY HACK: We make the iframe 40px taller and pull it up by 40px. 
+                This completely hides Mozilla's top grey toolbar (which holds the Print/Download buttons) 
+                underneath the header! */}
             <iframe 
               src={secureViewerUrl} 
-              className="w-full h-full border-none"
+              className="w-full h-[calc(100%+40px)] -mt-[40px] border-none relative z-10"
               title="Secure Document Reader"
             />
 
+            {/* Invisible overlay to prevent users from right-clicking to save images */}
             <div 
-              className="absolute inset-0 z-10 pointer-events-none"
+              className="absolute inset-0 z-20 pointer-events-none"
               onContextMenu={(e) => e.preventDefault()}
             ></div>
           </div>
