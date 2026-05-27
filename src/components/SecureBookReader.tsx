@@ -3,13 +3,12 @@ import { X, BookOpen, ShieldAlert } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface SecureBookReaderProps {
-  driveUrl: string; // Accepts your Supabase PDF URLs
+  driveUrl: string; 
   onClose: () => void;
 }
 
 export default function SecureBookReader({ driveUrl, onClose }: SecureBookReaderProps) {
   
-  // Prevent scrolling on the main page while reading
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => {
@@ -17,18 +16,18 @@ export default function SecureBookReader({ driveUrl, onClose }: SecureBookReader
     };
   }, []);
 
-  // Basic security: block right clicks inside the reader wrapper
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
   };
 
-  // 1. We encode your Supabase URL
   const encodedUrl = encodeURIComponent(driveUrl);
   
-  // 2. We force mobile devices to use the Google Web Viewer to prevent native downloads
+  // 🚀 BULLETPROOF UPDATE: Use Mozilla's PDF.js viewer instead of Google's.
+  // This guarantees the PDF renders inline as a webpage and completely 
+  // disables the mobile browser's native "Open/Download" screen!
   const secureViewerUrl = driveUrl.includes('google.com') 
     ? driveUrl 
-    : `https://docs.google.com/gview?url=${encodedUrl}&embedded=true`;
+    : `https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodedUrl}`;
 
   return (
     <AnimatePresence>
@@ -45,7 +44,6 @@ export default function SecureBookReader({ driveUrl, onClose }: SecureBookReader
           exit={{ scale: 0.95, y: 20 }}
           className="w-full max-w-6xl h-full max-h-[90vh] bg-slate-900 border border-slate-700 rounded-3xl shadow-2xl flex flex-col overflow-hidden relative"
         >
-          {/* Top Control Bar - Notice z-20 so it stays above the hidden iframe top */}
           <div className="flex items-center justify-between p-4 bg-slate-900 border-b border-slate-800 shrink-0 relative z-20">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center border border-indigo-500/20">
@@ -62,25 +60,19 @@ export default function SecureBookReader({ driveUrl, onClose }: SecureBookReader
             <button 
               onClick={onClose}
               className="p-3 bg-slate-800 text-slate-400 hover:text-white hover:bg-red-500 rounded-xl transition-all shadow-sm active:scale-95"
-              title="Close Reader"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
-          {/* PDF Viewer Area */}
           <div className="flex-1 w-full bg-slate-950 relative overflow-hidden flex flex-col">
-            {/* Security Hack: We make the iframe taller than the container (calc 100% + 56px) 
-               and use a negative top margin (-mt-[56px]) to shove the Google Viewer's 
-               native "Pop-out" and "Download" toolbar entirely off the screen! 
-            */}
+            {/* We no longer need the negative margin hack because Mozilla's viewer is clean! */}
             <iframe 
               src={secureViewerUrl} 
-              className="w-full h-[calc(100%+56px)] -mt-[56px] border-none"
+              className="w-full h-full border-none"
               title="Secure Document Reader"
             />
 
-            {/* Invisible overlay to prevent users from long-pressing to copy images/text/links */}
             <div 
               className="absolute inset-0 z-10 pointer-events-none"
               onContextMenu={(e) => e.preventDefault()}
