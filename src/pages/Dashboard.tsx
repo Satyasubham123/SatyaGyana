@@ -11,13 +11,12 @@ import {
   BookMarked, Trophy, Flame, MessageSquare, ArrowRight, Calculator, 
   Atom, BookText, History, Cpu, GraduationCap, Sparkles, Calendar, 
   Play, CheckCircle, ChevronRight, Zap, Image as ImageIcon, BookA,
-  ShieldCheck
+  ShieldCheck, Search // Added Search icon for the input
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import SecureBookReader from '../components/SecureBookReader';
 import { BookOpen } from 'lucide-react'; 
 import StatsSummary from '../components/StatsSummary';
-
 
 declare global {
   interface ImportMetaEnv {
@@ -49,6 +48,10 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('overview');
   const isAdmin = profile?.role === 'admin';
 
+  // 🚀 ADDED: Smart Filter States
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedSubject, setSelectedSubject] = useState('All');
+
   useEffect(() => {
     if (profile?.classLevel && user) {
       fetchCourses();
@@ -56,9 +59,8 @@ export default function Dashboard() {
     }
   }, [profile?.classLevel, user]);
 
-  // 🚀 FIXED: TypeScript Error and Supabase Query
   useEffect(() => {
-    const currentClassLevel = profile?.classLevel; // Extract safely for TypeScript
+    const currentClassLevel = profile?.classLevel; 
     
     if (currentClassLevel) {
       const fetchSupabaseLibrary = async () => {
@@ -87,8 +89,7 @@ export default function Dashboard() {
     if (!profile?.classLevel) return;
     try {
       const courses = await contentServiceSupabase.getCourses();
-      const filtered = courses?.filter(c => c.class_level === profile.classLevel) || [];
-      setDbCourses(filtered);
+      // 🚀 FIXED: We load ALL courses into dbCourses, so our new Smart Filter can do the heavy lifting!
       setDbCourses(Array.isArray(courses) ? courses : []); 
     } catch (err) {
       console.error(err);
@@ -170,6 +171,29 @@ export default function Dashboard() {
     }
   };
 
+  // 🚀 SMART FILTER LOGIC: This runs instantly every time the user types or selects a subject!
+  const filteredCourses = dbCourses.filter(course => {
+    // 1. Auto-Filter by User's Class Level (or 'All')
+    const cLevel = course.classLevel || course.class_level;
+    const matchesClass = cLevel === profile?.classLevel || cLevel === 'All';
+
+    // 2. Filter by Selected Subject Dropdown
+    // (We check both ID and Name to make sure old and new DB entries both work)
+    const matchesSubject = 
+      selectedSubject === 'All' || 
+      course.subject === selectedSubject ||
+      course.subject?.toLowerCase() === SUBJECTS.find(s => s.id === selectedSubject)?.name.toLowerCase() ||
+      course.subject?.toLowerCase() === selectedSubject.toLowerCase();
+
+    // 3. Filter by Typed Search Query
+    const matchesSearch = 
+      searchQuery === '' || 
+      course.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      course.description?.toLowerCase().includes(searchQuery.toLowerCase());
+
+    return matchesClass && matchesSubject && matchesSearch;
+  });
+
   if (contextLoading || loadingClass || !profile || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-bg-deep">
@@ -206,7 +230,6 @@ export default function Dashboard() {
     );
   }
 
-  // 🚀 FIXED: Render Library updated for Supabase format (cover_url, pdf_url)
   const renderLibrary = () => (
     <div className="space-y-6 animate-in fade-in">
       <div className="flex items-center justify-between mb-8">
@@ -231,7 +254,6 @@ export default function Dashboard() {
             onClick={() => setReadingBookUrl(book.pdf_url)} 
             className="bg-slate-900 border border-border-strong p-6 rounded-3xl hover:border-indigo-500/50 hover:shadow-[0_0_30px_rgba(99,102,241,0.15)] transition-all cursor-pointer group flex gap-4"
           >
-            {/* Book Cover or Placeholder */}
             <div className="w-20 h-28 bg-slate-950 rounded-lg overflow-hidden shrink-0 border border-slate-800 group-hover:border-indigo-500/50 transition-all">
               {book.cover_url ? (
                 <img src={book.cover_url} alt={book.title} className="w-full h-full object-cover" />
@@ -263,34 +285,23 @@ export default function Dashboard() {
 
   const AdminView = () => (
   <div className="max-w-2xl mx-auto mt-20 p-8 bg-slate-900 border border-purple-500/30 rounded-3xl text-center">
-    
     <div className="w-20 h-20 bg-purple-500/10 rounded-3xl flex items-center justify-center mx-auto mb-6">
       <ShieldCheck className="h-10 w-10 text-purple-500" />
     </div>
-
-    <h2 className="text-3xl font-black uppercase tracking-tighter text-white mb-3">
-      Admin Control Tower
-    </h2>
-
-    <p className="text-slate-400 text-sm mb-10">
-      System operations and user management
-    </p>
-
+    <h2 className="text-3xl font-black uppercase tracking-tighter text-white mb-3">Admin Control Tower</h2>
+    <p className="text-slate-400 text-sm mb-10">System operations and user management</p>
     <div className="grid grid-cols-1 gap-4">
-      <Link
-        to="/admin"
-        className="p-6 bg-slate-800 border border-slate-700 rounded-2xl hover:border-purple-500 hover:bg-slate-800/80 transition-all font-black uppercase text-xs tracking-widest text-white"
-      >
+      <Link to="/admin" className="p-6 bg-slate-800 border border-slate-700 rounded-2xl hover:border-purple-500 hover:bg-slate-800/80 transition-all font-black uppercase text-xs tracking-widest text-white">
         Manage System
       </Link>
     </div>
   </div>
 );
+
   const firstName = profile.firstName || profile.displayName?.split(' ')[0] || 'Student';
   const xp = Number(profile.totalXP) || Number(profile.xpPoints) || 0;
   const streak = Number(profile.streakCount) || 0;
   
-
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 sm:py-16 bg-bg-deep min-h-screen">
       {isAdmin ? (
@@ -299,14 +310,10 @@ export default function Dashboard() {
       <>
       <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 sm:gap-8 mb-10 text-center sm:text-left">
         <div>
-          {/* Temporary Code Logo - Satya Badge Edition */}
           <div className="flex items-center gap-4 mb-6 animate-in fade-in slide-in-from-left-4 duration-700">
-            {/* The Badge */}
             <div className="bg-gradient-to-br from-brand to-indigo-600 text-white px-6 h-14 rounded-2xl flex items-center justify-center font-black text-2xl shadow-xl shadow-brand/30 border border-white/20 uppercase tracking-widest italic">
               Satya
             </div>
-            
-            {/* The Subtext */}
             <div className="flex flex-col justify-center">
               <span className="text-xl font-black tracking-tighter text-main uppercase leading-none mb-1">
                 Gyana<span className="text-brand">Mitra</span>
@@ -387,15 +394,15 @@ export default function Dashboard() {
       <div className="mb-12 -mx-4 sm:mx-0">
          <StatsSummary />
       </div>
+
       <div className="flex flex-wrap gap-4 mb-10">
-  
         <button
          onClick={() => setActiveTab('overview')}
-        className={`px-6 py-3 rounded-xl font-black uppercase text-xs tracking-widest transition-all ${
-          activeTab === 'overview'
-            ? 'bg-brand text-white'
-            : 'bg-slate-900 border border-border-strong text-slate-400'
-       }`}
+         className={`px-6 py-3 rounded-xl font-black uppercase text-xs tracking-widest transition-all ${
+           activeTab === 'overview'
+             ? 'bg-brand text-white'
+             : 'bg-slate-900 border border-border-strong text-slate-400'
+        }`}
       >
         Overview
       </button>
@@ -410,7 +417,6 @@ export default function Dashboard() {
       >
         Library
        </button>
-
       </div>
       
     {activeTab === 'overview' && (
@@ -474,14 +480,53 @@ export default function Dashboard() {
               </div>
             )}
 
-            <div className="flex items-center justify-between px-2 sm:px-0">
-               <h3 className="text-lg sm:text-xl font-black uppercase italic tracking-tighter text-brand">Core Curriculum</h3>
-               <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-muted">2026-27 Version</span>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between px-2 sm:px-0 mb-4 gap-4">
+               <div>
+                 <h3 className="text-lg sm:text-xl font-black uppercase italic tracking-tighter text-brand">Core Curriculum</h3>
+                 <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-muted">2026-27 Version</span>
+               </div>
+            </div>
+
+            {/* 🚀 SMART FILTER UI ENGINES */}
+            <div className="flex flex-col sm:flex-row gap-4 mb-8 px-2 sm:px-0">
+              {/* Type to Search Box */}
+              <div className="flex-1 relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Search className="h-4 w-4 text-slate-500" />
+                </div>
+                <input 
+                  type="text" 
+                  placeholder="Search courses by name..." 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-slate-900 border border-border-strong p-4 pl-12 rounded-2xl text-white font-bold outline-none focus:border-brand transition-all text-sm shadow-inner"
+                />
+              </div>
+
+              {/* Subject Dropdown */}
+              <div className="sm:w-64 shrink-0">
+                <select 
+                  value={selectedSubject}
+                  onChange={(e) => setSelectedSubject(e.target.value)}
+                  className="w-full bg-slate-900 border border-border-strong p-4 rounded-2xl text-white font-black uppercase tracking-widest text-[11px] outline-none focus:border-brand transition-all appearance-none cursor-pointer shadow-sm hover:bg-slate-800"
+                >
+                  <option value="All">ALL SUBJECTS</option>
+                  {SUBJECTS.map(s => (
+                    <option key={s.id} value={s.id}>{s.name.toUpperCase()}</option>
+                  ))}
+                  {/* Dynamic fallback for additional subjects like languages */}
+                  <option value="Odia">ODIA</option>
+                  <option value="Hindi">HINDI</option>
+                </select>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 px-2 sm:px-0">
-               {dbCourses.length > 0 ? dbCourses.map((course, idx) => {
-                 const subjectInfo = SUBJECTS.find(s => s.id === course.subject) || SUBJECTS[0];
+               {/* 🚀 FIXED: We now map over the FILTERED array instead of the raw DB array! */}
+               {filteredCourses.length > 0 ? filteredCourses.map((course, idx) => {
+                 // Try to find the icon info based on ID or string name
+                 const subjectInfo = SUBJECTS.find(s => s.id === course.subject || s.name.toLowerCase() === course.subject?.toLowerCase()) || SUBJECTS[0];
+                 
                  return (
                    <motion.div
                      key={course.id}
@@ -517,7 +562,7 @@ export default function Dashboard() {
                }) : (
                  <div className="sm:col-span-2 py-12 sm:py-20 text-center bg-bg-card border-2 border-dashed border-border-strong rounded-3xl mx-2 sm:mx-0 px-4">
                     <Sparkles className="h-8 w-8 sm:h-10 sm:w-10 text-brand mx-auto mb-4 opacity-20" />
-                    <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-muted">No Curriculum Clusters Detected for {profile.classLevel}</p>
+                    <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-muted">No Curriculum Clusters Found. Try clearing your search.</p>
                  </div>
                )}
             </div>
