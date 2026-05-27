@@ -63,7 +63,7 @@ export default function Navbar({ user, profile }: NavbarProps) {
                 <Sparkles className="h-5 w-5 text-white" />
               </div>
               <span className="text-xl sm:text-2xl font-black tracking-tighter italic uppercase text-slate-900 dark:text-white group-hover:text-brand transition-all duration-300">
-                GyanMitra
+                SatyaGyana
               </span>
             </Link>
 

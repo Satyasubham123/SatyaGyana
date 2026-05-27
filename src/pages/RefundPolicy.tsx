@@ -26,7 +26,7 @@ export default function RefundPolicy() {
 
           <div className="prose prose-invert max-w-none text-slate-300 space-y-6 text-sm sm:text-base leading-relaxed">
             <p>
-              Thank you for subscribing to GyanMitra. We want to ensure you have a clear understanding of our billing terms before purchasing our educational tools.
+              Thank you for subscribing to SatyaGyana We want to ensure you have a clear understanding of our billing terms before purchasing our educational tools.
             </p>
 
             <h3 className="text-xl font-black uppercase text-white mt-8 mb-4">1. Strict No-Refund Policy</h3>
