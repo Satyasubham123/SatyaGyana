@@ -12,14 +12,14 @@ service cloud.firestore {
 
     function isAdminEmail() {
       return signedIn() && request.auth.token.email in [
-        'biswalsatyasubham274@gmail.com'
+        'satyagyanaEdu@gmail.com'
       ];
     }
 
     function isVipEmail() {
       return signedIn() && request.auth.token.email in [
-        'biswalsatya321@gmail.com',
-        'biswalsatyasubham274@gmail.com'
+        'satyagyanaEdu@gmail.com',
+        'satyagyanaEdu@gmail.com'
       ];
     }
 

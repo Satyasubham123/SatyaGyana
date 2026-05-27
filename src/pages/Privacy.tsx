@@ -127,7 +127,7 @@ export default function Privacy() {
             <h3 className="text-xl font-black uppercase italic tracking-tighter text-slate-50 mb-4">Contact Us</h3>
             <div className="flex items-center gap-3 mb-2">
               <Mail className="h-5 w-5 text-brand" />
-              <p className="text-slate-300 font-bold">biswalsatyasubham274@gmail.com</p>
+              <p className="text-slate-300 font-bold">satyagyanaEdu@gmail.com</p>
             </div>
             <p className="text-sm text-slate-500 font-medium">For privacy-related questions or data requests.</p>
           </motion.div>

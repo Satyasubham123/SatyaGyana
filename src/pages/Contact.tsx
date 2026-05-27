@@ -7,7 +7,7 @@ export default function Contact() {
     {
       icon: <Mail className="h-6 w-6 text-brand" />,
       title: "Email Support",
-      value: "biswalsatyasubham274@gmail.com",
+      value: "satyagyanaEdu@gmail.com",
       description: "Direct line for all official inquiries and support."
     },
     {
