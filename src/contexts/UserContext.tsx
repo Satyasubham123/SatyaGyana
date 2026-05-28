@@ -1,69 +1,88 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, onAuthStateChanged } from 'firebase/auth';
-import { doc, onSnapshot } from 'firebase/firestore';
-import { auth, db } from '../lib/firebase';
-import { UserProfile, syncUserProfile } from '../services/userService';
+// 🚀 ALL FIREBASE IMPORTS REMOVED
+
+interface UserProfile {
+  email: string;
+  role: string;
+  displayName?: string;
+}
 
 interface UserContextType {
-  user: User | null;
+  user: { email: string } | null;
   profile: UserProfile | null;
   loading: boolean;
+  logout: () => void;
 }
 
 const UserContext = createContext<UserContextType>({
   user: null,
   profile: null,
   loading: true,
+  logout: () => {},
 });
 
 export const useUser = () => useContext(UserContext);
 
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<{ email: string } | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Function to decode the JWT token to see who is logged in
+  const parseJwt = (token: string) => {
+    try {
+      return JSON.parse(atob(token.split('.')[1]));
+    } catch (e) {
+      return null;
+    }
+  };
+
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
-      setUser(currentUser);
+    const checkAuth = async () => {
+      // 1. Look for the token saved during login
+      const token = localStorage.getItem('gyanamitra_token');
       
-      if (currentUser) {
-        // Ensure profile document is created/synced first
-        await syncUserProfile(currentUser);
-
-        // Real-time listener on the user's Firestore document
-        const unsubscribeSnapshot = onSnapshot(doc(db, 'users', currentUser.uid), (docSnap) => {
-          if (docSnap.exists()) {
-            const data = docSnap.data();
-            
-            setProfile({
-              ...data,
-              // Properly convert Firestore timestamps to JavaScript Dates
-              createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
-              updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : new Date(data.updatedAt),
-              trialEndsAt: data.trialEndsAt?.toDate ? data.trialEndsAt.toDate() : undefined,
-              subscriptionEndsAt: data.subscriptionEndsAt?.toDate ? data.subscriptionEndsAt.toDate() : undefined,
-            } as UserProfile);
-          }
-          setLoading(false);
-        }, (error) => {
-          console.error("Snapshot error:", error);
-          setLoading(false);
-        });
-
-        // Cleanup listener on unmount
-        return () => unsubscribeSnapshot();
+      if (token) {
+        // 2. Decode token to get user info
+        const decoded = parseJwt(token);
+        
+        if (decoded && decoded.exp * 1000 > Date.now()) {
+          // Token is valid!
+          const userEmail = decoded.sub;
+          setUser({ email: userEmail });
+          
+          // Basic profile setup (You can later build an API to fetch the full profile)
+          setProfile({
+            email: userEmail,
+            role: userEmail.includes('satyagyanedu') ? 'admin' : 'student',
+            displayName: userEmail.split('@')[0]
+          });
+        } else {
+          // Token is expired, clear it out
+          localStorage.removeItem('gyanamitra_token');
+          setUser(null);
+          setProfile(null);
+        }
       } else {
+        setUser(null);
         setProfile(null);
-        setLoading(false);
       }
-    });
+      
+      setLoading(false);
+    };
 
-    return () => unsubscribeAuth();
+    checkAuth();
   }, []);
 
+  const logout = () => {
+    localStorage.removeItem('gyanamitra_token');
+    setUser(null);
+    setProfile(null);
+    window.location.reload();
+  };
+
   return (
-    <UserContext.Provider value={{ user, profile, loading }}>
+    <UserContext.Provider value={{ user, profile, loading, logout }}>
       {children}
     </UserContext.Provider>
   );

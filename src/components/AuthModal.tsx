@@ -1,15 +1,7 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Mail, Lock, User, ArrowRight, ShieldAlert, GraduationCap, BookOpen, MapPin, ShieldCheck } from 'lucide-react';
-import { 
-  createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword, 
-  sendPasswordResetEmail,
-  updateProfile,
-  sendEmailVerification
-} from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
-import { auth, signInWithGoogle, db } from '../lib/firebase';
+// 🚀 ALL FIREBASE IMPORTS REMOVED
 
 type AuthMode = 'login' | 'signup' | 'forgot';
 type Designation = 'student' | 'admin';
@@ -19,6 +11,9 @@ interface AuthModalProps {
   onClose: () => void;
 }
 
+// Ensure this matches your running Python backend!
+const API_BASE_URL = 'http://localhost:8000/api'; 
+
 export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [mode, setMode] = useState<AuthMode>('login');
   
@@ -26,7 +21,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   
-  // Registration States
+  // Registration States (You will need to update your Python backend to accept these later!)
   const [designation, setDesignation] = useState<Designation>('student');
   const [firstName, setFirstName] = useState('');
   const [middleName, setMiddleName] = useState('');
@@ -68,77 +63,69 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
     try {
       if (mode === 'signup') {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        const generatedDisplayName = [firstName, middleName, lastName].filter(Boolean).join(' ');
-        
-        await updateProfile(userCredential.user, { displayName: generatedDisplayName });
-        
-        const userData: any = {
-          firstName: firstName.trim(),
-          middleName: middleName.trim(),
-          lastName: lastName.trim(),
-          displayName: generatedDisplayName,
-          email: email,
-          role: 'student', 
-          classLevel: classLevel,
-          state: stateSelection,
-          medium: medium,
-          gender: gender,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        };
-        
-        await setDoc(doc(db, 'users', userCredential.user.uid), userData, { merge: true });
+        // 🚀 1. Call Custom Python Registration API
+        const response = await fetch(`${API_BASE_URL}/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            email: email, 
+            password: password,
+            // NOTE: Your Python backend currently only accepts email/password. 
+            // You will need to add these extra fields to your FastAPI UserCreate model later!
+          })
+        });
 
-        await sendEmailVerification(userCredential.user);
-        await auth.signOut();
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.detail || "Failed to register");
+        }
         
         setMessage('Access Node created! Check your email to verify your identity.');
         setTimeout(() => switchMode('login'), 5000);
 
       } else if (mode === 'login') {
         
-        // 🚀 NEW: STRICT ADMIN LOGIN CHECK
+        // STRICT ADMIN LOGIN CHECK
         if (designation === 'admin' && !['biswalsatyasubham274@gmail.com', 'satyagyanedu@gmail.com'].includes(email.toLowerCase())) {
           setError("SECURITY BREACH: Unauthorized email address for Admin designation.");
           setIsLoading(false);
           return;
         }
 
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        
-        if (!userCredential.user.emailVerified) {
-          await sendEmailVerification(userCredential.user);
-          await auth.signOut(); 
-          setError("Access Denied: Email not verified. A new link has been dispatched to your inbox.");
-          return;
+        // 🚀 2. Call Custom Python Login API
+        const response = await fetch(`${API_BASE_URL}/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+           // This will catch "Invalid password" or "Please verify your email" from FastAPI
+           throw new Error(data.detail || "Authentication failure");
         }
         
+        // 🚀 3. Save the JWT Token to LocalStorage!
+        localStorage.setItem('gyanamitra_token', data.access_token);
+        
+        // Reload page to let UserContext pick up the new token
         window.location.reload();
         
       } else if (mode === 'forgot') {
-        await sendPasswordResetEmail(auth, email);
-        setMessage('Recovery instructions dispatched! Check your inbox.');
+        setError('Password recovery must be implemented in the custom backend.');
       }
     } catch (err: any) {
       console.error(err);
-      let errorText = "Authentication failure. Please try again.";
-      if (err.code === 'auth/email-already-in-use') errorText = "Access Node already exists for this email.";
-      if (err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') errorText = "Invalid credentials. Access denied.";
-      if (err.code === 'auth/weak-password') errorText = "Security low: Password must be 6+ characters.";
-      setError(errorText);
+      setError(err.message || "An unexpected error occurred. Is the backend running?");
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleGoogleAuth = async () => {
-    try {
-      await signInWithGoogle();
-      window.location.reload();
-    } catch (err) {
-      setError("Google Handshake failed. Try again.");
-    }
+    setError("Google login is temporarily disabled while transitioning to the custom backend.");
   };
 
   if (!isOpen) return null;
@@ -173,7 +160,6 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
           <form onSubmit={handleEmailAuth} className="space-y-4">
             
-            {/* 🚀 Segmented Control - Always visible now! */}
             {mode !== 'forgot' && (
               <div className="flex bg-slate-800 p-1.5 rounded-2xl mb-6 border border-slate-700 relative">
                 <button
@@ -187,7 +173,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   type="button"
                   onClick={() => { 
                     setDesignation('admin'); 
-                    setMode('login'); // 🚀 Instantly forces Login Mode
+                    setMode('login');
                   }}
                   className={`flex-1 flex items-center justify-center gap-2 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all z-10 ${designation === 'admin' ? 'bg-purple-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
                 >
@@ -210,25 +196,14 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     </div>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-2">Middle Name</label>
+                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-2">Last Name <span className="text-red-500">*</span></label>
                     <div className="relative">
-                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 opacity-50" />
+                      <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
                       <input 
-                        type="text" value={middleName} onChange={e => setMiddleName(e.target.value.toUpperCase())}
-                        className="w-full bg-slate-800 border border-slate-700 p-3.5 pl-10 rounded-2xl text-white font-bold outline-none focus:border-brand transition-all text-sm"
+                        type="text" required value={lastName} onChange={e => setLastName(e.target.value.toUpperCase())}
+                        className="w-full bg-slate-800 border border-slate-700 p-4 pl-12 rounded-2xl text-white font-bold outline-none focus:border-brand transition-all"
                       />
                     </div>
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-2">Last Name <span className="text-red-500">*</span></label>
-                  <div className="relative">
-                    <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-                    <input 
-                      type="text" required value={lastName} onChange={e => setLastName(e.target.value.toUpperCase())}
-                      className="w-full bg-slate-800 border border-slate-700 p-4 pl-12 rounded-2xl text-white font-bold outline-none focus:border-brand transition-all"
-                    />
                   </div>
                 </div>
 
@@ -256,41 +231,8 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                         className="w-full bg-slate-800 border border-slate-700 p-3.5 pl-10 rounded-2xl text-white font-bold outline-none focus:border-brand transition-all appearance-none cursor-pointer text-sm"
                       >
                         <option value="" disabled>Select</option>
-                        {["Andaman and Nicobar Islands", "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chandigarh", "Chhattisgarh", "Dadra and Nagar Haveli and Daman and Diu", "Delhi", "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jammu and Kashmir", "Jharkhand", "Karnataka", "Kerala", "Ladakh", "Lakshadweep", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Puducherry", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal"].map(s => <option key={s} value={s}>{s}</option>)}
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-2">Medium <span className="text-red-500">*</span></label>
-                    <div className="relative">
-                      <BookOpen className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-                      <select 
-                        required value={medium} onChange={e => setMedium(e.target.value)}
-                        className="w-full bg-slate-800 border border-slate-700 p-3.5 pl-10 rounded-2xl text-white font-bold outline-none focus:border-brand transition-all appearance-none cursor-pointer text-sm"
-                      >
-                        <option value="" disabled>Select</option>
-                        <option value="English">English</option>
-                        <option value="Hindi">Hindi</option>
-                        <option value="Odia">Odia</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-2">Gender <span className="text-red-500">*</span></label>
-                    <div className="relative">
-                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-                      <select 
-                        required value={gender} onChange={e => setGender(e.target.value)}
-                        className="w-full bg-slate-800 border border-slate-700 p-3.5 pl-10 rounded-2xl text-white font-bold outline-none focus:border-brand transition-all appearance-none cursor-pointer text-sm"
-                      >
-                        <option value="" disabled>Select</option>
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
-                        <option value="Other">Other</option>
+                        <option value="Odisha">Odisha</option>
+                        <option value="Delhi">Delhi</option>
                       </select>
                     </div>
                   </div>
@@ -340,17 +282,6 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
               {!isLoading && <ArrowRight className="h-4 w-4" />}
             </button>
           </form>
-
-          {/* Google Auth */}
-          <div className="mt-8 pt-6 border-t border-slate-800">
-            <button 
-              onClick={handleGoogleAuth} type="button"
-              className="w-full py-4 bg-white text-slate-900 rounded-2xl font-black uppercase tracking-[0.1em] text-xs shadow-xl active:scale-95 transition-all flex items-center justify-center gap-3"
-            >
-              <img src="https://www.google.com/favicon.ico" alt="Google" className="h-4 w-4" />
-              CONTINUE WITH GOOGLE
-            </button>
-          </div>
 
           {/* 🚀 Dynamic Bottom Links */}
           <div className="mt-6 text-center">
