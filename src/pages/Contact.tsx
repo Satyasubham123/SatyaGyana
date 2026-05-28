@@ -131,7 +131,7 @@ export default function Contact() {
             <CheckCircle2 className="h-12 w-12 text-brand mx-auto mb-6" />
             <h2 className="text-2xl font-black uppercase italic tracking-tighter text-slate-50 mb-4">Thank You</h2>
             <p className="text-slate-400 font-medium max-w-md mx-auto">
-              Thank you for using GyanMitra AI. We strive to provide the best possible learning experience for every student.
+              Thank you for using SatyaGyana AI. We strive to provide the best possible learning experience for every student.
             </p>
           </div>
         </motion.div>

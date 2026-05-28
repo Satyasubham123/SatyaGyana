@@ -31,7 +31,7 @@ export default function RefundPolicy() {
 
             <h3 className="text-xl font-black uppercase text-white mt-8 mb-4">1. Strict No-Refund Policy</h3>
             <p>
-              All sales are final. Because GyanMitra provides immediate access to digital educational resources, interactive AI study tools, and proprietary curriculum data, <strong>we do not offer refunds, exchanges, or credits for any purchases or subscriptions under any circumstances.</strong>
+              All sales are final. Because SatyaGyana provides immediate access to digital educational resources, interactive AI study tools, and proprietary curriculum data, <strong>we do not offer refunds, exchanges, or credits for any purchases or subscriptions under any circumstances.</strong>
             </p>
 
             <h3 className="text-xl font-black uppercase text-white mt-8 mb-4">2. Subscription Cancellations</h3>

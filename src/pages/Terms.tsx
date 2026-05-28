@@ -17,7 +17,7 @@ export default function Terms() {
     {
       icon: <ShieldAlert className="h-6 w-6 text-brand" />,
       title: "3. Content",
-      description: "Study materials, quizzes, and AI-generated content are provided for learning support. GyanMitra AI owns the rights to platform-specific content."
+      description: "Study materials, quizzes, and AI-generated content are provided for learning support. SatyaGyana AI owns the rights to platform-specific content."
     },
     {
       icon: <CreditCard className="h-6 w-6 text-brand" />,
@@ -68,7 +68,7 @@ export default function Terms() {
             transition={{ delay: 0.2 }}
             className="text-xl text-slate-400 font-medium leading-relaxed max-w-2xl"
           >
-            By using GyanMitra AI, you agree to follow these terms of service.
+            By using SatyaGyana AI, you agree to follow these terms of service.
           </motion.p>
         </div>
 

@@ -47,7 +47,7 @@ export default function About() {
             transition={{ delay: 0.1 }}
             className="text-5xl md:text-8xl font-black uppercase italic tracking-tighter text-slate-50 mb-8"
           >
-            GyanMitra AI
+            SatyaGyana AI
           </motion.h1>
           <motion.p 
             initial={{ opacity: 0, y: 20 }}
@@ -72,7 +72,7 @@ export default function About() {
               Our mission is to make quality education simple, smart, and accessible for every student through AI learning tools, quizzes, notes, books, and interactive study systems.
             </p>
             <p className="text-slate-400 font-medium leading-loose">
-              GyanMitra AI helps students learn in simple English and Hindi, with future support for Odia language. The platform is specially designed for mobile users and students who want affordable and effective learning support.
+              SatyaGyana AI helps students learn in simple English and Hindi, with future support for Odia language. The platform is specially designed for mobile users and students who want affordable and effective learning support.
             </p>
           </motion.div>
 

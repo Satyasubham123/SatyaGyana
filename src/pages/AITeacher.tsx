@@ -115,7 +115,7 @@ export default function AITeacher() {
             <Bot className="w-6 h-6 text-purple-600" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-800 tracking-tight">GyanMitra Tutor</h1>
+            <h1 className="text-xl font-bold text-gray-800 tracking-tight">SatyaGyana Tutor</h1>
             <p className="text-sm text-gray-500 font-medium">Your AI Study Companion</p>
           </div>
         </div>

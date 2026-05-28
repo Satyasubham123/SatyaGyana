@@ -106,7 +106,7 @@ export default function AdminDashboard({ profile }: AdminDashboardProps) {
   
   const [founderForm, setFounderForm] = useState<FounderProfileData>({
     name: 'Satyasubham Biswal',
-    title: 'Founder & Creator of GyanMitra AI',
+    title: 'Founder & Creator of SatyaGyana AI',
     mission: 'Empowering students with AI-driven personalized learning paths to achieve academic excellence.',
     bio: 'A visionary educator and developer dedicated to bridging the gap between artificial intelligence and classroom learning.',
     photoURL: 'https://example.com/new_founder_photo.jpg',

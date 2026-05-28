@@ -69,7 +69,7 @@ export default function Privacy() {
             transition={{ delay: 0.2 }}
             className="text-xl text-slate-400 font-medium leading-relaxed max-w-2xl"
           >
-            GyanMitra AI values your privacy and works to protect your personal information.
+            SatyaGyana AI values your privacy and works to protect your personal information.
           </motion.p>
         </div>
 

@@ -7,7 +7,7 @@ export default function Disclaimer() {
     {
       icon: <Info className="h-6 w-6 text-amber-400" />,
       title: "AI-Assisted Support",
-      description: "GyanMitra AI provides AI-assisted educational support for students. This technology is mean to complement regular learning."
+      description: "SatyaGyana AI provides AI-assisted educational support for students. This technology is mean to complement regular learning."
     },
     {
       icon: <AlertTriangle className="h-6 w-6 text-amber-400" />,
@@ -89,7 +89,7 @@ export default function Disclaimer() {
           <BookOpen className="h-12 w-12 text-brand mx-auto mb-6" />
           <h2 className="text-2xl font-black uppercase italic tracking-tighter text-slate-50 mb-4">Learn Responsibly</h2>
           <p className="text-slate-400 font-medium max-w-lg mx-auto">
-            GyanMitra AI is your friend in learning, but your textbooks and teachers remain the primary sources of truth for your school curriculum.
+            SatyaGyana AI is your friend in learning, but your textbooks and teachers remain the primary sources of truth for your school curriculum.
           </p>
           <div className="mt-8 flex justify-center items-center gap-2">
             <CheckCircle2 className="h-4 w-4 text-brand" />
