@@ -19,7 +19,7 @@ export default function About() {
     {
       icon: <BookOpen className="h-6 w-6 text-brand" />,
       title: "Study Material",
-      description: "Structured notes and NCERT-aligned content for Class 6-12."
+      description: "Structured notes and NCERT-aligned content for Class 6-10."
     },
     {
       icon: <Globe className="h-6 w-6 text-brand" />,
@@ -55,7 +55,7 @@ export default function About() {
             transition={{ delay: 0.2 }}
             className="text-xl md:text-2xl text-slate-400 font-medium leading-relaxed max-w-3xl"
           >
-            An AI-powered learning platform designed specifically for Indian students from Class 6 to Class 12.
+            An AI-powered learning platform designed specifically for Indian students from Class 6 to Class 10.
           </motion.p>
         </div>
 
