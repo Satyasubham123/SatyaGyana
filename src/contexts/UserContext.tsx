@@ -1,10 +1,19 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-// 🚀 ALL FIREBASE IMPORTS REMOVED
 
+// Make sure this matches your FastAPI server address
+const API_BASE_URL = 'http://localhost:8000/api';
+
+// Expanded Profile Interface
 interface UserProfile {
   email: string;
+  firstName: string;
+  lastName: string;
+  displayName: string;
   role: string;
-  displayName?: string;
+  classLevel: string;
+  state: string;
+  medium: string;
+  gender: string;
 }
 
 interface UserContextType {
@@ -28,50 +37,46 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Function to decode the JWT token to see who is logged in
-  const parseJwt = (token: string) => {
-    try {
-      return JSON.parse(atob(token.split('.')[1]));
-    } catch (e) {
-      return null;
-    }
-  };
-
   useEffect(() => {
-    const checkAuth = async () => {
-      // 1. Look for the token saved during login
+    const fetchFullProfile = async () => {
       const token = localStorage.getItem('gyanamitra_token');
       
-      if (token) {
-        // 2. Decode token to get user info
-        const decoded = parseJwt(token);
-        
-        if (decoded && decoded.exp * 1000 > Date.now()) {
-          // Token is valid!
-          const userEmail = decoded.sub;
-          setUser({ email: userEmail });
-          
-          // Basic profile setup (You can later build an API to fetch the full profile)
-          setProfile({
-            email: userEmail,
-            role: userEmail.includes('satyagyanedu') ? 'admin' : 'student',
-            displayName: userEmail.split('@')[0]
-          });
+      if (!token) {
+        setUser(null);
+        setProfile(null);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        // 🚀 Call the secure Python endpoint!
+        const response = await fetch(`${API_BASE_URL}/users/me`, {
+          method: 'GET',
+          headers: {
+            // This is how we pass the token to OAuth2PasswordBearer
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          const userData = await response.json();
+          setUser({ email: userData.email });
+          setProfile(userData); // Now contains firstName, classLevel, state, etc!
         } else {
-          // Token is expired, clear it out
+          // If the server says 401 Unauthorized, the token expired
           localStorage.removeItem('gyanamitra_token');
           setUser(null);
           setProfile(null);
         }
-      } else {
-        setUser(null);
-        setProfile(null);
+      } catch (error) {
+        console.error("Failed to fetch secure profile:", error);
+      } finally {
+        setLoading(false);
       }
-      
-      setLoading(false);
     };
 
-    checkAuth();
+    fetchFullProfile();
   }, []);
 
   const logout = () => {

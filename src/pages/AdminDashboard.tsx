@@ -224,15 +224,21 @@ export default function AdminDashboard({ profile }: AdminDashboardProps) {
   const fetchInitialData = async () => {
     setIsLoading(true);
     try {
-      const [_users, _courses, _founder] = await Promise.all([
-        getDocs(collection(db, 'users')), 
+      // 1. Fetch from your Python Backend
+      const token = localStorage.getItem('gyanamitra_token');
+      const usersResponse = await fetch('http://localhost:8000/api/admin/users', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      const allUsers = usersResponse.ok ? await usersResponse.json() : [];
+      const studentList = allUsers.filter((u: any) => u.role !== 'admin');
+
+      // 2. Fetch the rest of your Firebase/Supabase stuff as normal
+      const [_courses, _founder] = await Promise.all([
         contentService.getCourses(true), 
         founderService.getProfile()
       ]);
 
-      const allUsers = _users.docs.map(d => d.data() as UserProfile);
-      const studentList = allUsers.filter(u => u.role !== 'admin');
-      
       setStudents(studentList);
       setCourses(_courses);
       if (_founder) setFounderForm(_founder);
@@ -2052,13 +2058,7 @@ Each object must follow this scheme exactly:
        <div className="p-6 sm:p-10 border-b border-border-strong flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6">
           <div>
              <h3 className="text-2xl sm:text-3xl font-black uppercase italic tracking-tighter text-white">Student Registry</h3>
-             <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mt-2">{students.length} Authorized Units detected</p>
-          </div>
-          <div className="flex gap-4">
-             <div className="relative w-full sm:w-auto">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-                <input className="w-full sm:w-auto pl-12 pr-6 py-4 bg-slate-800 border border-border-strong rounded-xl sm:rounded-2xl outline-none focus:border-brand text-xs font-bold text-white" placeholder="Search Identity..." />
-             </div>
+             <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mt-2">{students.length} Authorized Nodes detected</p>
           </div>
        </div>
        <div className="overflow-x-auto no-scrollbar">
@@ -2068,18 +2068,19 @@ Each object must follow this scheme exactly:
                    <th className="px-6 sm:px-10 py-4 sm:py-6 text-[10px] font-black uppercase tracking-widest text-slate-500">Student Identity</th>
                    <th className="px-6 sm:px-10 py-4 sm:py-6 text-[10px] font-black uppercase tracking-widest text-slate-500">Grade Level</th>
                    <th className="px-6 sm:px-10 py-4 sm:py-6 text-[10px] font-black uppercase tracking-widest text-slate-500">State / UT</th>
-                   <th className="px-6 sm:px-10 py-4 sm:py-6 text-[10px] font-black uppercase tracking-widest text-slate-500">Tier Status</th>
-                   <th className="px-6 sm:px-10 py-4 sm:py-6 text-[10px] font-black uppercase tracking-widest text-slate-500 text-right">Actions</th>
+                   <th className="px-6 sm:px-10 py-4 sm:py-6 text-[10px] font-black uppercase tracking-widest text-slate-500">Verification</th>
                 </tr>
              </thead>
              <tbody className="divide-y divide-border-subtle/20 text-white">
-                {students.map(s => (
-                  <tr key={s.uid} className="hover:bg-slate-800/30 transition-colors">
+                {students.map((s: any) => (
+                  <tr key={s.id} className="hover:bg-slate-800/30 transition-colors">
                      <td className="px-6 sm:px-10 py-4 sm:py-6">
                         <div className="flex items-center gap-3 sm:gap-4">
-                           <img src={s.photoURL || `https://ui-avatars.com/api/?name=${s.displayName}&background=random`} className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl border border-border-strong shrink-0" alt={s.displayName || 'student'} />
+                           <div className="w-10 h-10 sm:w-12 sm:h-12 bg-slate-800 rounded-xl sm:rounded-2xl border border-border-strong flex items-center justify-center text-brand shrink-0">
+                             <Users className="h-5 w-5" />
+                           </div>
                            <div className="min-w-0">
-                              <p className="font-black uppercase tracking-tighter italic text-base sm:text-lg truncate">{s.displayName}</p>
+                              <p className="font-black uppercase tracking-tighter italic text-base sm:text-lg truncate">{s.firstName} {s.lastName}</p>
                               <p className="text-[9px] sm:text-[10px] text-slate-500 font-bold truncate">{s.email}</p>
                            </div>
                         </div>
@@ -2093,17 +2094,11 @@ Each object must follow this scheme exactly:
                         </span>
                      </td>
                      <td className="px-6 sm:px-10 py-4 sm:py-6 whitespace-nowrap">
-                        {s.isPremium ? (
-                          <span className="text-brand flex items-center gap-2 text-[9px] sm:text-[10px] font-black uppercase tracking-widest"><Trophy className="h-3 w-3" /> Neural Premium</span>
+                        {s.is_verified ? (
+                          <span className="text-emerald-500 flex items-center gap-2 text-[9px] sm:text-[10px] font-black uppercase tracking-widest"><CheckCircle className="h-4 w-4" /> Verified</span>
                         ) : (
-                          <span className="text-slate-500 text-[9px] sm:text-[10px] font-black uppercase tracking-widest">Base Link</span>
+                          <span className="text-slate-500 text-[9px] sm:text-[10px] font-black uppercase tracking-widest">Pending Email</span>
                         )}
-                     </td>
-                     <td className="px-6 sm:px-10 py-4 sm:py-6 text-right whitespace-nowrap">
-                        <div className="flex justify-end gap-1 sm:gap-2">
-                           <button className="p-2 sm:p-3 text-slate-500 hover:text-brand transition-colors"><Edit2 className="h-4 w-4 sm:h-5 sm:w-5" /></button>
-                           <button className="p-2 sm:p-3 text-slate-500 hover:text-red-500 transition-colors"><Trash2 className="h-4 w-4 sm:h-5 sm:w-5" /></button>
-                        </div>
                      </td>
                   </tr>
                 ))}
