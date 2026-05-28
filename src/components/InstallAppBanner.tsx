@@ -7,19 +7,19 @@ export default function InstallAppBanner() {
   useEffect(() => {
     // Listen for the browser's install prompt signal
     const handleBeforeInstallPrompt = (e: Event) => {
-      // Prevent Chrome 67 and earlier from automatically showing the prompt
+      // Prevent the browser's default mini-infobar from automatically showing
       e.preventDefault();
-      // Stash the event so it can be triggered later.
+      // Stash the event so it can be triggered later via our button
       setDeferredPrompt(e);
-      // Update UI to show the install banner
+      // Update UI to show our custom install banner
       setIsVisible(true);
     };
 
-    // Listen for successful installation
+    // Listen for successful installation (from any source)
     const handleAppInstalled = () => {
       setIsVisible(false);
       setDeferredPrompt(null);
-      console.log('SatyaGyana App was installed!');
+      console.log('SatyaGyana App was installed successfully!');
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -34,15 +34,15 @@ export default function InstallAppBanner() {
   const handleInstallClick = async () => {
     if (!deferredPrompt) return;
 
-    // Show the native install prompt
+    // Show the native browser install prompt
     deferredPrompt.prompt();
 
     // Wait for the user to respond to the prompt
     const { outcome } = await deferredPrompt.userChoice;
+    console.log(`User response to the install prompt: ${outcome}`);
     
-    if (outcome === 'accepted') {
-      setIsVisible(false); // Hide if they accept
-    }
+    // ✅ FIX: Hide the banner regardless of choice, because this specific prompt event is now dead
+    setIsVisible(false);
     
     // Clear the saved prompt since it can't be used again
     setDeferredPrompt(null);

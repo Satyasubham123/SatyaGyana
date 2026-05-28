@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import.meta.env.VITE_API_URL
 import { User as FirebaseUser } from 'firebase/auth';
 import { 
   collection, 
