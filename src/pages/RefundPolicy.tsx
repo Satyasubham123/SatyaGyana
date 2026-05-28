@@ -46,7 +46,7 @@ export default function RefundPolicy() {
 
             <h3 className="text-xl font-black uppercase text-white mt-8 mb-4">4. Contact Support</h3>
             <p>
-              If you have any questions regarding your billing, account, or need assistance cancelling your subscription, please email our support team at <a href="mailto:satyagyanaEdu@gmail.com" className="text-brand hover:underline font-bold">satyagyanaEdu@gmail.com</a>.
+              If you have any questions regarding your billing, account, or need assistance cancelling your subscription, please email our support team at <a href="mailto:satyagyanedu@gmail.com" className="text-brand hover:underline font-bold">satyagyanedu@gmail.com</a>.
             </p>
           </div>
         </div>

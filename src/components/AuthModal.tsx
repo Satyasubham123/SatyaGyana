@@ -99,7 +99,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
       } else if (mode === 'login') {
         
         // 🚀 NEW: STRICT ADMIN LOGIN CHECK
-        if (designation === 'admin' && email.toLowerCase() !== 'biswalsatyasubham274@gmail.com', 'satyagyanaEd@gmail.com') {
+        if (designation === 'admin' && !['biswalsatyasubham274@gmail.com', 'satyagyanedu@gmail.com'].includes(email.toLowerCase())) {
           setError("SECURITY BREACH: Unauthorized email address for Admin designation.");
           setIsLoading(false);
           return;
