@@ -59,6 +59,7 @@ export default function AITeacher() {
     const userMessage = input.trim();
     const currentPreview = imagePreview;
     
+    // Add user message to UI immediately
     setMessages(prev => [...prev, { 
       id: Date.now().toString(), 
       sender: 'user', 
@@ -74,20 +75,32 @@ export default function AITeacher() {
 
     try {
       let response;
+      
       if (currentPreview) {
-        response = await axios.post('https://gyanamitra.onrender.com/api/analyze-image', {
+        // 🚀 ROUTE 1: Image Analysis via Custom Python Backend
+        response = await axios.post('http://localhost:8000/api/analyze-image', {
           image_base64: currentPreview,
           prompt: userMessage,
           targetLanguage: language
         });
       } else {
-        response = await axios.post('https://gyanamitra.onrender.com/api/chat', {
+        // 🚀 ROUTE 2: Standard Text Chat via Custom Python Backend
+        
+        // We must map the UI messages into the simplified history format 
+        // that your Python/Groq/Gemini backend expects: {"role": "user"|"model", "parts": "text"}
+        const historyForBackend = messages.map(msg => ({
+          role: msg.sender === 'user' ? 'user' : 'model',
+          parts: msg.text
+        }));
+
+        response = await axios.post('http://localhost:8000/api/chat', {
           prompt: userMessage,
           targetLanguage: language,
-          history: [] 
+          history: historyForBackend 
         });
       }
 
+      // Add AI response to UI
       setMessages(prev => [...prev, { 
         id: (Date.now() + 1).toString(), 
         sender: 'ai', 
@@ -99,7 +112,7 @@ export default function AITeacher() {
       setMessages(prev => [...prev, { 
         id: (Date.now() + 1).toString(), 
         sender: 'ai', 
-        text: "Sorry, I am experiencing high traffic. Please try again in a moment." 
+        text: "Sorry, I am experiencing high traffic. Please make sure the local Python server is running!" 
       }]);
     } finally {
       setIsLoading(false);

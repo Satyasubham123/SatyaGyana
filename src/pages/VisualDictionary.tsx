@@ -29,7 +29,8 @@ export default function VisualDictionary() {
     setResult(null);
 
     try {
-      const response = await axios.post('https://gyanamitra.onrender.com/api/dictionary/search', 
+      // 🚀 NEW: Pointing to your custom local Python backend!
+      const response = await axios.post('http://localhost:8000/api/dictionary/search', 
         {
           word: searchInput.trim(),
           targetLanguage: 'Odia'
@@ -44,7 +45,7 @@ export default function VisualDictionary() {
       setResult(response.data);
     } catch (err) {
       console.error(err);
-      setError('Failed to find word. Please try again.');
+      setError('Failed to find word. Is your Python server running?');
     } finally {
       setLoading(false);
     }
@@ -58,7 +59,6 @@ export default function VisualDictionary() {
   };
 
   return (
-    // 🚀 FIXED: Removed the hardcoded light background so it inherits your app's dark theme
     <div className="min-h-[calc(100vh-80px)] bg-transparent p-4 md:p-8 font-sans">
       <div className="max-w-4xl mx-auto space-y-8">
         
@@ -72,7 +72,6 @@ export default function VisualDictionary() {
             AI Visual Dictionary
           </h1>
           
-          {/* 🚀 FIXED: Changed text-gray-500 to text-slate-300 for perfect clarity and contrast */}
           <p className="text-slate-300 text-sm md:text-base font-medium max-w-2xl mx-auto leading-relaxed">
             Never forget a word again. Search for any concept, idiom, or scientific term to get AI mnemonics, visuals, and multilingual meanings.
           </p>
@@ -86,7 +85,6 @@ export default function VisualDictionary() {
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Search a word (e.g., Photosynthesis, Gravity)..."
-              // 🚀 FIXED: Text is now stark white, placeholder is visible
               className="w-full bg-transparent border-none px-4 py-3 text-lg text-white placeholder-slate-500 focus:outline-none focus:ring-0"
             />
             <button

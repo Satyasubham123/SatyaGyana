@@ -597,12 +597,6 @@ export default function AdminDashboard({ profile }: AdminDashboardProps) {
     setIsGeneratingQuiz(true);
     setGeneratedQuiz(null);
     try {
-      const apiKey = import.meta.env['VITE_GEMINI_API_KEY']?.trim();
-      
-      if (!apiKey) {
-        throw new Error("VITE_GEMINI_API_KEY configuration is missing!");
-      }
-
       const designPrompt = `Generate an array of exactly 20 quiz questions on the topic "${quizGenForm.topic}" suited for "${quizGenForm.classLevel}".
 The target difficulty structure is "${quizGenForm.difficulty}" and the items should be built in the formatting code of "${quizGenForm.format}".
 
@@ -617,21 +611,26 @@ Each object must follow this scheme exactly:
   "explanation": "A conceptual educational breakdown description of the core principle"
 }`;
 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+      // 🚀 1. Call Custom Python Backend instead of Google!
+      const response = await fetch('http://localhost:8000/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: designPrompt }] }]
+          prompt: designPrompt,
+          targetLanguage: "English",
+          history: []
         })
       });
 
       if (!response.ok) {
-        const errorDetails = await response.json().catch(() => ({}));
-        throw new Error(errorDetails.error?.message || `Google Server returned code ${response.status}`);
+        throw new Error(`Python Server returned code ${response.status}`);
       }
 
-      const streamPayload = await response.json();
-      let rawText = streamPayload.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
+      // 🚀 2. Parse the response from Python
+      const data = await response.json();
+      let rawText = data.text || "[]";
       
       rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
       
