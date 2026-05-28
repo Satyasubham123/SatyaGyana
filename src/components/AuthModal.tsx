@@ -63,15 +63,21 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
     try {
       if (mode === 'signup') {
-        // 🚀 1. Call Custom Python Registration API
+        // 🚀 1. Call Custom Python Registration API with ALL Data
         const response = await fetch(`${API_BASE_URL}/register`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             email: email, 
             password: password,
-            // NOTE: Your Python backend currently only accepts email/password. 
-            // You will need to add these extra fields to your FastAPI UserCreate model later!
+            firstName: firstName,
+            middleName: middleName,
+            lastName: lastName,
+            classLevel: classLevel,
+            state: stateSelection,
+            medium: medium,
+            gender: gender,
+            role: designation
           })
         });
 
