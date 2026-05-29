@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
 // Make sure this matches your FastAPI server address
-const API_BASE_URL = (import.meta.env.VITE_API_URL || 'https://gyanamitra.onrender.com') + '/api';
+const API_BASE_URL = 'https://gyanamitra.onrender.com/api';
 // Expanded Profile Interface
 interface UserProfile {
   email: string;
