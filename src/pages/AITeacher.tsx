@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Bot, Loader2, Globe, AlertCircle, Image as ImageIcon, X } from 'lucide-react';
-import axios from 'axios';
+import { Send, Bot, Globe, AlertCircle, Image as ImageIcon, X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { aiService } from '../services/aiService'; // 🚀 FIXED: Importing our secure bridge!
 
 interface Message {
   id: string;
@@ -23,7 +23,6 @@ export default function AITeacher() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading]);
@@ -59,7 +58,6 @@ export default function AITeacher() {
     const userMessage = input.trim();
     const currentPreview = imagePreview;
     
-    // Add user message to UI immediately
     setMessages(prev => [...prev, { 
       id: Date.now().toString(), 
       sender: 'user', 
@@ -74,35 +72,25 @@ export default function AITeacher() {
     setCooldown(10); 
 
     try {
-      let response;
+      let responseText = "";
       
       if (currentPreview) {
-        // 🚀 ROUTE 1: Image Analysis via Custom Python Backend
-        response = await axios.post(`${import.meta.env.VITE_API_URL || 'https://gyanamitra.onrender.com'}/api/analyze-image`, {
-          image_base64: currentPreview,
-          prompt: userMessage,
-          targetLanguage: language
-        });
+        // 🚀 ROUTE 1: Secure Image Analysis
+        responseText = await aiService.analyzeImage(currentPreview, userMessage, language);
       } else {
-        // 🚀 ROUTE 2: Standard Text Chat via Custom Python Backend
-        
-        // We must map the UI messages into the simplified history format 
-        // that your Python/Groq/Gemini backend expects: {"role": "user"|"model", "parts": "text"}
-        const historyForBackend = messages.map(msg => ({
+        // 🚀 ROUTE 2: Secure Text Chat
+        const historyForBackend: { role: 'user' | 'model'; text: string }[] = messages.map(msg => ({          
           role: msg.sender === 'user' ? 'user' : 'model',
-          parts: msg.text
+          text: msg.text
         }));
 
-        response = await axios.post(`${import.meta.env.VITE_API_URL || 'https://gyanamitra.onrender.com'}/api/chat`, {
-          history: historyForBackend 
-        });
+        responseText = await aiService.sendMessage(historyForBackend, userMessage);
       }
 
-      // Add AI response to UI
       setMessages(prev => [...prev, { 
         id: (Date.now() + 1).toString(), 
         sender: 'ai', 
-        text: response.data.text 
+        text: responseText 
       }]);
 
     } catch (error) {
@@ -119,7 +107,6 @@ export default function AITeacher() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-80px)] max-w-4xl mx-auto p-4 relative">
-      {/* Header - Added Glassmorphism */}
       <div className="flex justify-between items-center p-4 rounded-t-2xl border-b border-white/20 bg-white/70 backdrop-blur-md shadow-sm z-10 sticky top-0">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-gradient-to-br from-purple-100 to-indigo-100 rounded-lg shadow-inner">
@@ -145,7 +132,6 @@ export default function AITeacher() {
         </div>
       </div>
 
-      {/* Chat Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-6 bg-gray-50/30 scroll-smooth">
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-gray-400 space-y-4">
@@ -165,7 +151,6 @@ export default function AITeacher() {
                 <img src={msg.imageUrl} alt="Uploaded" className="max-w-full rounded-xl max-h-72 object-cover border border-white/20 shadow-sm" />
               )}
               
-              {/* MAGICAL MARKDOWN RENDERER */}
               {msg.text && (
                 <div className={`prose prose-sm md:prose-base max-w-none ${msg.sender === 'user' ? 'text-white prose-invert' : 'text-gray-800'}`}>
                   {msg.sender === 'user' ? (
@@ -174,7 +159,6 @@ export default function AITeacher() {
                     <ReactMarkdown 
                       remarkPlugins={[remarkGfm]}
                       components={{
-                        // Custom styling for AI markdown elements
                         h1: ({node, ...props}) => <h1 className="text-xl font-bold mt-4 mb-2" {...props} />,
                         h2: ({node, ...props}) => <h2 className="text-lg font-bold mt-3 mb-2" {...props} />,
                         h3: ({node, ...props}) => <h3 className="text-md font-bold mt-2 mb-1" {...props} />,
@@ -211,7 +195,6 @@ export default function AITeacher() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Area - Glassmorphism */}
       <div className="bg-white/80 backdrop-blur-md p-4 rounded-b-2xl border-t border-white/20 shadow-[0_-4px_20px_-15px_rgba(0,0,0,0.1)] relative z-10">
         {cooldown > 0 && !isLoading && (
           <div className="flex items-center gap-2 text-amber-600 text-xs mb-3 ml-2 font-medium bg-amber-50 w-fit px-3 py-1 rounded-full">

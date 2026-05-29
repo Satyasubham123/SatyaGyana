@@ -1,35 +1,71 @@
-const BACKEND_URL = "https://gyanamitra.onrender.com"; 
+// src/services/aiService.ts
 
-const SYSTEM_INSTRUCTION = `You are GyanMitra AI, a brilliant and friendly educational assistant. 
-Your primary users are school students in grades 6 to 10. Always explain concepts simply, use fun analogies, and keep a supportive tone. 
-However, if the user identifies themselves as a teacher, admin, or professional, instantly switch to a highly professional, advanced, and technical tone to assist them with pedagogy and deep research.`;
+const API_BASE_URL = `${import.meta.env.VITE_API_URL || 'https://gyanamitra.onrender.com'}/api`;
 
 export const aiService = {
+  /**
+   * Securely sends a standard text chat request through the Python backend.
+   */
   async sendMessage(chatHistory: { role: 'user' | 'model'; text: string }[], currentInput: any) {
     try {
-      const formattedContents = chatHistory.map(msg => ({
+      // 1. Format the history to match the Python backend's expected structure
+      const formattedHistory = chatHistory.map(msg => ({
         role: msg.role,
-        parts: [{ text: msg.text }]
+        parts: msg.text // Python backend expects parts to be a string
       }));
-      formattedContents.push({ role: 'user', parts: [{ text: currentInput.text }] });
 
-      const response = await fetch(`${BACKEND_URL}/ask`, {
+      // 2. Extract the actual text prompt
+      const promptText = typeof currentInput === 'string' ? currentInput : currentInput.text;
+
+      // 3. Send the secure request to Python
+      const response = await fetch(`${API_BASE_URL}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          formattedContents: formattedContents,
-          systemInstruction: SYSTEM_INSTRUCTION
+          prompt: promptText,
+          targetLanguage: "English", // Default to English for general service calls
+          history: formattedHistory
         })
       });
 
-      if (!response.ok) throw new Error(`Backend Error ${response.status}`);
+      if (!response.ok) {
+        throw new Error(`Backend Error ${response.status}`);
+      }
       
       const data = await response.json();
       return data.text;
 
     } catch (error) {
       console.error("🔴 Connection error:", error);
-      return "Unable to synchronize with AI Node. Is the Python server running?";
+      return "Unable to synchronize with the AI Node. Please check if the GyanMitra server is running.";
+    }
+  },
+
+  /**
+   * Securely analyzes an image through the Python backend.
+   */
+  async analyzeImage(imageBase64: string, promptText: string = "", targetLanguage: string = "English") {
+    try {
+      const response = await fetch(`${API_BASE_URL}/analyze-image`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          image_base64: imageBase64,
+          prompt: promptText,
+          targetLanguage: targetLanguage
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Backend Error ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return data.text;
+
+    } catch (error) {
+      console.error("🔴 Image Analysis error:", error);
+      return "Unable to analyze the image at this time. Please try again.";
     }
   }
 };
