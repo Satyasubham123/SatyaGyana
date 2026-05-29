@@ -8,11 +8,10 @@ import { cn } from '../lib/utils';
 import { updateUserProfile, addActivitySignal } from '../services/userService';
 import { contentService } from '../services/contentService';
 
+// 🚀 FIXED: We now extend Vite's existing environment interface instead of overwriting it
 declare global {
-  interface ImportMeta {
-    readonly env: {
-      readonly VITE_GEMINI_API_KEY?: string;
-    };
+  interface ImportMetaEnv {
+    readonly VITE_GEMINI_API_KEY?: string;
   }
 }
 
@@ -250,7 +249,7 @@ Each object must follow this scheme exactly:
             </div>
             <h2 className="text-3xl sm:text-4xl font-black uppercase italic tracking-tighter mb-2 italic text-main">Operation Complete</h2>
             <p className="text-secondary font-black uppercase tracking-widest text-[10px] sm:text-xs mb-8 sm:mb-10">
-               Cycle Reward: <span className="text-brand font-bold">50 XP Gain Cache</span> Added to Profile.
+                Cycle Reward: <span className="text-brand font-bold">50 XP Gain Cache</span> Added to Profile.
             </p>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8 sm:mb-10">
