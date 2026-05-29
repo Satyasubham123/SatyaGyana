@@ -58,8 +58,8 @@ export interface ActivitySignal {
 }
 
 // --- HELPERS ---
-const ADMIN_ACCOUNT = 'satyagyanedu@gmail.com';
-const VIP_ACCOUNTS = ['satyagyanedu@gmail.com', ADMIN_ACCOUNT];
+const ADMIN_ACCOUNT = 'satyagyanaedu@gmail.com';
+const VIP_ACCOUNTS = ['biswalsatya321@gmail.com', ADMIN_ACCOUNT];
 
 const USER_EDITABLE_FIELDS: (keyof UserProfile)[] = [
   'firstName', 'middleName', 'lastName', 'displayName',
