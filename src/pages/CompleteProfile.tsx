@@ -7,15 +7,18 @@ import { useUser } from '../contexts/UserContext';
 
 export default function CompleteProfile() {
   const navigate = useNavigate();
-  // 🚀 FIX: Pull user directly from Context instead of props
   const { user } = useUser();
+  
+  // 🚀 FIXED: Tell TypeScript to relax so we can read uid and displayName!
+  const usr = user as any;
   
   const [isSaving, setIsSaving] = useState(false);
   
   // 🚀 BULLETPROOF CHECK: Don't render until user exists
-  if (!user) return null;
+  if (!usr) return null;
 
-  const nameParts = (user?.displayName || '').split(' ');
+  // Now uses usr instead of user
+  const nameParts = (usr?.displayName || '').split(' ');
   
   const [formData, setFormData] = useState({
     firstName: nameParts[0] ? nameParts[0].toUpperCase() : '',
@@ -24,14 +27,13 @@ export default function CompleteProfile() {
     classLevel: '',
     state: '',
     medium: '',
-    gender: '' // 🚀 NEW: Added gender to state
+    gender: '' 
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!usr) return;
 
-    // 🚀 NEW: Added gender to the mandatory check
     if (!formData.firstName || !formData.lastName || !formData.classLevel || !formData.state || !formData.medium || !formData.gender) {
       toast.error("Please fill all mandatory fields.");
       return;
@@ -48,11 +50,16 @@ export default function CompleteProfile() {
         displayName: generatedDisplayName
       };
 
-      await updateUserProfile(user.uid, finalData);
-      toast.success("Registration complete!");
+      // 🚀 FIXED: Fallback to email if uid is undefined from Python backend
+      const userId = usr?.uid || usr?.email;
       
-      // Force a safe redirect to dashboard
-      window.location.href = '/dashboard';
+      if (userId) {
+        await updateUserProfile(userId, finalData);
+        toast.success("Registration complete!");
+        
+        // Force a safe redirect to dashboard
+        window.location.href = '/dashboard';
+      }
     } catch (error) {
       console.error(error);
       toast.error("Failed to save data. Try again.");
@@ -81,19 +88,16 @@ export default function CompleteProfile() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
              <div className="space-y-2">
                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1 flex items-center gap-2"><UserIcon className="h-3 w-3" /> First Name <span className="text-red-500">*</span></label>
-               {/* 🚀 FORCE UPPERCASE */}
                <input required value={formData.firstName} onChange={e => setFormData({...formData, firstName: e.target.value.toUpperCase()})} className="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand transition-all" placeholder="First Name" />
              </div>
              
              <div className="space-y-2">
                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1 flex items-center gap-2"><UserIcon className="h-3 w-3 text-slate-700" /> Middle Name</label>
-               {/* 🚀 FORCE UPPERCASE */}
                <input value={formData.middleName} onChange={e => setFormData({...formData, middleName: e.target.value.toUpperCase()})} className="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand transition-all" placeholder="Middle Name (Optional)" />
              </div>
 
              <div className="space-y-2 md:col-span-2">
                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1 flex items-center gap-2"><UserIcon className="h-3 w-3" /> Last Name <span className="text-red-500">*</span></label>
-               {/* 🚀 FORCE UPPERCASE */}
                <input required value={formData.lastName} onChange={e => setFormData({...formData, lastName: e.target.value.toUpperCase()})} className="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand transition-all" placeholder="Last Name" />
              </div>
           </div>
@@ -125,7 +129,6 @@ export default function CompleteProfile() {
               </select>
             </div>
 
-            {/* 🚀 NEW: Gender Selector placed perfectly in the grid */}
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1 flex items-center gap-2"><UserIcon className="h-3 w-3" /> Gender <span className="text-red-500">*</span></label>
               <select required value={formData.gender} onChange={e => setFormData({...formData, gender: e.target.value})} className="w-full bg-slate-950/80 border border-slate-800 px-4 py-3 rounded-xl text-white outline-none focus:border-brand transition-all appearance-none cursor-pointer">
