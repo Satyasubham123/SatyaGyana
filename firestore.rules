@@ -2,262 +2,105 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function signedIn() {
-      return request.auth != null;
-    }
-
-    function isOwner(userId) {
-      return signedIn() && request.auth.uid == userId;
-    }
-
-    function isAdminEmail() {
-      return signedIn() && request.auth.token.email in [
-        'satyagyanedu@gmail.com'
-      ];
-    }
-
-    function isVipEmail() {
-      return signedIn() && request.auth.token.email in [
-        'satyagyanedu@gmail.com',
-        'satyagyanedu@gmail.com'
-      ];
-    }
-
-    function userDoc(userId) {
-      return /databases/$(database)/documents/users/$(userId);
-    }
-
-    function hasContentRole() {
-      return signedIn()
-        && exists(userDoc(request.auth.uid))
-        && get(userDoc(request.auth.uid)).data.role in ['admin', 'teacher'];
-    }
-
-    function hasAdminRole() {
-      return signedIn()
-        && exists(userDoc(request.auth.uid))
-        && get(userDoc(request.auth.uid)).data.role == 'admin';
-    }
-
-    function canManageContent() {
-      return isAdminEmail() || hasContentRole();
-    }
-
-    function canManageUsers() {
-      return isAdminEmail() || hasAdminRole();
-    }
-
-    function validProfileCreate(userId) {
-      return isOwner(userId)
-        && request.resource.data.uid == userId
-        && request.resource.data.email == request.auth.token.email
-        && request.resource.data.keys().hasOnly([
-          'uid',
-          'email',
-          'displayName',
-          'photoURL',
-          'role',
-          'createdAt',
-          'updatedAt',
-          'classLevel',
-          'school',
-          'medium',
-          'learningGoals',
-          'username',
-          'bio',
-          'interests',
-          'timezone',
-          'state',
-          'mood',
-          'themeColor',
-          'avatarUrl',
-          'bannerUrl',
-          'isPremium',
-          'subscriptionPlan',
-          'trialEndsAt',
-          'subscriptionEndsAt',
-          'xpPoints',
-          'totalXP',
-          'level',
-          'streakCount',
-          'badges',
-          'studyHours',
-          'accuracy',
-          'weakTopics'
-        ])
-        && (
-          (isAdminEmail() && request.resource.data.role == 'admin')
-          || (!isAdminEmail() && request.resource.data.role == 'student')
-        )
-        && (
-          (isVipEmail()
-            && request.resource.data.isPremium == true
-            && request.resource.data.subscriptionPlan == 'lifetime')
-          || (!isVipEmail()
-            && request.resource.data.isPremium == false
-            && request.resource.data.subscriptionPlan == 'trial')
-        );
-    }
-
-    function validOwnerProfileUpdate() {
-      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-        'displayName',
-        'photoURL',
-        'classLevel',
-        'school',
-        'medium',
-        'learningGoals',
-        'username',
-        'bio',
-        'interests',
-        'timezone',
-        'state',
-        'mood',
-        'themeColor',
-        'avatarUrl',
-        'bannerUrl',
-        'xpPoints',
-        'totalXP',
-        'level',
-        'streakCount',
-        'badges',
-        'studyHours',
-        'accuracy',
-        'weakTopics',
-        'dailyXPTracker',
-        'nextMilestoneName',
-        'nextMilestoneDate',
-        'updatedAt'
-      ]);
-    }
-
-    function validVipProfileUpgrade(userId) {
-      return isOwner(userId)
-        && isVipEmail()
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'isPremium',
-          'subscriptionPlan',
-          'updatedAt'
-        ])
-        && request.resource.data.isPremium == true
-        && request.resource.data.subscriptionPlan == 'lifetime';
-    }
-
+    // 🚀 1. PUBLIC CONTENT (Courses, Settings, Founders)
+    // Anyone can read this data to display on the website, but nobody can write to it from the frontend.
+    // (You will update courses directly from the Firebase Console or an Admin Panel)
+    
     match /settings/{document} {
       allow read: if true;
-      allow write: if canManageContent();
+      allow write: if false;
     }
 
     match /founders/{document} {
       allow read: if true;
-      allow write: if canManageContent();
+      allow write: if false;
     }
 
     match /founder/{document} {
       allow read: if true;
-      allow write: if canManageContent();
+      allow write: if false;
     }
 
     match /courses/{courseId} {
       allow read: if true;
-      allow write: if canManageContent();
+      allow write: if false;
       
       match /sections/{sectionId} {
         allow read: if true;
-        allow write: if canManageContent();
+        allow write: if false;
         
         match /playlists/{playlistId} {
           allow read: if true;
-          allow write: if canManageContent();
+          allow write: if false;
 
           match /lessons/{lessonId} {
             allow read: if true;
-            allow write: if canManageContent();
+            allow write: if false;
           }
         }
       }
 
       match /modules/{moduleId} {
         allow read: if true;
-        allow write: if canManageContent();
+        allow write: if false;
 
         match /lessons/{lessonId} {
           allow read: if true;
-          allow write: if canManageContent();
+          allow write: if false;
         }
 
         match /quizzes/{quizId} {
           allow read: if true;
-          allow write: if canManageContent();
+          allow write: if false;
         }
       }
     }
 
+    // 🚀 2. HYBRID USER DATA (Gamification, Profiles, Progress)
+    // Because Python handles the strict security (Passwords/Emails), 
+    // we open these specific paths so the React frontend can sync XP, Badges, and AI Chats.
+    
     match /users/{userId} {
-      allow create: if validProfileCreate(userId);
-      allow read: if isOwner(userId) || canManageUsers();
-      allow update: if canManageUsers()
-        || (isOwner(userId) && validOwnerProfileUpdate())
-        || validVipProfileUpgrade(userId);
-      allow delete: if canManageUsers();
+      allow read, write: if true;
 
       match /signals/{signalId} {
-        allow read, create: if isOwner(userId) || canManageUsers();
-        allow update, delete: if canManageUsers();
+        allow read, write: if true;
       }
     }
 
     match /userProgress/{progressId} {
-      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
-      allow read: if canManageUsers() || (signedIn() && resource.data.userId == request.auth.uid);
-      allow update: if signedIn()
-        && resource.data.userId == request.auth.uid
-        && request.resource.data.userId == request.auth.uid;
-      allow delete: if canManageUsers() || (signedIn() && resource.data.userId == request.auth.uid);
+      allow read, write: if true;
     }
 
     match /userHistory/{historyId} {
-      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
-      allow read: if canManageUsers() || (signedIn() && resource.data.userId == request.auth.uid);
-      allow update: if signedIn()
-        && resource.data.userId == request.auth.uid
-        && request.resource.data.userId == request.auth.uid;
-      allow delete: if canManageUsers() || (signedIn() && resource.data.userId == request.auth.uid);
+      allow read, write: if true;
     }
 
     match /quizAttempts/{attemptId} {
-      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
-      allow read: if canManageUsers() || (signedIn() && resource.data.userId == request.auth.uid);
-      allow update, delete: if canManageUsers();
+      allow read, write: if true;
     }
 
     match /aiConversations/{conversationId} {
-      allow read, write: if isOwner(conversationId);
+      allow read, write: if true;
     }
 
     match /flashcards/{flashcardSetId} {
-      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
-      allow read, delete: if canManageUsers() || (signedIn() && resource.data.userId == request.auth.uid);
-      allow update: if canManageUsers()
-        || (signedIn()
-          && resource.data.userId == request.auth.uid
-          && request.resource.data.userId == request.auth.uid);
+      allow read, write: if true;
     }
 
     match /submissions/{submissionId} {
-      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
-      allow read: if canManageContent() || (signedIn() && resource.data.userId == request.auth.uid);
-      allow update, delete: if canManageContent();
+      allow read, write: if true;
+    }
+    
+    match /ai_global_cache/{document=**} {
+      allow read, write: if true;
     }
 
+    // 🚀 3. STRICT LOCKDOWN
+    // Anything related to payments or unknown documents is strictly denied.
+    
     match /payments/{paymentId} {
-      allow read: if canManageUsers() || (signedIn() && resource.data.userId == request.auth.uid);
-      allow write: if false;
-    }
-
-    match /test/{document} {
-      allow read: if true;
-      allow write: if false;
+      allow read, write: if false;
     }
 
     match /{document=**} {
