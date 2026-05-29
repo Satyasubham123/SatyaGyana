@@ -1,6 +1,6 @@
 import { doc, getDoc, setDoc, updateDoc, collection, getDocs, query, orderBy, limit, addDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { User } from 'firebase/auth';
+// 🚀 FIXED: We remove the strict Firebase User import so we can accept your Python backend user
 
 // --- INTERFACES ---
 export interface UserProfile {
@@ -40,7 +40,6 @@ export interface UserProfile {
   accuracy?: number;
   weakTopics?: string[];
   gender?: string;
-  // is_verified: boolean; // 🚀 NEW: Added Gender
   
   // Real-time dashboard tracking fields
   nextMilestoneDate?: Date | any; 
@@ -67,14 +66,20 @@ const USER_EDITABLE_FIELDS: (keyof UserProfile)[] = [
   'username', 'bio', 'interests', 'timezone', 'state', 'mood', 
   'themeColor', 'avatarUrl', 'bannerUrl', 'xpPoints', 'totalXP', 
   'level', 'streakCount', 'badges', 'studyHours', 'accuracy', 'weakTopics',
-  'nextMilestoneDate', 'nextMilestoneName', 'dailyXPTracker', 'gender' // 🚀 NEW: Added gender to editable fields
+  'nextMilestoneDate', 'nextMilestoneName', 'dailyXPTracker', 'gender'
 ];
 
 // Helper to convert Firestore Timestamps to JS Dates
 const toDate = (val: any) => (val?.toDate ? val.toDate() : new Date(val));
 
-export async function syncUserProfile(user: User): Promise<UserProfile> {
-  const userRef = doc(db, 'users', user.uid);
+// 🚀 FIXED: Accept 'any' so it works with both Python JWTs and standard Firebase users
+export async function syncUserProfile(user: any): Promise<UserProfile> {
+  // 🚀 FIXED: Safely fallback to using their email as the database ID if uid doesn't exist
+  const userId = user?.uid || user?.email;
+  
+  if (!userId) throw new Error("No valid user identifier found");
+
+  const userRef = doc(db, 'users', userId);
   const snap = await getDoc(userRef);
   
   if (snap.exists()) {
@@ -95,7 +100,7 @@ export async function syncUserProfile(user: User): Promise<UserProfile> {
   const isVip = VIP_ACCOUNTS.includes(email);
 
   const newProfile: UserProfile = {
-    uid: user.uid,
+    uid: userId,
     email,
     displayName: user.displayName || 'Student',
     photoURL: user.photoURL,
@@ -118,6 +123,7 @@ export async function syncUserProfile(user: User): Promise<UserProfile> {
 }
 
 export async function updateUserProfile(uid: string, data: Partial<UserProfile>) {
+  if (!uid) return;
   const userRef = doc(db, 'users', uid);
   const updates: any = {};
   for (const key of USER_EDITABLE_FIELDS) {
@@ -128,18 +134,19 @@ export async function updateUserProfile(uid: string, data: Partial<UserProfile>)
 
 export const isProfileComplete = (profile: UserProfile | null): boolean => {
   if (!profile) return false;
-  // 🚀 NEW: Added profile.gender to make it strictly compulsory!
   return !!(profile.firstName && profile.lastName && profile.classLevel && profile.state && profile.gender);
 };
 
 // --- ACTIVITY SIGNALS ---
 export async function addActivitySignal(uid: string, title: string, description: string, type: 'achievement' | 'learning' | 'system') {
+  if (!uid) return;
   try {
     await addDoc(collection(db, `users/${uid}/signals`), { title, description, type, timestamp: new Date(), read: false });
   } catch (error) { console.error("Signal Push Failed", error); }
 }
 
 export async function getUserSignals(uid: string): Promise<ActivitySignal[]> {
+  if (!uid) return [];
   const snap = await getDocs(query(collection(db, `users/${uid}/signals`), orderBy('timestamp', 'desc'), limit(10)));
   return snap.docs.map(doc => ({ id: doc.id, ...doc.data(), timestamp: toDate(doc.data().timestamp) })) as ActivitySignal[];
 }

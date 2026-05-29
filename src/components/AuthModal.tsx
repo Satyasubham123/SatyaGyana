@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Mail, Lock, User, ArrowRight, ShieldAlert, GraduationCap, BookOpen, MapPin, ShieldCheck } from 'lucide-react';
-// 🚀 ALL FIREBASE IMPORTS REMOVED
+import { X, Mail, Lock, User, ArrowRight, ShieldAlert, GraduationCap, MapPin, ShieldCheck, BookOpen } from 'lucide-react';
 
 type AuthMode = 'login' | 'signup' | 'forgot';
 type Designation = 'student' | 'admin';
@@ -11,7 +10,6 @@ interface AuthModalProps {
   onClose: () => void;
 }
 
-// Ensure this matches your running Python backend!
 const API_BASE_URL = `${import.meta.env.VITE_API_URL || 'https://gyanamitra.onrender.com'}/api`;
 
 export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
@@ -21,10 +19,9 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   
-  // Registration States (You will need to update your Python backend to accept these later!)
+  // Registration States
   const [designation, setDesignation] = useState<Designation>('student');
   const [firstName, setFirstName] = useState('');
-  const [middleName, setMiddleName] = useState('');
   const [lastName, setLastName] = useState('');
   const [classLevel, setClassLevel] = useState('');
   const [stateSelection, setStateSelection] = useState('');
@@ -42,7 +39,6 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     setEmail('');
     setPassword('');
     setFirstName('');
-    setMiddleName('');
     setLastName('');
     setClassLevel('');
     setStateSelection('');
@@ -63,15 +59,13 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
     try {
       if (mode === 'signup') {
-        // 🚀 1. Call Custom Python Registration API with ALL Data
         const response = await fetch(`${API_BASE_URL}/register`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
-            email: email, 
+            email: email.toLowerCase().trim(), 
             password: password,
             firstName: firstName,
-            middleName: middleName,
             lastName: lastName,
             classLevel: classLevel,
             state: stateSelection,
@@ -88,39 +82,33 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         }
         
         setMessage('Access Node created! Check your email to verify your identity.');
-        setTimeout(() => switchMode('login'), 5000);
+        setTimeout(() => switchMode('login'), 4000);
 
       } else if (mode === 'login') {
         
-        // STRICT ADMIN LOGIN CHECK
-        if (designation === 'admin' && !['satyagyanaedu@gmail.com'].includes(email.toLowerCase())) {
+        if (designation === 'admin' && !['satyagyanaedu@gmail.com'].includes(email.toLowerCase().trim())) {
           setError("SECURITY BREACH: Unauthorized email address for Admin designation.");
           setIsLoading(false);
           return;
         }
 
-        // 🚀 2. Call Custom Python Login API
         const response = await fetch(`${API_BASE_URL}/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password })
+          body: JSON.stringify({ email: email.toLowerCase().trim(), password })
         });
 
         const data = await response.json();
 
         if (!response.ok) {
-           // This will catch "Invalid password" or "Please verify your email" from FastAPI
            throw new Error(data.detail || "Authentication failure");
         }
         
-        // 🚀 3. Save the JWT Token to LocalStorage!
         localStorage.setItem('gyanamitra_token', data.access_token);
-        
-        // Reload page to let UserContext pick up the new token
         window.location.reload();
         
       } else if (mode === 'forgot') {
-        setError('Password recovery must be implemented in the custom backend.');
+        setError('Password recovery must be requested through admin currently.');
       }
     } catch (err: any) {
       console.error(err);
@@ -128,10 +116,6 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleGoogleAuth = async () => {
-    setError("Google login is temporarily disabled while transitioning to the custom backend.");
   };
 
   if (!isOpen) return null;
@@ -177,10 +161,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 </button>
                 <button
                   type="button"
-                  onClick={() => { 
-                    setDesignation('admin'); 
-                    setMode('login');
-                  }}
+                  onClick={() => { setDesignation('admin'); setMode('login'); }}
                   className={`flex-1 flex items-center justify-center gap-2 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all z-10 ${designation === 'admin' ? 'bg-purple-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
                 >
                   <ShieldCheck className="w-4 h-4" /> Admin Override
@@ -204,10 +185,10 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-2">Last Name <span className="text-red-500">*</span></label>
                     <div className="relative">
-                      <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
                       <input 
                         type="text" required value={lastName} onChange={e => setLastName(e.target.value.toUpperCase())}
-                        className="w-full bg-slate-800 border border-slate-700 p-4 pl-12 rounded-2xl text-white font-bold outline-none focus:border-brand transition-all"
+                        className="w-full bg-slate-800 border border-slate-700 p-3.5 pl-10 rounded-2xl text-white font-bold outline-none focus:border-brand transition-all text-sm"
                       />
                     </div>
                   </div>
@@ -218,27 +199,48 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-2">Class <span className="text-red-500">*</span></label>
                     <div className="relative">
                       <GraduationCap className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-                      <select 
-                        required value={classLevel} onChange={e => setClassLevel(e.target.value)}
-                        className="w-full bg-slate-800 border border-slate-700 p-3.5 pl-10 rounded-2xl text-white font-bold outline-none focus:border-brand transition-all appearance-none cursor-pointer text-sm"
-                      >
+                      <select required value={classLevel} onChange={e => setClassLevel(e.target.value)} className="w-full bg-slate-800 border border-slate-700 p-3.5 pl-10 rounded-2xl text-white font-bold outline-none focus:border-brand transition-all appearance-none cursor-pointer text-sm">
                         <option value="" disabled>Select</option>
                         {['Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10'].map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
                     </div>
                   </div>
-
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-2">State/UT <span className="text-red-500">*</span></label>
                     <div className="relative">
                       <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-                      <select 
-                        required value={stateSelection} onChange={e => setStateSelection(e.target.value)}
-                        className="w-full bg-slate-800 border border-slate-700 p-3.5 pl-10 rounded-2xl text-white font-bold outline-none focus:border-brand transition-all appearance-none cursor-pointer text-sm"
-                      >
+                      <select required value={stateSelection} onChange={e => setStateSelection(e.target.value)} className="w-full bg-slate-800 border border-slate-700 p-3.5 pl-10 rounded-2xl text-white font-bold outline-none focus:border-brand transition-all appearance-none cursor-pointer text-sm">
                         <option value="" disabled>Select</option>
                         <option value="Odisha">Odisha</option>
                         <option value="Delhi">Delhi</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 🚀 FIXED: Added Missing Medium and Gender Inputs! */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-2">Medium <span className="text-red-500">*</span></label>
+                    <div className="relative">
+                      <BookOpen className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                      <select required value={medium} onChange={e => setMedium(e.target.value)} className="w-full bg-slate-800 border border-slate-700 p-3.5 pl-10 rounded-2xl text-white font-bold outline-none focus:border-brand transition-all appearance-none cursor-pointer text-sm">
+                        <option value="" disabled>Select</option>
+                        <option value="English">English</option>
+                        <option value="Hindi">Hindi</option>
+                        <option value="Odia">Odia</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-2">Gender <span className="text-red-500">*</span></label>
+                    <div className="relative">
+                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                      <select required value={gender} onChange={e => setGender(e.target.value)} className="w-full bg-slate-800 border border-slate-700 p-3.5 pl-10 rounded-2xl text-white font-bold outline-none focus:border-brand transition-all appearance-none cursor-pointer text-sm">
+                        <option value="" disabled>Select</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
                       </select>
                     </div>
                   </div>
@@ -264,11 +266,6 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center ml-2">
                   <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Password <span className="text-red-500">*</span></label>
-                  {mode === 'login' && (
-                    <button type="button" onClick={() => switchMode('forgot')} className="text-[9px] font-black uppercase text-brand hover:underline tracking-widest">
-                      FORGOT?
-                    </button>
-                  )}
                 </div>
                 <div className="relative">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
@@ -289,7 +286,6 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             </button>
           </form>
 
-          {/* 🚀 Dynamic Bottom Links */}
           <div className="mt-6 text-center">
             {designation === 'student' ? (
               mode === 'login' ? (
