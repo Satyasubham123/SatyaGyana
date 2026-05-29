@@ -39,7 +39,8 @@ export interface UserProfile {
   studyHours?: number;
   accuracy?: number;
   weakTopics?: string[];
-  gender?: string; // 🚀 NEW: Added Gender
+  gender?: string;
+  // is_verified: boolean; // 🚀 NEW: Added Gender
   
   // Real-time dashboard tracking fields
   nextMilestoneDate?: Date | any; 
