@@ -78,7 +78,7 @@ export default function AITeacher() {
       
       if (currentPreview) {
         // 🚀 ROUTE 1: Image Analysis via Custom Python Backend
-        response = await axios.post('http://localhost:8000/api/analyze-image', {
+        response = await axios.post(`${import.meta.env.VITE_API_URL || 'https://gyanamitra.onrender.com'}/api/analyze-image`, {
           image_base64: currentPreview,
           prompt: userMessage,
           targetLanguage: language
@@ -93,9 +93,7 @@ export default function AITeacher() {
           parts: msg.text
         }));
 
-        response = await axios.post('http://localhost:8000/api/chat', {
-          prompt: userMessage,
-          targetLanguage: language,
+        response = await axios.post(`${import.meta.env.VITE_API_URL || 'https://gyanamitra.onrender.com'}/api/chat`, {
           history: historyForBackend 
         });
       }

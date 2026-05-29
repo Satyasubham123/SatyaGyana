@@ -30,7 +30,7 @@ export default function VisualDictionary() {
 
     try {
       // 🚀 NEW: Pointing to your custom local Python backend!
-      const response = await axios.post('http://localhost:8000/api/dictionary/search', 
+      const response = await axios.post(`${import.meta.env.VITE_API_URL || 'https://gyanamitra.onrender.com'}/api/dictionary/search`, 
         {
           word: searchInput.trim(),
           targetLanguage: 'Odia'

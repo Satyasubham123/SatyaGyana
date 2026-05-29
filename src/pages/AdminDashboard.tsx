@@ -227,8 +227,7 @@ export default function AdminDashboard({ profile }: AdminDashboardProps) {
     try {
       // 1. Fetch from your Python Backend
       const token = localStorage.getItem('gyanamitra_token');
-      const usersResponse = await fetch('http://localhost:8000/api/admin/users', {
-        headers: { 'Authorization': `Bearer ${token}` }
+      const usersResponse = await fetch(`${import.meta.env.VITE_API_URL || 'https://gyanamitra.onrender.com'}/api/admin/users`, {        headers: { 'Authorization': `Bearer ${token}` }
       });
       
       const allUsers = usersResponse.ok ? await usersResponse.json() : [];
@@ -613,7 +612,7 @@ Each object must follow this scheme exactly:
 }`;
 
       // 🚀 1. Call Custom Python Backend instead of Google!
-      const response = await fetch('http://localhost:8000/api/chat', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://gyanamitra.onrender.com'}/api/chat`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json'

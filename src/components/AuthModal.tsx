@@ -12,7 +12,7 @@ interface AuthModalProps {
 }
 
 // Ensure this matches your running Python backend!
-const API_BASE_URL = 'http://localhost:8000/api'; 
+const API_BASE_URL = `${import.meta.env.VITE_API_URL || 'https://gyanamitra.onrender.com'}/api`;
 
 export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [mode, setMode] = useState<AuthMode>('login');
