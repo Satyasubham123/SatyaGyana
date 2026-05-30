@@ -1,5 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { syncUserProfile, UserProfile } from '../services/userService';
+import { doc, setDoc, increment, serverTimestamp } from 'firebase/firestore';
+import { db } from '../lib/firebase'; 
+import XpPopup from '../components/XpPopup';
 
 const API_BASE_URL = `${import.meta.env.VITE_API_URL || 'https://gyanamitra.onrender.com'}/api`;
 
@@ -8,6 +11,8 @@ interface UserContextType {
   profile: UserProfile | null;
   loading: boolean;
   logout: () => void;
+  // 🚀 Added our new global XP function!
+  addXP: (amount: number, reason: string) => Promise<void>;
 }
 
 const UserContext = createContext<UserContextType>({
@@ -15,6 +20,7 @@ const UserContext = createContext<UserContextType>({
   profile: null,
   loading: true,
   logout: () => {},
+  addXP: async () => {},
 });
 
 export const useUser = () => useContext(UserContext);
@@ -23,6 +29,9 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<{ email: string; uid: string; emailVerified: boolean } | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  
+  // 🚀 GAMIFICATION STATE
+  const [xpNotification, setXpNotification] = useState<{amount: number, reason: string} | null>(null);
 
   useEffect(() => {
     const fetchFullProfile = async () => {
@@ -36,7 +45,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       try {
-        // 🚀 1. Verify token & get secure data from Python Backend
         const response = await fetch(`${API_BASE_URL}/users/me`, {
           method: 'GET',
           headers: {
@@ -48,26 +56,22 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (response.ok) {
           const pyUser = await response.json();
           
-          // Construct a hybrid user object that satisfies our React Router
           const hybridUser = { 
             email: pyUser.email, 
-            uid: pyUser.email, // Use email as unique ID for Firestore
+            uid: pyUser.email, 
             emailVerified: pyUser.is_verified 
           };
           
           setUser(hybridUser);
 
-          // 🚀 2. Sync with Firestore to grab Gamification Data (XP, Badges, Level)
-          // We merge the Python strict data with the Firestore dynamic data
           const firestoreGamification = await syncUserProfile(hybridUser);
           
           setProfile({
             ...firestoreGamification,
-            ...pyUser // Python data overrides Firestore data for secure fields (role, plan)
+            ...pyUser 
           });
 
         } else {
-          // Token expired or invalid
           localStorage.removeItem('gyanamitra_token');
           setUser(null);
           setProfile(null);
@@ -89,9 +93,42 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     window.location.reload();
   };
 
+  // 🚀 THE GLOBAL GAMIFICATION ENGINE
+  const addXP = async (amount: number, reason: string) => {
+    if (!user || !user.uid) return;
+    
+    try {
+      const userRef = doc(db, 'users', user.uid);
+      
+      // Securely tell Firebase to do the math and add the XP
+      await setDoc(userRef, {
+        totalXP: increment(amount),
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+      
+      // Trigger the visual popup on the screen
+      setXpNotification({ amount, reason });
+      
+      // Update local state instantly so the UI profile level bar updates without refreshing!
+      setProfile(prev => prev ? { ...prev, totalXP: (prev.totalXP || 0) + amount } as UserProfile : prev);
+      
+    } catch (error) {
+      console.error("Failed to add XP:", error);
+    }
+  };
+
   return (
-    <UserContext.Provider value={{ user, profile, loading, logout }}>
+    <UserContext.Provider value={{ user, profile, loading, logout, addXP }}>
       {children}
+      
+      {/* 🚀 Render the Gamification Popup on top of everything! */}
+      {xpNotification && (
+        <XpPopup 
+          amount={xpNotification.amount} 
+          reason={xpNotification.reason} 
+          onClose={() => setXpNotification(null)} 
+        />
+      )}
     </UserContext.Provider>
   );
 };
