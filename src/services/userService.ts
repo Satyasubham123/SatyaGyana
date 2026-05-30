@@ -103,7 +103,7 @@ export async function syncUserProfile(user: any): Promise<UserProfile> {
     uid: userId,
     email,
     displayName: user.displayName || 'Student',
-    photoURL: user.photoURL,
+    photoURL: user.photoURL || null, // 🚀 FIXED: Protected from 'undefined' crash
     role: isAdmin ? 'admin' : 'student',
     createdAt: now,
     updatedAt: now,
