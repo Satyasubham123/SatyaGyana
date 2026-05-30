@@ -27,6 +27,7 @@ import AdminDashboard from './pages/AdminDashboard';
 // Components
 import Navbar from './components/Navbar';
 import InstallAppBanner from './components/InstallAppBanner';
+import ResetPassword from './pages/ResetPassword';
 
 // Protected Route Wrapper
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -76,6 +77,9 @@ function AppContent() {
         <Routes>
           <Route path="/" element={usr ? <Navigate to="/dashboard" /> : <LandingPage />} />
           
+          {/* 🚀 ADDED: The Reset Password Route! (It must be accessible without logging in) */}
+          <Route path="/reset-password" element={<ResetPassword />} />
+          
           {/* 🚀 FIXED: Safely bypass the emailVerified check */}
           <Route path="/complete-profile" element={usr && usr.emailVerified !== false && !isProfileComplete(prof) ? <CompleteProfile /> : <Navigate to="/dashboard" />} />
           
@@ -101,7 +105,6 @@ function AppContent() {
           <Route path="/dictionary" element={<ProtectedRoute><VisualDictionary /></ProtectedRoute>} />
         </Routes>
       </main>
-
       <InstallAppBanner />
       
     </div>
