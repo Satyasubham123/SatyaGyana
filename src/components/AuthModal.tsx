@@ -108,7 +108,22 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         window.location.reload();
         
       } else if (mode === 'forgot') {
-        setError('Password recovery must be requested through admin currently.');
+        // 🚀 THE RECOVERY API CALL
+        const response = await fetch(`${API_BASE_URL}/forgot-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email.toLowerCase().trim() })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+           // This will show the 1-hour or 24-hour cooldown messages directly to the user!
+           throw new Error(data.detail || "Failed to process recovery request.");
+        }
+        
+        setMessage(data.message);
+        setTimeout(() => switchMode('login'), 8000); // Wait 8 seconds so they can read the warning
       }
     } catch (err: any) {
       console.error(err);
@@ -143,7 +158,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           )}
           
           {message && (
-            <div className="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-widest rounded-xl text-center">
+            <div className="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-widest rounded-xl text-center leading-relaxed">
               {message}
             </div>
           )}
@@ -218,7 +233,6 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   </div>
                 </div>
 
-                {/* 🚀 FIXED: Added Missing Medium and Gender Inputs! */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-2">Medium <span className="text-red-500">*</span></label>
@@ -266,6 +280,14 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center ml-2">
                   <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Password <span className="text-red-500">*</span></label>
+                  
+                  {/* 🚀 FIXED: The FORGOT button is now visibly here! */}
+                  {mode === 'login' && (
+                    <button type="button" onClick={() => switchMode('forgot')} className="text-[10px] font-black uppercase text-[#2563EB] hover:underline tracking-widest">
+                      FORGOT?
+                    </button>
+                  )}
+                  
                 </div>
                 <div className="relative">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
@@ -281,7 +303,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
               type="submit" disabled={isLoading}
               className={`w-full py-4 mt-6 text-white rounded-2xl font-black uppercase tracking-[0.1em] text-xs shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2 ${designation === 'admin' ? 'bg-purple-600 hover:bg-purple-700 shadow-purple-600/30' : 'bg-[#2563EB] hover:bg-blue-600 shadow-blue-600/30'}`}
             >
-              {isLoading ? 'PROCESSING...' : mode === 'login' && designation === 'admin' ? 'AUTHENTICATE ADMIN' : mode === 'login' ? 'AUTHENTICATE' : mode === 'signup' ? 'INITIALIZE NODE' : 'DISPATCH LINK'} 
+              {isLoading ? 'PROCESSING...' : mode === 'login' && designation === 'admin' ? 'AUTHENTICATE ADMIN' : mode === 'login' ? 'AUTHENTICATE' : mode === 'signup' ? 'INITIALIZE NODE' : 'DISPATCH RECOVERY LINK'} 
               {!isLoading && <ArrowRight className="h-4 w-4" />}
             </button>
           </form>
@@ -293,6 +315,10 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   NO ACCESS NODE? <button onClick={() => switchMode('signup')} className="text-[#2563EB] hover:underline">Create One</button>
                 </p>
               ) : mode === 'signup' ? (
+                <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest">
+                  RETURN TO <button onClick={() => switchMode('login')} className="text-[#2563EB] hover:underline">System Login</button>
+                </p>
+              ) : mode === 'forgot' ? (
                 <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest">
                   RETURN TO <button onClick={() => switchMode('login')} className="text-[#2563EB] hover:underline">System Login</button>
                 </p>
