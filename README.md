@@ -1,20 +1,20 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# 🚀 GyanMitra (SatyaGyana)
 
-# Run and deploy your AI Studio app
+**GyanMitra** is an intelligent, AI-powered EdTech ecosystem designed to provide adaptive learning, personalized mentorship, and real-time academic intelligence to students in Odisha. 
 
-This contains everything you need to run your app locally.
+## ✨ Key Features
+* **Satya Intelligence Feed:** Receive daily academic briefings, exam tips, and study strategies synthesized by AI, delivered automatically at 7:00 AM IST.
+* **Word of the Day:** Expand your vocabulary with daily AI-generated words, complete with Odia/Hindi translations, mnemonics, and visual aids.
+* **AI Mentor:** A personalized tutoring engine to assist with complex economic theories, statistics, and subject-specific queries.
+* **Gamified Learning:** Track your progress, earn experience points (XP), and maintain daily streaks to stay motivated.
+* **Smart Library:** Access class-specific study materials and textbooks directly through an integrated, secure interface.
 
-View your app in AI Studio: https://ai.studio/apps/f9e4d06c-e126-46a2-9fd7-6dc7c00cbd48
+## 🛠 Tech Stack
+* **Frontend:** React, Tailwind CSS, Framer Motion
+* **Backend:** FastAPI (Python), Uvicorn
+* **Database:** Supabase (Caching), Firebase (User Data)
+* **AI Integration:** Google Gemini & Groq (Llama-3)
+* **Automation:** APScheduler (Cron Jobs) for daily data synthesis and cleanup
 
-## Run Locally
-
-**Prerequisites:**  Node.js
-
-
-1. Install dependencies:
-   `npm install`
-2. Copy `.env.example` to `.env.local` and set your Gemini/Razorpay values
-3. Run the app:
-   `npm run dev`
+## 📜 License
+This project is for educational purposes. Feel free to explore the code!
