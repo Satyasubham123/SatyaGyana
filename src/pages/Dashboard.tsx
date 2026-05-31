@@ -17,6 +17,7 @@ import { Link } from 'react-router-dom';
 import SecureBookReader from '../components/SecureBookReader';
 import { BookOpen } from 'lucide-react'; 
 import StatsSummary from '../components/StatsSummary';
+import DailyNewsWidget from '../components/DailyNewsWidget';
 
 declare global {
   interface ImportMetaEnv {
@@ -606,6 +607,7 @@ export default function Dashboard() {
                  </div>
               </div>
            </div>
+           <DailyNewsWidget />
         </div>
       </div>
       )}
