@@ -18,6 +18,7 @@ import SecureBookReader from '../components/SecureBookReader';
 import { BookOpen } from 'lucide-react'; 
 import StatsSummary from '../components/StatsSummary';
 import DailyNewsWidget from '../components/DailyNewsWidget';
+import WordOfTheDay from '../components/WordOfTheDay';
 
 declare global {
   interface ImportMetaEnv {
@@ -607,6 +608,7 @@ export default function Dashboard() {
                  </div>
               </div>
            </div>
+           <WordOfTheDay />
            <DailyNewsWidget />
         </div>
       </div>
