@@ -1,6 +1,5 @@
 import { doc, getDoc, setDoc, updateDoc, collection, getDocs, query, orderBy, limit, addDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-// 🚀 FIXED: We remove the strict Firebase User import so we can accept your Python backend user
 
 // --- INTERFACES ---
 export interface UserProfile {
@@ -72,9 +71,7 @@ const USER_EDITABLE_FIELDS: (keyof UserProfile)[] = [
 // Helper to convert Firestore Timestamps to JS Dates
 const toDate = (val: any) => (val?.toDate ? val.toDate() : new Date(val));
 
-// 🚀 FIXED: Accept 'any' so it works with both Python JWTs and standard Firebase users
 export async function syncUserProfile(user: any): Promise<UserProfile> {
-  // 🚀 FIXED: Safely fallback to using their email as the database ID if uid doesn't exist
   const userId = user?.uid || user?.email;
   
   if (!userId) throw new Error("No valid user identifier found");
@@ -103,7 +100,7 @@ export async function syncUserProfile(user: any): Promise<UserProfile> {
     uid: userId,
     email,
     displayName: user.displayName || 'Student',
-    photoURL: user.photoURL || null, // 🚀 FIXED: Protected from 'undefined' crash
+    photoURL: user.photoURL || null,
     role: isAdmin ? 'admin' : 'student',
     createdAt: now,
     updatedAt: now,
@@ -124,12 +121,48 @@ export async function syncUserProfile(user: any): Promise<UserProfile> {
 
 export async function updateUserProfile(uid: string, data: Partial<UserProfile>) {
   if (!uid) return;
+
+  // 1. UPDATE FIREBASE (For real-time UI and stats syncing)
   const userRef = doc(db, 'users', uid);
   const updates: any = {};
   for (const key of USER_EDITABLE_FIELDS) {
     if (data[key] !== undefined) updates[key] = data[key];
   }
   await updateDoc(userRef, { ...updates, updatedAt: new Date() });
+
+  // 2. UPDATE PYTHON BACKEND (To permanently fix the Ghost Save bug for Bio & Names)
+  try {
+    const token = localStorage.getItem("token") || localStorage.getItem("access_token");
+    if (token) {
+      // Setup the API URL (falls back to local development server if environment variable is missing)
+      const API_URL = import.meta.env.VITE_API_URL || "http://localhost:10000"; 
+      
+      // Map the Firebase data to the exact keys expected by our new Python Pydantic Model
+      const pythonUpdateData: any = {};
+      if (data.firstName !== undefined) pythonUpdateData.firstName = data.firstName;
+      if (data.middleName !== undefined) pythonUpdateData.middleName = data.middleName;
+      if (data.lastName !== undefined) pythonUpdateData.lastName = data.lastName;
+      if (data.bio !== undefined) pythonUpdateData.bio = data.bio;
+      if (data.classLevel !== undefined) pythonUpdateData.classLevel = data.classLevel;
+      if (data.state !== undefined) pythonUpdateData.state = data.state;
+      if (data.medium !== undefined) pythonUpdateData.medium = data.medium;
+      if (data.gender !== undefined) pythonUpdateData.gender = data.gender;
+
+      // Only send the request if there is actually data to update
+      if (Object.keys(pythonUpdateData).length > 0) {
+        await fetch(`${API_URL}/api/users/me`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          },
+          body: JSON.stringify(pythonUpdateData)
+        });
+      }
+    }
+  } catch (err) {
+    console.error("Failed to sync profile updates with Python backend:", err);
+  }
 }
 
 export const isProfileComplete = (profile: UserProfile | null): boolean => {
