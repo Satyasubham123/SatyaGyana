@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import.meta.env.VITE_API_URL
 import { User as FirebaseUser } from 'firebase/auth';
 import { 
   collection, 
@@ -13,7 +12,8 @@ import { db } from '../lib/firebase';
 import { supabase } from '../lib/supabase'; // 🚀 ADDED SUPABASE IMPORT
 import { UserProfile } from '../services/userService';
 import * as contentService from '../services/contentServiceSupabase';
-import { Course, Section, Playlist, Lesson, Submission } from '../services/contentService';import { motion, AnimatePresence } from 'framer-motion';
+import { Course, Section, Playlist, Lesson, Submission } from '../services/contentService';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LayoutDashboard, 
   Users, 
