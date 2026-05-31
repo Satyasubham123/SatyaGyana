@@ -66,7 +66,7 @@ export default function DailyNewsWidget() {
             <Newspaper className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="text-lg font-black text-white italic uppercase tracking-tighter">Gyan Intelligence Feed</h3>
+            <h3 className="text-lg font-black text-white italic uppercase tracking-tighter">Satya Intelligence Feed</h3>
             <p className="text-[9px] font-black uppercase text-slate-500 tracking-widest">Autopilot Sync Active</p>
           </div>
         </div>
