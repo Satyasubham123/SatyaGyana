@@ -135,8 +135,7 @@ export async function updateUserProfile(uid: string, data: Partial<UserProfile>)
     const token = localStorage.getItem("token") || localStorage.getItem("access_token");
     if (token) {
       // Setup the API URL (falls back to local development server if environment variable is missing)
-      const API_URL = import.meta.env.VITE_API_URL || "http://localhost:10000"; 
-      
+      const API_URL = import.meta.env.VITE_API_URL || "https://gyanamitra.onrender.com";      
       // Map the Firebase data to the exact keys expected by our new Python Pydantic Model
       const pythonUpdateData: any = {};
       if (data.firstName !== undefined) pythonUpdateData.firstName = data.firstName;
