@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BookA, Sparkles, Volume2, Image as ImageIcon } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { BookA, Sparkles, Volume2, Calendar } from 'lucide-react';
 
 interface DailyWord {
   word_english: string;
@@ -17,11 +16,22 @@ interface DailyWord {
 
 export default function WordOfTheDay() {
   const [word, setWord] = useState<DailyWord | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchWord = async () => {
-      const { data } = await supabase.from('daily_word').select('*').limit(1).single();
-      if (data) setWord(data);
+      try {
+        const API_URL = import.meta.env.VITE_API_URL || "https://gyanamitra.onrender.com";
+        const res = await fetch(`${API_URL}/api/daily-word`);
+        if (res.ok) {
+            const data = await res.json();
+            if (data) setWord(data);
+        }
+      } catch (err) {
+        console.error("Failed to load Word of the Day", err);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchWord();
   }, []);
@@ -33,7 +43,22 @@ export default function WordOfTheDay() {
     window.speechSynthesis.speak(utterance);
   };
 
-  if (!word) return null;
+  if (loading) {
+    return (
+      <div className="bg-slate-900 border border-slate-800 rounded-[32px] p-12 shadow-2xl flex flex-col items-center justify-center min-h-[300px]">
+        <div className="w-8 h-8 border-4 border-brand border-t-transparent rounded-full animate-spin mb-4"></div>
+      </div>
+    );
+  }
+
+  if (!word) {
+    return (
+      <div className="bg-slate-900 border border-slate-800 rounded-[32px] p-12 shadow-2xl flex flex-col items-center justify-center min-h-[300px] text-center">
+        <Calendar className="h-10 w-10 text-slate-700 mb-3" />
+        <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Awaiting 07:00 AM Vocabulary Sync...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-[32px] shadow-2xl overflow-hidden group">
@@ -80,13 +105,13 @@ export default function WordOfTheDay() {
           <div>
             <p className="text-[9px] font-black uppercase text-slate-500 tracking-widest mb-2">Synonyms</p>
             <div className="flex flex-wrap gap-1">
-              {word.synonyms.map(s => <span key={s} className="text-[9px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded">{s}</span>)}
+              {word.synonyms?.map(s => <span key={s} className="text-[9px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded">{s}</span>)}
             </div>
           </div>
           <div>
             <p className="text-[9px] font-black uppercase text-slate-500 tracking-widest mb-2">Antonyms</p>
             <div className="flex flex-wrap gap-1">
-              {word.antonyms.map(s => <span key={s} className="text-[9px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded">{s}</span>)}
+              {word.antonyms?.map(s => <span key={s} className="text-[9px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded">{s}</span>)}
             </div>
           </div>
         </div>

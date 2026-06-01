@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Newspaper, Bell, Sparkles, Calendar, ChevronRight, Loader2, Award } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { supabase } from '../lib/supabase';
 
 interface NewsItem {
   id: string;
   title: string;
   summary: string;
   category: string;
-  published_at: string;
+  published_at?: string;
+  created_at?: string;
 }
 
 export default function DailyNewsWidget() {
@@ -18,24 +18,23 @@ export default function DailyNewsWidget() {
   const [selectedItem, setSelectedItem] = useState<NewsItem | null>(null);
   const [hasReadToday, setHasReadToday] = useState(false);
 
-  // Load daily news instantly from Supabase public cache
   useEffect(() => {
     const loadNews = async () => {
       setLoading(true);
       try {
-        let req = supabase
-          .from('daily_news')
-          .select('*')
-          .order('published_at', { ascending: false })
-          .limit(3);
-
-        if (filter !== 'all') {
-          req = req.eq('category', filter);
-        }
+        const API_URL = import.meta.env.VITE_API_URL || "https://gyanamitra.onrender.com";
+        const res = await fetch(`${API_URL}/api/daily-news`);
         
-        const { data, error } = await req;
-        if (error) throw error;
-        if (data) setFeed(data);
+        if (!res.ok) throw new Error("Failed to fetch feed");
+        
+        const data: NewsItem[] = await res.json();
+        
+        // Handle filtering on the frontend
+        if (filter !== 'all') {
+          setFeed(data.filter(item => item.category === filter));
+        } else {
+          setFeed(data.slice(0, 3)); // Keep top 3 for 'all'
+        }
       } catch (err) {
         console.error("Error connecting to intelligence feed:", err);
       } finally {
@@ -45,21 +44,15 @@ export default function DailyNewsWidget() {
     loadNews();
   }, [filter]);
 
-  // Handle claimable XP for reading morning news
   const claimNewsXP = () => {
     if (hasReadToday) return;
     setHasReadToday(true);
-    
-    // Global Gamification Hook integration point
-    // If your addXP method exists in UserContext, trigger it here:
-    // addXP(5, "Daily Intel briefing digested!");
     alert("🏆 +5 XP: Daily Intel briefing digested!");
   };
 
   return (
     <div className="bg-slate-900 border border-slate-800 p-6 rounded-[32px] shadow-2xl space-y-6 relative overflow-hidden">
       
-      {/* Header and Filter Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-500 border border-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.1)]">
@@ -88,11 +81,10 @@ export default function DailyNewsWidget() {
         </div>
       </div>
 
-      {/* Main Stream Area */}
       {loading ? (
         <div className="py-12 flex flex-col items-center justify-center gap-3">
           <Loader2 className="h-6 w-6 text-blue-500 animate-spin" />
-          <p className="text-[10px] font-black uppercase text-slate-600 tracking-widest">Querying Supabase Cache...</p>
+          <p className="text-[10px] font-black uppercase text-slate-600 tracking-widest">Querying Secure Data Node...</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -124,7 +116,7 @@ export default function DailyNewsWidget() {
                     {item.category}
                   </span>
                   <span className="text-[8px] font-bold text-slate-600">
-                    {new Date(item.published_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} IST
+                    {item.published_at || item.created_at ? new Date(item.published_at || item.created_at!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just Now'}
                   </span>
                 </div>
                 <h4 className="text-white font-bold text-sm truncate group-hover:text-blue-400 transition-colors">
@@ -148,7 +140,6 @@ export default function DailyNewsWidget() {
         </div>
       )}
 
-      {/* Expanded Modal Layer */}
       <AnimatePresence>
         {selectedItem && (
           <motion.div 
@@ -169,9 +160,6 @@ export default function DailyNewsWidget() {
                     selectedItem.category === 'academic' ? 'bg-amber-500/10 text-amber-500' : 'bg-purple-500/10 text-purple-500'
                   }`}>
                     {selectedItem.category}
-                  </span>
-                  <span className="text-[10px] font-bold text-slate-500">
-                    {new Date(selectedItem.published_at).toLocaleDateString()}
                   </span>
                 </div>
                 <button 
@@ -202,7 +190,6 @@ export default function DailyNewsWidget() {
           </motion.div>
         )}
       </AnimatePresence>
-
     </div>
   );
 }
