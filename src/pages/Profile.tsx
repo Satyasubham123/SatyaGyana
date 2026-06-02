@@ -90,6 +90,7 @@ export default function Profile() {
           await updateUserProfile(userId, finalData);
           toast.success('Profile updated successfully.', { icon: '✅' });
           setActiveTab('profile');
+          window.location.reload();
       }
     } catch (err) {
       toast.error('Data transmission failed.');
