@@ -182,3 +182,40 @@ export async function getUserSignals(uid: string): Promise<ActivitySignal[]> {
   const snap = await getDocs(query(collection(db, `users/${uid}/signals`), orderBy('timestamp', 'desc'), limit(10)));
   return snap.docs.map(doc => ({ id: doc.id, ...doc.data(), timestamp: toDate(doc.data().timestamp) })) as ActivitySignal[];
 }
+
+// --- GAMIFICATION ENGINE ---
+export const addXPToUser = async (uid: string, xpAmount: number, reason: string) => {
+  if (!uid) return null;
+  
+  try {
+    // 1. Get the current user profile from Firebase to see their current XP
+    const userRef = doc(db, 'users', uid);
+    const snap = await getDoc(userRef);
+    
+    if (snap.exists()) {
+      const data = snap.data();
+      const currentXP = data.totalXP || 0;
+      const newXP = currentXP + xpAmount;
+      
+      // Calculate new level (Every 1000 XP = 1 Level)
+      const newLevel = Math.floor(newXP / 1000) + 1;
+
+      // 2. Save the new total back to Firebase
+      await updateDoc(userRef, { 
+        totalXP: newXP,
+        xpPoints: newXP, // Keeping both in sync just in case
+        level: newLevel,
+        updatedAt: new Date()
+      });
+
+      // 3. Create an Activity Signal so it shows up in the feed!
+      await addActivitySignal(uid, `Earned ${xpAmount} XP!`, reason, 'achievement');
+
+      console.log(`Successfully added ${xpAmount} XP to database!`);
+      return newXP;
+    }
+  } catch (error) {
+    console.error("Failed to add XP to database:", error);
+    return null;
+  }
+};

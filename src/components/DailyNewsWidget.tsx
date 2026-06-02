@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Newspaper, Bell, Sparkles, Calendar, ChevronRight, Loader2, Award } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { addXPToUser } from '../services/userService';
+import { useUser } from '../contexts/UserContext';
 
 interface NewsItem {
   id: string;
@@ -44,10 +46,21 @@ export default function DailyNewsWidget() {
     loadNews();
   }, [filter]);
 
-  const claimNewsXP = () => {
+  // 1. Get the current user from your context
+  const { user } = useUser();
+
+  const claimNewsXP = async () => {
     if (hasReadToday) return;
     setHasReadToday(true);
+    
+    // 2. Alert the user they got the points
     alert("🏆 +5 XP: Daily Intel briefing digested!");
+    
+    // 3. Actually save the points to the database!
+    const userId = (user as any)?.uid || user?.email;
+    if (userId) {
+        await addXPToUser(userId, 5, "Digested Morning Intel Briefing");
+    }
   };
 
   return (
