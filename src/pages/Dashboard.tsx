@@ -11,7 +11,7 @@ import {
   BookMarked, Trophy, Flame, MessageSquare, ArrowRight, Calculator, 
   Atom, BookText, History, Cpu, GraduationCap, Sparkles, Calendar, 
   Play, CheckCircle, ChevronRight, Zap, Image as ImageIcon, BookA,
-  ShieldCheck, Search
+  ShieldCheck, Search, Video
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import SecureBookReader from '../components/SecureBookReader';
@@ -357,6 +357,14 @@ export default function Dashboard() {
             >
               <ImageIcon className="h-5 w-5" />
               <span className="whitespace-nowrap">Study Visuals</span>
+            </Link>
+
+            <Link
+              to="/videos"
+              className="w-full sm:w-auto bg-slate-900 border border-slate-700 text-slate-300 px-6 sm:px-8 py-4 rounded-xl font-black text-xs sm:text-sm uppercase tracking-widest hover:border-red-500 hover:text-red-500 transition-all flex items-center justify-center gap-3 shadow-xl active:scale-95 group"
+            >
+              <Video className="h-5 w-5 group-hover:animate-pulse" />
+              <span className="whitespace-nowrap">VideoHub</span>
             </Link>
 
             <Link
