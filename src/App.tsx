@@ -23,6 +23,7 @@ import { AIVisualizer } from './pages/AIVisualizer';
 import VisualDictionary from './pages/VisualDictionary';
 import Library from './pages/Library';
 import AdminDashboard from './pages/AdminDashboard'; 
+import VideoHub from './pages/VideoHub'; // 🚀 ADDED VIDEO HUB IMPORT
 
 // Components
 import Navbar from './components/Navbar';
@@ -91,6 +92,7 @@ function AppContent() {
           <Route path="/about" element={<About />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/library" element={<ProtectedRoute><Library /></ProtectedRoute>} />
+          <Route path="/videos" element={<ProtectedRoute><VideoHub /></ProtectedRoute>} /> {/* 🚀 ADDED VIDEO HUB ROUTE */}
           <Route path="/contact" element={<Contact />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/refund-policy" element={<RefundPolicy />} />

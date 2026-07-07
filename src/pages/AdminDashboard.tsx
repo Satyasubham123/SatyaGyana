@@ -53,10 +53,9 @@ interface AdminDashboardProps {
   profile: UserProfile | null;
 }
 
-type Tab = 'overview' | 'course-creation' | 'courses' | 'sections' | 'playlists' | 'lessons' | 'students' | 'notifications' | 'ai-quiz' | 'submissions' | 'quizzes' | 'founder' | 'books';
+type Tab = 'overview' | 'course-creation' | 'courses' | 'sections' | 'playlists' | 'lessons' | 'students' | 'notifications' | 'ai-quiz' | 'submissions' | 'quizzes' | 'founder' | 'books' | 'videos';
 
-// 🚀 ADDED: Subjects and Branches for the Library Form
-
+// 🚀 Subjects and Branches for the Library Form
 const CLASSES = ['Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10'];
 
 const SUBJECTS = [
@@ -68,7 +67,6 @@ const SUBJECTS = [
 const SOCIAL_SCIENCE_BRANCHES = [
   "History", "Geography", "Political Science/Civics", "Economics"
 ];
-
 
 export default function AdminDashboard({ profile }: AdminDashboardProps) {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
@@ -104,9 +102,98 @@ export default function AdminDashboard({ profile }: AdminDashboardProps) {
     coverUrl: '',
     pdfUrl: ''
   });
+
+  // 🚀 NEW VIDEO STATE
+  const [videos, setVideos] = useState<any[]>([]);
+  const [videoForm, setVideoForm] = useState({
+    title: '', video_url: '', classLevel: '', medium: '', subject: '', topic: ''
+  });
+  const [editingVideoId, setEditingVideoId] = useState<string | null>(null);
+
+  // 🚀 FETCH VIDEOS FROM SUPABASE
+  const fetchSupabaseVideos = async () => {
+    try {
+      const { data, error } = await supabase.from('video_lessons').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      setVideos(data || []);
+    } catch (err) {
+      console.error("Error fetching videos:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (profile?.role === 'admin' && activeTab === 'videos') {
+      fetchSupabaseVideos();
+    }
+  }, [profile, activeTab]);
+
+  // 🚀 ADD/UPDATE VIDEO TO SUPABASE
+  const handleAddVideo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsProcessing(true);
+    try {
+      if (editingVideoId) {
+        // UPDATE EXISTING
+        const { error } = await supabase.from('video_lessons').update({
+          title: videoForm.title,
+          video_url: videoForm.video_url,
+          class_level: videoForm.classLevel,
+          medium: videoForm.medium,
+          subject: videoForm.subject,
+          topic: videoForm.topic
+        }).eq('id', editingVideoId);
+
+        if (error) throw error;
+        alert("Video link successfully updated!");
+        setEditingVideoId(null);
+      } else {
+        // INSERT NEW
+        const { error } = await supabase.from('video_lessons').insert([{
+          title: videoForm.title,
+          video_url: videoForm.video_url,
+          class_level: videoForm.classLevel,
+          medium: videoForm.medium,
+          subject: videoForm.subject,
+          topic: videoForm.topic
+        }]);
+
+        if (error) throw error;
+        alert("Video link successfully deployed to Supabase!");
+      }
+
+      setVideoForm({ title: '', video_url: '', classLevel: '', medium: '', subject: '', topic: '' });
+      fetchSupabaseVideos();
+    } catch (err: any) {
+      console.error(err); 
+      alert("Error saving video: " + err.message);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
   
+  const handleEditVideo = (video: any) => {
+    setEditingVideoId(video.id);
+    setVideoForm({
+      title: video.title,
+      video_url: video.video_url,
+      classLevel: video.class_level,
+      medium: video.medium,
+      subject: video.subject,
+      topic: video.topic,
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleDeleteVideo = async (id: string) => {
+    if(!window.confirm("Are you sure you want to delete this video link?")) return;
+    try {
+      await supabase.from('video_lessons').delete().eq('id', id);
+      fetchSupabaseVideos();
+    } catch (err) { console.error(err); }
+  };
+
   const [founderForm, setFounderForm] = useState<FounderProfileData>({
-    name: 'Satyasubham Biswal',
+    name: 'Satya Subham Biswal',
     title: 'Founder & Creator of SatyaGyana AI',
     mission: 'Empowering students with AI-driven personalized learning paths to achieve academic excellence.',
     bio: 'A visionary educator and developer dedicated to bridging the gap between artificial intelligence and classroom learning.',
@@ -120,8 +207,8 @@ export default function AdminDashboard({ profile }: AdminDashboardProps) {
   const [courseForm, setCourseForm] = useState({
     title: '',
     classLevel: 'Class 10',
-    subject: 'Mathematics', // Updated to match your SUBJECTS array
-    branch: '',             // 🚀 ADDED: Branch tracking
+    subject: 'Mathematics', 
+    branch: '',             
     description: '',
     thumbnail: 'https://images.unsplash.com/photo-1509228468518-180dd482755c?auto=format&fit=crop&q=80&w=400',
     board: 'CBSE',
@@ -225,7 +312,6 @@ export default function AdminDashboard({ profile }: AdminDashboardProps) {
   const fetchInitialData = async () => {
     setIsLoading(true);
     try {
-      // 1. Fetch from your Python Backend
       const token = localStorage.getItem('gyanamitra_token');
       const usersResponse = await fetch(`${import.meta.env.VITE_API_URL || 'https://gyanamitra.onrender.com'}/api/admin/users`, {        headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -233,7 +319,6 @@ export default function AdminDashboard({ profile }: AdminDashboardProps) {
       const allUsers = usersResponse.ok ? await usersResponse.json() : [];
       const studentList = allUsers.filter((u: any) => u.role !== 'admin');
 
-      // 2. Fetch the rest of your Firebase/Supabase stuff as normal
       const [_courses, _founder] = await Promise.all([
         contentService.getCourses(true), 
         founderService.getProfile()
@@ -295,37 +380,32 @@ export default function AdminDashboard({ profile }: AdminDashboardProps) {
     }
   };
 
-  // 🚀 UPDATED: Fetch Books from SUPABASE
   const fetchSupabaseBooks = async () => {
-  try {
-    const { data, error } = await supabase.from('books').select('*');
-    if (error) throw error;
-    setBooks(data || []);
-  } catch (err) {
-    console.error("Error fetching books:", err);
-  }
-};
+    try {
+      const { data, error } = await supabase.from('books').select('*');
+      if (error) throw error;
+      setBooks(data || []);
+    } catch (err) {
+      console.error("Error fetching books:", err);
+    }
+  };
 
-  // Run this once when the component loads to get existing books
   useEffect(() => {
     if (profile?.role === 'admin' && activeTab === 'books') {
       fetchSupabaseBooks();
     }
   }, [profile, activeTab]);
 
-  // 🚀 UPDATED: Add Book to SUPABASE
   const handleAddBook = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsProcessing(true);
     try {
-      // Mapping the state (bookForm) to the Database columns
       const { error } = await supabase.from('books').insert([{
         title: bookForm.title,
-        // If it's 'All', save 'All', otherwise clean the string
         class_level: bookForm.classLevel === 'All' ? 'All' : bookForm.classLevel.replace('Class ', ''),
         subject: bookForm.subject,
-        branch: bookForm.branch || null, // Optional branch
-        pdf_url: bookForm.pdfUrl,        // Mapped from state.pdfUrl
+        branch: bookForm.branch || null,
+        pdf_url: bookForm.pdfUrl,        
         cover_url: bookForm.coverUrl || ''
       }]);
 
@@ -333,7 +413,6 @@ export default function AdminDashboard({ profile }: AdminDashboardProps) {
       
       alert("Book successfully deployed to Supabase Library!");
       
-      // Reset the state with the exact keys defined in your useState
       setBookForm({ 
         title: '', 
         classLevel: 'All', 
@@ -343,7 +422,7 @@ export default function AdminDashboard({ profile }: AdminDashboardProps) {
         pdfUrl: '' 
       });
       
-      fetchSupabaseBooks(); // Refresh the list
+      fetchSupabaseBooks(); 
     } catch (err: any) {
       console.error(err); 
       alert("Error saving book: " + err.message);
@@ -353,12 +432,10 @@ export default function AdminDashboard({ profile }: AdminDashboardProps) {
   };
   
 
-  // 🚀 BULLETPROOF: Delete Book from SUPABASE (Storage & Database)
   const handleDeleteBook = async (book: any) => {
     if(!window.confirm("Are you sure you want to delete this book completely?")) return;
     setIsProcessing(true);
     try {
-      // 1. Only try to delete from Storage if it's actually a Supabase file
       if (book.pdf_url && book.pdf_url.includes('supabase.co')) {
         const fileName = book.pdf_url.split('/').pop(); 
         if (fileName) {
@@ -366,11 +443,9 @@ export default function AdminDashboard({ profile }: AdminDashboardProps) {
         }
       }
 
-      // 2. ALWAYS delete the record from the database, no matter what
       const { error } = await supabase.from('books').delete().eq('id', book.id);
       if (error) throw error;
 
-      // 3. Refresh UI
       fetchSupabaseBooks();
     } catch (err: any) {
       console.error(err);
@@ -611,7 +686,6 @@ Each object must follow this scheme exactly:
   "explanation": "A conceptual educational breakdown description of the core principle"
 }`;
 
-      // 🚀 1. Call Custom Python Backend instead of Google!
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://gyanamitra.onrender.com'}/api/chat`, {
         method: 'POST',
         headers: { 
@@ -628,7 +702,6 @@ Each object must follow this scheme exactly:
         throw new Error(`Python Server returned code ${response.status}`);
       }
 
-      // 🚀 2. Parse the response from Python
       const data = await response.json();
       let rawText = data.text || "[]";
       
@@ -694,7 +767,7 @@ Each object must follow this scheme exactly:
       title: course.title,
       classLevel: course.classLevel,
       subject: course.subject,
-      branch: (course as any).branch || '', // 🚀 ADDED: Load existing branch if it has one
+      branch: (course as any).branch || '', 
       description: course.description,
       thumbnail: course.thumbnail,
       board: course.board || 'CBSE',
@@ -718,7 +791,7 @@ Each object must follow this scheme exactly:
     );
   }
 
-  // 🚀 REBUILT: Supabase Render Books View
+  // 🚀 SUPABASE RENDER BOOKS VIEW
   const renderBooks = () => (
   <div className="space-y-8">
     <div className="bg-slate-900 p-8 rounded-[32px] border border-border-strong shadow-2xl">
@@ -734,7 +807,6 @@ Each object must follow this scheme exactly:
 
       <form onSubmit={handleAddBook} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* 🚀 RESTORED BOOK TITLE FIELD */}
           <div className="space-y-2 lg:col-span-3">
             <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Book Title *</label>
             <input 
@@ -745,7 +817,6 @@ Each object must follow this scheme exactly:
             />
           </div>
           
-          {/* Target Class */}
           <div className="space-y-2">
             <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Target Class *</label>
             <select 
@@ -759,7 +830,6 @@ Each object must follow this scheme exactly:
             </select>
           </div>
 
-          {/* Subject */}
           <div className="space-y-2">
             <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Subject *</label>
             <select 
@@ -773,7 +843,6 @@ Each object must follow this scheme exactly:
             </select>
           </div>
 
-          {/* Branch (Conditional) */}
           {bookForm.subject === 'Social Science' && (
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Branch *</label>
@@ -816,10 +885,128 @@ Each object must follow this scheme exactly:
         </button>
       </form>
     </div>
-
-    {/* Book List remains unchanged */}
   </div>
 );
+
+  // 🚀 RENDER VIDEOS VIEW
+  const renderVideos = () => (
+    <div className="space-y-8">
+      <div className="bg-slate-900 p-8 rounded-[32px] border border-border-strong shadow-2xl">
+        <div className="flex items-center gap-4 mb-8">
+          <div className="w-12 h-12 bg-red-500/10 rounded-2xl flex items-center justify-center text-red-500 border border-red-500/20">
+            <Video className="h-6 w-6" />
+          </div>
+          <div>
+            <h3 className="text-2xl font-black uppercase italic tracking-tighter text-white">Video Shorts Hub</h3>
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Supabase Link Sync Active</p>
+          </div>
+        </div>
+
+        <form onSubmit={handleAddVideo} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="space-y-2 lg:col-span-3">
+              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Video Title *</label>
+              <input 
+                type="text" placeholder="e.g. Master Class: Trigonometry" 
+                value={videoForm.title} onChange={e => setVideoForm({...videoForm, title: e.target.value})}
+                className="w-full bg-slate-800 border border-border-strong p-4 rounded-xl text-white font-bold outline-none focus:border-red-500" required
+              />
+            </div>
+            
+            <div className="space-y-2 lg:col-span-3">
+              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">YouTube Link *</label>
+              <input 
+                type="url" placeholder="https://youtube.com/shorts/... or standard link" 
+                value={videoForm.video_url} onChange={e => setVideoForm({...videoForm, video_url: e.target.value})}
+                className="w-full bg-slate-800 border border-border-strong p-4 rounded-xl text-white font-bold outline-none focus:border-red-500" required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Target Class *</label>
+              <select 
+                value={videoForm.classLevel} onChange={e => setVideoForm({...videoForm, classLevel: e.target.value})}
+                className="w-full bg-slate-800 border border-border-strong p-4 rounded-xl text-white outline-none focus:border-red-500 appearance-none" required
+              >
+                <option value="">Select Class...</option>
+                {CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Medium *</label>
+              <select 
+                value={videoForm.medium} onChange={e => setVideoForm({...videoForm, medium: e.target.value})}
+                className="w-full bg-slate-800 border border-border-strong p-4 rounded-xl text-white outline-none focus:border-red-500 appearance-none" required
+              >
+                <option value="">Select Medium...</option>
+                <option value="English">English</option>
+                <option value="Odia">Odia</option>
+                <option value="Hindi">Hindi</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Subject *</label>
+              <select 
+                value={videoForm.subject} onChange={e => setVideoForm({...videoForm, subject: e.target.value})}
+                className="w-full bg-slate-800 border border-border-strong p-4 rounded-xl text-white outline-none focus:border-red-500 appearance-none" required
+              >
+                <option value="">Select Subject...</option>
+                {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+
+            <div className="space-y-2 lg:col-span-3">
+              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Topic / Chapter *</label>
+              <input 
+                type="text" placeholder="e.g. Thermodynamics, Algebra" 
+                value={videoForm.topic} onChange={e => setVideoForm({...videoForm, topic: e.target.value})}
+                className="w-full bg-slate-800 border border-border-strong p-4 rounded-xl text-white font-bold outline-none focus:border-red-500" required
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-4 mt-4">
+            {editingVideoId && (
+              <button 
+                type="button" 
+                onClick={() => { setEditingVideoId(null); setVideoForm({ title: '', video_url: '', classLevel: '', medium: '', subject: '', topic: '' }); }} 
+                className="w-1/3 bg-slate-800 text-white py-4 rounded-xl font-black uppercase tracking-widest text-xs shadow-xl active:scale-95 transition-all"
+              >
+                Cancel Edit
+              </button>
+            )}
+            <button type="submit" disabled={isProcessing} className="flex-1 bg-red-600 text-white py-4 rounded-xl font-black uppercase tracking-widest text-xs shadow-xl flex items-center justify-center gap-2 disabled:opacity-50">
+              {isProcessing ? <Zap className="h-4 w-4 animate-spin" /> : <Video className="h-4 w-4" />} {editingVideoId ? 'Update Video Link' : 'Publish Video Link'}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+         {videos.map(v => (
+            <div key={v.id} className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col justify-between hover:border-red-500/50 transition-all">
+               <div>
+                 <div className="flex justify-between items-start mb-2">
+                   <h4 className="text-white font-bold">{v.title}</h4>
+                   <div className="flex gap-2 shrink-0">
+                     <button onClick={() => handleEditVideo(v)} className="text-slate-500 hover:text-brand"><Edit2 className="h-4 w-4" /></button>
+                     <button onClick={() => handleDeleteVideo(v.id)} className="text-slate-500 hover:text-red-500"><Trash2 className="h-4 w-4" /></button>
+                   </div>
+                 </div>
+                 <div className="flex gap-2 mb-2">
+                   <span className="text-[9px] bg-slate-800 text-slate-300 px-2 py-1 rounded font-black uppercase tracking-widest">{v.class_level}</span>
+                   <span className="text-[9px] bg-slate-800 text-slate-300 px-2 py-1 rounded font-black uppercase tracking-widest">{v.subject}</span>
+                 </div>
+                 <p className="text-xs text-brand font-medium truncate mb-2">{v.topic}</p>
+               </div>
+               <a href={v.video_url} target="_blank" rel="noreferrer" className="text-[10px] text-blue-400 hover:underline truncate">{v.video_url}</a>
+            </div>
+         ))}
+      </div>
+    </div>
+  );
 
   const renderOverview = () => (
     <div className="space-y-8">
@@ -908,8 +1095,8 @@ Each object must follow this scheme exactly:
                     setCourseForm({
                       title: '',
                       classLevel: 'Class 10',
-                      subject: 'Mathematics', // 🚀 Capital 'M' to match your list
-                      branch: '',             // 🚀 ADDED: Required to prevent the TypeScript error!
+                      subject: 'Mathematics', 
+                      branch: '',             
                       description: '',
                       thumbnail: 'https://images.unsplash.com/photo-1509228468518-180dd482755c?auto=format&fit=crop&q=80&w=400',
                       board: 'CBSE',
@@ -2243,6 +2430,7 @@ Each object must follow this scheme exactly:
               { id: 'courses', icon: <Layers className="h-4 w-4" />, label: 'Vault' },
               { id: 'students', icon: <Users className="h-4 w-4" />, label: 'Students' },
               { id: 'books', icon: <BookOpen className="h-4 w-4" />, label: 'Library' },
+              { id: 'videos', icon: <Video className="h-4 w-4" />, label: 'Videos' },
               { id: 'ai-quiz', icon: <Sparkles className="h-4 w-4" />, label: 'AI Quiz' },
               { id: 'founder', icon: <Shield className="h-4 w-4" />, label: 'Founder' },
             ].map(tab => (
@@ -2299,6 +2487,7 @@ Each object must follow this scheme exactly:
                 {activeTab === 'submissions' && renderSubmissions()}
                 {activeTab === 'ai-quiz' && renderAIQuizGenerator()}
                 {activeTab === 'books' && renderBooks()}
+                {activeTab === 'videos' && renderVideos()}
                 {activeTab === 'founder' && renderFounderSettings()}
                 {(activeTab === 'notifications' || activeTab === 'quizzes') && (
                   <div className="py-40 text-center bg-slate-900 border-2 border-dashed border-border-strong rounded-[40px]">
@@ -2314,5 +2503,3 @@ Each object must follow this scheme exactly:
     </div>
   );
 }
-
-// testing push   s
