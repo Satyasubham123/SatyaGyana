@@ -295,7 +295,8 @@ export default function AdminDashboard({ profile }: AdminDashboardProps) {
     format: 'mcq' as 'mcq' | 'true_false' | 'short_answer',
     targetCourseId: '',
     targetSectionId: '',
-    targetPlaylistId: ''
+    targetPlaylistId: '',
+    timeLimit: 30
   });
   const [generatedQuiz, setGeneratedQuiz] = useState<any[] | null>(null);
   const [isGeneratingQuiz, setIsGeneratingQuiz] = useState(false);
@@ -780,7 +781,7 @@ Each object must follow this scheme exactly:
       class_level: quizGenForm.classLevel,
       medium: quizGenForm.medium,
       subject: quizGenForm.subject,
-      time_limit_minutes: 30, // Default duration
+      time_limit_minutes: quizGenForm.timeLimit, // Default duration
       questions: generatedQuiz
     }]);
 
@@ -2215,6 +2216,7 @@ Each object must follow this scheme exactly:
 
   const renderAIQuizGenerator = () => (
   <div className="space-y-12">
+    {/* Main Container */}
     <div className="bg-slate-900 p-6 sm:p-10 rounded-3xl sm:rounded-[40px] border border-border-strong shadow-2xl relative overflow-hidden">
       <div className="absolute top-0 right-0 p-8 sm:p-12 opacity-10">
         <BrainCircuit className="w-32 h-32 sm:w-48 sm:h-48 text-brand" />
@@ -2267,7 +2269,16 @@ Each object must follow this scheme exactly:
               </div>
             </div>
 
-            {/* Added Selectors for Medium and Subject */}
+            <div className="space-y-3">
+              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Time Limit (Min)</label>
+              <input 
+                type="number" 
+                value={quizGenForm.timeLimit} 
+                onChange={e => setQuizGenForm({...quizGenForm, timeLimit: parseInt(e.target.value)})}
+                className="w-full bg-slate-800 border border-border-strong p-5 rounded-2xl text-white font-bold text-xs sm:text-sm outline-none focus:border-brand"
+              />
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div className="space-y-3">
                 <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Medium</label>
@@ -2319,9 +2330,21 @@ Each object must follow this scheme exactly:
         </div>
       </div>
     </div>
-    {/* ... (Keep the rest of the AnimatePresence code for Review & Deployment) */}
+
+    {/* AnimatePresence must be inside the main container div */}
+    <AnimatePresence>
+      {generatedQuiz && (
+        <motion.div 
+          initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 40 }}
+          className="space-y-8 sm:space-y-12"
+        >
+          {/* ... [Review & Deployment content here] ... */}
+        </motion.div>
+      )}
+    </AnimatePresence>
   </div>
 );
+
   const renderStudents = () => (
     <div className="bg-slate-900 rounded-3xl sm:rounded-[40px] border border-border-strong overflow-hidden">
        <div className="p-6 sm:p-10 border-b border-border-strong flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6">

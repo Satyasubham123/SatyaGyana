@@ -4,11 +4,9 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { CheckCircle2, XCircle, RotateCcw, Award, Clock, ArrowRight, Brain } from 'lucide-react';
 import { cn } from '../lib/utils';
-// 🚀 1. The imports are updated here
 import { updateUserProfile, addActivitySignal } from '../services/userService';
 import { contentService } from '../services/contentService';
 
-// 🚀 FIXED: We now extend Vite's existing environment interface instead of overwriting it
 declare global {
   interface ImportMetaEnv {
     readonly VITE_GEMINI_API_KEY?: string;
@@ -36,6 +34,9 @@ export default function QuizPage({ user }: { user: FirebaseUser }) {
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [shortAnswer, setShortAnswer] = useState('');
   const [isGrading, setIsGrading] = useState(false);
+  
+  // Timer State
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
 
   const urlParams = new URLSearchParams(location.search);
   const courseId = urlParams.get('courseId') || 'dynamic';
@@ -46,6 +47,11 @@ export default function QuizPage({ user }: { user: FirebaseUser }) {
     const fetchQuiz = async () => {
       setIsLoading(true);
       try {
+        // Set Timer from URL params
+        const limitParam = urlParams.get('timeLimit');
+        const limit = limitParam ? parseInt(limitParam) : 30;
+        setTimeLeft(limit * 60);
+
         if (courseId !== 'dynamic' && sectionId !== 'dynamic' && playlistId !== 'dynamic' && quizId) {
           const lessons = await contentService.getLessons(courseId, sectionId, playlistId);
           const lesson = lessons.find(l => l.id === quizId);
@@ -57,6 +63,7 @@ export default function QuizPage({ user }: { user: FirebaseUser }) {
                   ...q,
                   type: q.type === 'true_false' ? 'tf' : (q.type === 'short_answer' ? 'short' : q.type)
                 })));
+                setIsLoading(false);
                 return;
               }
             } catch (e) {
@@ -111,7 +118,7 @@ Each object must follow this scheme exactly:
         })));
       } catch (err) {
         console.error('Quiz Error:', err);
-      } finally { // 🚀 2. Fixed syntax typo here
+      } finally {
         setIsLoading(false);
       }
     };
@@ -119,13 +126,34 @@ Each object must follow this scheme exactly:
     fetchQuiz();
   }, [quizId, location.search]);
 
+  // Timer Countdown Logic
+  useEffect(() => {
+    if (timeLeft === null || timeLeft <= 0 || isFinished) return;
+
+    const timer = setInterval(() => {
+      setTimeLeft(prev => (prev !== null && prev > 0 ? prev - 1 : 0));
+    }, 1000);
+
+    if (timeLeft === 0) {
+      clearInterval(timer);
+      handleNext();
+    }
+
+    return () => clearInterval(timer);
+  }, [timeLeft, isFinished]);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
   const calculateScore = (currentAnswers: string[]) => {
     return questions.reduce((acc, q, idx) => {
       return q.correctAnswer === currentAnswers[idx] ? acc + 1 : acc;
     }, 0);
   };
 
-  // 🚀 3. Restored the perfectly balanced handleNext function
   const handleNext = async () => {
     if (currentIdx < questions.length - 1) {
       setCurrentIdx(prev => prev + 1);
@@ -161,33 +189,12 @@ Each object must follow this scheme exactly:
 
       try {
         await updateUserProfile(user.uid, { xpPoints: 50 });
-        
         if (computedPercentage === 100) {
-          await addActivitySignal(
-            user.uid, 
-            "Perfect Score! 🏆", 
-            "You achieved 100% accuracy on your recent quiz. Masterful work!", 
-            "achievement"
-          );
+          await addActivitySignal(user.uid, "Perfect Score! 🏆", "You achieved 100% accuracy!", "achievement");
         } else if (computedPercentage >= 60) {
-          await addActivitySignal(
-            user.uid, 
-            "Solid Effort! 🧠", 
-            `You completed a quiz with ${computedPercentage}% accuracy. Keep pushing!`, 
-            "learning"
-          );
-        } else {
-           await addActivitySignal(
-            user.uid, 
-            "Module Reviewed 📚", 
-            `You completed a practice run. Review the neural insights to improve your score.`, 
-            "system"
-          );
+          await addActivitySignal(user.uid, "Solid Effort! 🧠", `You completed with ${computedPercentage}% accuracy.`, "learning");
         }
-
-      } catch (err) {
-        console.error("User XP profile trace offline:", err);
-      }
+      } catch (err) { console.error("XP Error:", err); }
 
       setIsFinished(true);
     } 
@@ -196,22 +203,18 @@ Each object must follow this scheme exactly:
   const handleAnswerSelect = (opt: string) => {
     if (selectedAnswer !== null) return;
     setSelectedAnswer(opt);
-    
     const newAnswers = [...answers];
     newAnswers[currentIdx] = opt;
     setAnswers(newAnswers);
-
     setTimeout(handleNext, 1500);
   };
 
   const handleShortSubmit = () => {
     if (!shortAnswer.trim()) return;
     setIsGrading(true);
-    
     const newAnswers = [...answers];
     newAnswers[currentIdx] = shortAnswer.trim();
     setAnswers(newAnswers);
-    
     setSelectedAnswer(shortAnswer.trim());
     setTimeout(handleNext, 2000);
   };
@@ -226,7 +229,6 @@ Each object must follow this scheme exactly:
             </div>
          </div>
          <h2 className="text-3xl font-black uppercase italic tracking-tighter mb-2 text-main">Synthesizing Dataset</h2>
-         <p className="text-muted font-black uppercase tracking-widest text-[10px]">Neural Engine: Formatting custom evaluation stream...</p>
       </div>
     );
   }
@@ -235,66 +237,24 @@ Each object must follow this scheme exactly:
     const score = calculateScore(answers);
     return (
       <div className="max-w-2xl mx-auto py-10 sm:py-20 px-4 text-center">
-         <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="bg-bg-surface p-6 sm:p-10 rounded-2xl sm:rounded-3xl shadow-2xl border border-border-strong relative overflow-hidden"
-         >
-            <div className="absolute top-0 right-0 p-8 opacity-5">
-               <Award className="h-32 w-32 sm:h-40 sm:w-40 text-brand" />
+         <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-bg-surface p-6 sm:p-10 rounded-2xl sm:rounded-3xl shadow-2xl border border-border-strong relative overflow-hidden">
+            <div className="w-16 h-16 bg-brand rounded-sm flex items-center justify-center mx-auto mb-8 rotate-12">
+                <Award className="h-8 w-8 text-white" />
             </div>
-            
-            <div className="w-16 h-16 sm:w-20 sm:h-20 bg-brand rounded-sm flex items-center justify-center mx-auto mb-6 sm:mb-8 rotate-12">
-                <Award className="h-8 w-8 sm:h-10 sm:w-10 text-white" />
-            </div>
-            <h2 className="text-3xl sm:text-4xl font-black uppercase italic tracking-tighter mb-2 italic text-main">Operation Complete</h2>
-            <p className="text-secondary font-black uppercase tracking-widest text-[10px] sm:text-xs mb-8 sm:mb-10">
-                Cycle Reward: <span className="text-brand font-bold">50 XP Gain Cache</span> Added to Profile.
-            </p>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8 sm:mb-10">
-               <div className="p-6 sm:p-8 bg-bg-deep border border-border-strong rounded-xl">
-                  <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-muted mb-2 italic">Precision</p>
-                  <p className="text-3xl sm:text-4xl font-black italic">{score}/{questions.length}</p>
+            <h2 className="text-3xl font-black uppercase italic tracking-tighter mb-2 text-main">Operation Complete</h2>
+            <div className="grid grid-cols-2 gap-4 mb-8">
+               <div className="p-6 bg-bg-deep border border-border-strong rounded-xl">
+                  <p className="text-[10px] font-black uppercase text-muted mb-2">Precision</p>
+                  <p className="text-4xl font-black italic">{score}/{questions.length}</p>
                </div>
-               <div className="p-6 sm:p-8 bg-bg-deep border border-border-strong rounded-xl">
-                  <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-muted mb-2 italic">Efficiency</p>
-                  <p className="text-3xl sm:text-4xl font-black italic">{Math.round((score/questions.length) * 100)}%</p>
+               <div className="p-6 bg-bg-deep border border-border-strong rounded-xl">
+                  <p className="text-[10px] font-black uppercase text-muted mb-2">Efficiency</p>
+                  <p className="text-4xl font-black italic">{Math.round((score/questions.length) * 100)}%</p>
                </div>
             </div>
-
-            {score < questions.length && (
-              <div className="mb-8 sm:mb-10 text-left">
-                 <h4 className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.1em] sm:tracking-[0.2em] text-brand mb-4 italic">Heuristic Analysis: Structural Weaknesses</h4>
-                 <div className="flex flex-wrap gap-2">
-                    {questions.map((q, i) => {
-                      if (q.correctAnswer !== answers[i]) {
-                        return (
-                          <div key={i} className="px-3 py-1.5 sm:px-4 sm:py-2 bg-red-950/20 border border-red-900/50 rounded-sm text-[9px] sm:text-[10px] text-red-500 font-bold uppercase tracking-widest">
-                            Block {(i + 1).toString().padStart(2, '0')} Data Gap
-                          </div>
-                        );
-                      }
-                      return null;
-                    })}
-                 </div>
-              </div>
-            )}
-
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 relative z-10">
-               <button 
-                onClick={() => window.location.reload()}
-                className="flex-1 bg-transparent border-2 border-border-strong text-main py-4 rounded-sm font-black uppercase tracking-widest text-[10px] sm:text-xs hover:bg-bg-card transition-all"
-               >
-                 Re-Initialize
-               </button>
-               <button 
-                onClick={() => navigate('/dashboard')}
-                className="flex-1 bg-brand text-white py-4 rounded-sm font-black uppercase tracking-widest text-[10px] sm:text-xs hover:bg-brand-dark transition-all shadow-xl shadow-brand/10"
-               >
+            <button onClick={() => navigate('/dashboard')} className="w-full bg-brand text-white py-4 rounded-sm font-black uppercase tracking-widest text-xs hover:bg-brand-dark transition-all">
                  System Mainframe →
-               </button>
-            </div>
+            </button>
          </motion.div>
       </div>
     );
@@ -304,33 +264,23 @@ Each object must follow this scheme exactly:
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6 sm:py-12">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8 sm:mb-12">
-         <div className="flex items-center gap-4 sm:gap-6 w-full sm:w-auto">
-            <div className="h-10 w-10 sm:h-12 sm:w-12 bg-bg-card border border-brand text-brand rounded-sm flex items-center justify-center font-black italic text-lg sm:text-xl shadow-xl shadow-brand/10 shrink-0">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8">
+         <div className="flex items-center gap-4 w-full sm:w-auto">
+            <div className="h-12 w-12 bg-bg-card border border-brand text-brand rounded-sm flex items-center justify-center font-black text-xl shadow-xl shrink-0">
                {currentIdx + 1}
             </div>
-            <div className="flex-1 sm:w-48 h-2 sm:h-3 bg-bg-surface border border-border-strong rounded-full overflow-hidden shadow-inner">
-               <motion.div 
-                className="h-full bg-brand"
-                initial={{ width: 0 }}
-                animate={{ width: `${((currentIdx + 1) / questions.length) * 100}%` }}
-               />
-            </div>
-         </div>
-         <div className="flex items-center text-muted font-black uppercase tracking-[0.2em] text-[9px] sm:text-[10px]">
-            <Clock className="h-3 w-3 mr-2" />
-            <span>Telemetry Active</span>
+            {/* Timer UI Display */}
+            {timeLeft !== null && (
+              <div className={cn("px-6 py-3 rounded-full font-black tracking-widest text-sm flex items-center gap-2", 
+                timeLeft < 60 ? "bg-red-500/20 text-red-500 animate-pulse" : "bg-bg-card text-brand")}>
+                 <Clock className="w-4 h-4" /> {formatTime(timeLeft)}
+              </div>
+            )}
          </div>
       </div>
 
-      <motion.div 
-        key={currentIdx}
-        initial={{ opacity: 0, scale: 0.98 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="bg-bg-surface p-6 sm:p-8 md:p-12 rounded-2xl border border-border-strong shadow-2xl relative"
-      >
-        <span className="text-[9px] sm:text-[10px] font-black text-brand uppercase tracking-[0.2em] sm:tracking-[0.3em] mb-4 sm:mb-6 block italic">Input Buffer: Block {currentIdx + 1} / {questions.length}</span>
-        <h3 className="text-xl sm:text-2xl md:text-3xl font-black uppercase tracking-tight text-main mb-8 sm:mb-10 leading-tight">
+      <motion.div key={currentIdx} initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="bg-bg-surface p-8 md:p-12 rounded-2xl border border-border-strong shadow-2xl relative">
+        <h3 className="text-xl md:text-3xl font-black uppercase tracking-tight text-main mb-10 leading-tight">
           {currentQuestion.question}
         </h3>
 
@@ -341,64 +291,37 @@ Each object must follow this scheme exactly:
                 value={shortAnswer}
                 onChange={(e) => setShortAnswer(e.target.value)}
                 disabled={selectedAnswer !== null}
-                placeholder="Type your response here..."
-                className="w-full h-32 p-4 sm:p-6 bg-slate-50 dark:bg-slate-800/50 border-border-strong border-2 rounded-xl text-slate-900 dark:text-white focus:border-brand outline-none transition-all uppercase tracking-widest text-[10px] sm:text-xs font-black shadow-inner"
+                className="w-full h-32 p-6 bg-slate-800/50 border-2 border-border-strong rounded-xl text-white outline-none focus:border-brand transition-all font-black"
                />
                {selectedAnswer === null && (
-                 <button 
-                  onClick={handleShortSubmit}
-                  className="w-full py-4 bg-brand text-white font-black uppercase tracking-widest text-[10px] sm:text-xs hover:bg-brand-dark transition-all rounded-xl shadow-lg shadow-brand/20"
-                 >
-                   Submit Signature
-                 </button>
+                 <button onClick={handleShortSubmit} className="w-full py-4 bg-brand text-white font-black uppercase tracking-widest text-xs rounded-xl shadow-lg">Submit Signature</button>
                )}
             </div>
           ) : (
             currentQuestion.options.map((opt, idx) => {
               const isCorrect = opt === currentQuestion.correctAnswer;
               const isSelected = opt === selectedAnswer;
-              
               return (
                 <button
                   key={idx}
                   disabled={selectedAnswer !== null}
                   onClick={() => handleAnswerSelect(opt)}
                   className={cn(
-                    "w-full p-4 sm:p-5 border-2 text-left font-black uppercase tracking-widest text-[10px] sm:text-xs transition-all flex items-center justify-between group",
+                    "w-full p-5 border-2 text-left font-black uppercase tracking-widest text-xs transition-all flex items-center justify-between",
                     selectedAnswer === null 
-                      ? "bg-bg-deep border-border-strong hover:border-brand hover:translate-x-1 text-secondary" 
+                      ? "bg-bg-deep border-border-strong hover:border-brand hover:translate-x-1" 
                       : isSelected 
                         ? isCorrect ? "bg-brand border-brand text-white" : "bg-red-600 border-red-600 text-white"
-                        : isCorrect ? "bg-brand/20 border-brand/40 text-brand" : "bg-bg-deep border-border-strong opacity-20 text-muted"
+                        : isCorrect ? "bg-brand/20 border-brand/40 text-brand" : "bg-bg-deep border-border-strong opacity-20"
                   )}
                 >
-                  <span className="pr-4">{opt}</span>
-                  {selectedAnswer !== null && (
-                    <span className="scale-110 sm:scale-125 shrink-0">
-                      {isCorrect && <CheckCircle2 className="h-4 w-4" />}
-                      {isSelected && !isCorrect && <XCircle className="h-4 w-4" />}
-                    </span>
-                  )}
+                  <span>{opt}</span>
+                  {selectedAnswer !== null && isCorrect && <CheckCircle2 className="h-4 w-4" />}
                 </button>
               );
             })
           )}
         </div>
-
-        <AnimatePresence>
-          {selectedAnswer !== null && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              className="mt-10 pt-10 border-t-2 border-border-strong border-dashed"
-            >
-              <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-brand mb-4 italic">Neural Insight</h4>
-              <p className="text-sm font-medium text-secondary leading-relaxed italic">
-                {currentQuestion.explanation}
-              </p>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </motion.div>
     </div>
   );

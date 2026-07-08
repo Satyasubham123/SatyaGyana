@@ -110,7 +110,7 @@ export default function TestHub() {
                 <div key={test.id} className="bg-slate-900 border border-slate-800 p-6 rounded-[24px] shadow-lg hover:border-emerald-500/50 transition-all flex flex-col group">
                   <div className="flex items-center gap-3 mb-4">
                     <span className="px-2 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded font-black text-[9px] uppercase tracking-widest">
-                      {test.time_limit_minutes} Mins
+                      {test.time_limit_minutes || 30} Mins
                     </span>
                     <span className="px-2 py-1 bg-slate-800 text-slate-400 border border-slate-700 rounded font-black text-[9px] uppercase tracking-widest">
                       {test.questions.length} Qs
@@ -119,7 +119,11 @@ export default function TestHub() {
                   <h4 className="text-white font-black text-xl leading-tight mb-2 group-hover:text-emerald-400 transition-colors">{test.title}</h4>
                   <p className="text-slate-500 font-bold uppercase text-[10px] tracking-widest mb-6 truncate">{test.topic}</p>
                   
-                  <Link to={`/exam/${test.id}`} className="mt-auto w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase tracking-widest text-xs rounded-xl shadow-xl flex items-center justify-center gap-2 active:scale-95 transition-all">
+                  {/* Updated Link with timeLimit parameter */}
+                  <Link 
+                    to={`/exam/${test.id}?timeLimit=${test.time_limit_minutes || 30}`} 
+                    className="mt-auto w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase tracking-widest text-xs rounded-xl shadow-xl flex items-center justify-center gap-2 active:scale-95 transition-all"
+                  >
                     <PlayCircle className="w-4 h-4" /> Start Exam
                   </Link>
                 </div>
