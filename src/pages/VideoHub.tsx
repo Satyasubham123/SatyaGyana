@@ -122,11 +122,18 @@ export default function VideoHub() {
                   
                   {/* Video Metadata */}
                   <div className="p-5 flex-1 flex flex-col">
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className="px-2 py-1 bg-red-500/10 text-red-400 border border-red-500/20 rounded font-black text-[9px] uppercase tracking-widest">
-                        {v.topic}
-                      </span>
+                    <div className="space-y-1 mb-4">
+                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">
+                        <span className="text-red-500">CH:</span> {v.chapter || 'N/A'}
+                      </p>
+                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">
+                        <span className="text-red-500">PT:</span> {v.part || 'N/A'}
+                      </p>
+                      <p className="text-[9px] font-black uppercase tracking-widest text-red-400">
+                        <span className="text-red-500">TP:</span> {v.topic || 'N/A'}
+                      </p>
                     </div>
+
                     <h4 className="text-white font-black text-lg leading-tight mb-2 group-hover:text-red-400 transition-colors">{v.title}</h4>
                     <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-auto pt-4 flex items-center gap-1">
                       <PlayCircle className="w-3 h-3" /> Video Lesson

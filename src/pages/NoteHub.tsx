@@ -117,10 +117,16 @@ export default function NoteHub() {
                     </div>
                   </div>
                   
-                  <div className="mt-auto pt-4 border-t border-slate-800 flex items-center justify-between">
-                    <span className="px-2 py-1 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded font-black text-[9px] uppercase tracking-widest">
-                      {note.topic}
-                    </span>
+                  {/* Updated Hierarchy Display */}
+                  <div className="mt-auto pt-4 border-t border-slate-800 mb-4">
+                    <div className="grid grid-cols-1 gap-1 text-[9px] font-black uppercase tracking-widest text-slate-500">
+                       <p><span className="text-indigo-500">CH:</span> {note.chapter || 'N/A'}</p>
+                       <p><span className="text-indigo-500">PT:</span> {note.part || 'N/A'}</p>
+                       <p className="text-indigo-400 truncate">TP: {note.topic || 'N/A'}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-auto pt-4 border-t border-slate-800 flex items-center justify-end">
                     <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest group-hover:text-white transition-colors">
                       Tap to Read →
                     </span>
