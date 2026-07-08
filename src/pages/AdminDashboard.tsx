@@ -289,6 +289,8 @@ export default function AdminDashboard({ profile }: AdminDashboardProps) {
   const [quizGenForm, setQuizGenForm] = useState({
     topic: '',
     classLevel: 'Class 10',
+    medium: 'English',     // ADD THIS
+    subject: 'Mathematics',// ADD THIS
     difficulty: 'medium' as 'easy' | 'medium' | 'hard',
     format: 'mcq' as 'mcq' | 'true_false' | 'short_answer',
     targetCourseId: '',
@@ -765,34 +767,35 @@ Each object must follow this scheme exactly:
   };
 
   const handlePublishGeneratedQuiz = async () => {
-    if (!quizGenForm.targetCourseId || !quizGenForm.targetSectionId || !quizGenForm.targetPlaylistId || !generatedQuiz) {
-      alert("Please select a target destination before publishing.");
-      return;
-    }
+  if (!quizGenForm.topic || !generatedQuiz) {
+    alert("Please generate a quiz first.");
+    return;
+  }
 
-    setIsProcessing(true);
-    try {
-      await contentService.addLesson(
-        quizGenForm.targetCourseId,
-        quizGenForm.targetSectionId,
-        quizGenForm.targetPlaylistId,
-        {
-          title: `AI Quiz: ${quizGenForm.topic}`,
-          type: 'quiz',
-          content: JSON.stringify(generatedQuiz),
-          order: 99
-        }
-      );
-      alert("Quiz successfully integrated into the student stream!");
-      setGeneratedQuiz(null);
-      setQuizGenForm(prev => ({ ...prev, topic: '' }));
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
+  setIsProcessing(true);
+  try {
+    const { error } = await supabase.from('active_quizzes').insert([{
+      title: `AI Quiz: ${quizGenForm.topic}`,
+      topic: quizGenForm.topic,
+      class_level: quizGenForm.classLevel,
+      medium: quizGenForm.medium,
+      subject: quizGenForm.subject,
+      time_limit_minutes: 30, // Default duration
+      questions: generatedQuiz
+    }]);
 
+    if (error) throw error;
+    
+    alert("Quiz successfully deployed to Testing Arena!");
+    setGeneratedQuiz(null);
+    setQuizGenForm(prev => ({ ...prev, topic: '' }));
+  } catch (err: any) {
+    console.error(err);
+    alert(`Deployment Failure: ${err.message}`);
+  } finally {
+    setIsProcessing(false);
+  }
+};
   const handleArchiveCourse = async (id: string, isArchived: boolean) => {
     try {
       await contentService.updateCourse(id, { isArchived: !isArchived });
@@ -2211,216 +2214,114 @@ Each object must follow this scheme exactly:
   );
 
   const renderAIQuizGenerator = () => (
-    <div className="space-y-12">
-      <div className="bg-slate-900 p-6 sm:p-10 rounded-3xl sm:rounded-[40px] border border-border-strong shadow-2xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 p-8 sm:p-12 opacity-10">
-          <BrainCircuit className="w-32 h-32 sm:w-48 sm:h-48 text-brand" />
+  <div className="space-y-12">
+    <div className="bg-slate-900 p-6 sm:p-10 rounded-3xl sm:rounded-[40px] border border-border-strong shadow-2xl relative overflow-hidden">
+      <div className="absolute top-0 right-0 p-8 sm:p-12 opacity-10">
+        <BrainCircuit className="w-32 h-32 sm:w-48 sm:h-48 text-brand" />
+      </div>
+      
+      <div className="relative z-10">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 mb-8 sm:mb-12">
+           <div className="w-12 h-12 sm:w-16 sm:h-16 bg-brand/10 rounded-2xl sm:rounded-3xl flex items-center justify-center border border-brand/20 shrink-0">
+             <Sparkles className="h-6 w-6 sm:h-8 sm:w-8 text-brand" />
+           </div>
+           <div>
+             <h3 className="text-2xl sm:text-4xl font-black uppercase italic tracking-tighter text-white">Neural Quiz Synthesis</h3>
+             <p className="text-[10px] font-black uppercase tracking-[0.2em] sm:tracking-[0.4em] text-brand">Adaptive Assessment Engine: High-Thinking v2.5</p>
+           </div>
         </div>
-        
-        <div className="relative z-10">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 mb-8 sm:mb-12">
-             <div className="w-12 h-12 sm:w-16 sm:h-16 bg-brand/10 rounded-2xl sm:rounded-3xl flex items-center justify-center border border-brand/20 shrink-0">
-                <Sparkles className="h-6 w-6 sm:h-8 sm:w-8 text-brand" />
-             </div>
-             <div>
-                <h3 className="text-2xl sm:text-4xl font-black uppercase italic tracking-tighter text-white">Neural Quiz Synthesis</h3>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] sm:tracking-[0.4em] text-brand">Adaptive Assessment Engine: High-Thinking v2.5</p>
-             </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 sm:gap-8">
+          <div className="md:col-span-2 space-y-6 sm:space-y-8">
+            <div className="space-y-3">
+              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Knowledge Topic</label>
+              <input 
+                type="text" placeholder="e.g. Master Class: Calculus Foundations" 
+                value={quizGenForm.topic} onChange={e => setQuizGenForm({...quizGenForm, topic: e.target.value})}
+                className="w-full bg-slate-800 border border-border-strong p-5 sm:p-6 rounded-2xl text-white font-bold text-sm sm:text-base outline-none focus:border-brand transition-all"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Target Sector</label>
+                <select 
+                  value={quizGenForm.classLevel} onChange={e => setQuizGenForm({...quizGenForm, classLevel: e.target.value})}
+                  className="w-full bg-slate-800 border border-border-strong p-5 rounded-2xl text-white font-bold text-xs sm:text-sm outline-none focus:border-brand appearance-none"
+                >
+                  {['Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12'].map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-3">
+                <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Difficulty Vector</label>
+                <select 
+                  value={quizGenForm.difficulty} onChange={e => setQuizGenForm({...quizGenForm, difficulty: e.target.value as any})}
+                  className="w-full bg-slate-800 border border-border-strong p-5 sm:p-6 rounded-2xl text-white font-bold text-xs sm:text-sm outline-none focus:border-brand appearance-none"
+                >
+                  <option value="easy">Core Basics</option>
+                  <option value="medium">Standard Analysis</option>
+                  <option value="hard">Advanced Mastery</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Added Selectors for Medium and Subject */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Medium</label>
+                <select value={quizGenForm.medium} onChange={e => setQuizGenForm({...quizGenForm, medium: e.target.value})} className="w-full bg-slate-800 border border-border-strong p-5 rounded-2xl text-white font-bold text-xs sm:text-sm outline-none focus:border-brand appearance-none">
+                  <option value="English">English</option><option value="Odia">Odia</option><option value="Hindi">Hindi</option>
+                </select>
+              </div>
+              <div className="space-y-3">
+                <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Subject</label>
+                <select value={quizGenForm.subject} onChange={e => setQuizGenForm({...quizGenForm, subject: e.target.value})} className="w-full bg-slate-800 border border-border-strong p-5 rounded-2xl text-white font-bold text-xs sm:text-sm outline-none focus:border-brand appearance-none">
+                  {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 sm:gap-8">
-            <div className="md:col-span-2 space-y-6 sm:space-y-8">
-              <div className="space-y-3">
-                <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Knowledge Topic</label>
-                <input 
-                  type="text" placeholder="e.g. Master Class: Calculus Foundations" 
-                  value={quizGenForm.topic} onChange={e => setQuizGenForm({...quizGenForm, topic: e.target.value})}
-                  className="w-full bg-slate-800 border border-border-strong p-5 sm:p-6 rounded-2xl text-white font-bold text-sm sm:text-base outline-none focus:border-brand transition-all"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Target Sector</label>
-                  <select 
-                    value={quizGenForm.classLevel} onChange={e => setQuizGenForm({...quizGenForm, classLevel: e.target.value})}
-                    className="w-full bg-slate-800 border border-border-strong p-5 rounded-2xl text-white font-bold text-xs sm:text-sm outline-none focus:border-brand appearance-none"
-                  >
-                    {['Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12'].map(c => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Difficulty Vector</label>
-                  <select 
-                    value={quizGenForm.difficulty} onChange={e => setQuizGenForm({...quizGenForm, difficulty: e.target.value as any})}
-                    className="w-full bg-slate-800 border border-border-strong p-5 sm:p-6 rounded-2xl text-white font-bold text-xs sm:text-sm outline-none focus:border-brand appearance-none"
-                  >
-                    <option value="easy">Core Basics</option>
-                    <option value="medium">Standard Analysis</option>
-                    <option value="hard">Advanced Mastery</option>
-                  </select>
-                </div>
+          <div className="md:col-span-2 space-y-6 sm:space-y-8">
+            <div className="space-y-3">
+              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Deployment Format</label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 p-2 bg-slate-800 rounded-2xl border border-border-strong">
+                {([
+                  { id: 'mcq', label: 'MCQ (Multi)' },
+                  { id: 'true_false', label: 'TF (Binary)' },
+                  { id: 'short_answer', label: 'SHORT (Text)' }
+                ] as const).map(f => (
+                  <button
+                    key={f.id} type="button" onClick={() => setQuizGenForm({...quizGenForm, format: f.id})}
+                    className={cn(
+                      "py-3 sm:py-4 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all",
+                      quizGenForm.format === f.id ? "bg-brand text-white shadow-lg" : "text-slate-500 hover:text-slate-300"
+                    )}
+                  >{f.label}</button>
+                ))}
               </div>
             </div>
 
-            <div className="md:col-span-2 space-y-6 sm:space-y-8">
-              <div className="space-y-3">
-                <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Deployment Format</label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 p-2 bg-slate-800 rounded-2xl border border-border-strong">
-                  {([
-                    { id: 'mcq', label: 'MCQ (Multi)' },
-                    { id: 'true_false', label: 'TF (Binary)' },
-                    { id: 'short_answer', label: 'SHORT (Text)' }
-                  ] as const).map(f => (
-                    <button
-                      key={f.id} type="button" onClick={() => setQuizGenForm({...quizGenForm, format: f.id})}
-                      className={cn(
-                        "py-3 sm:py-4 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all",
-                        quizGenForm.format === f.id ? "bg-brand text-white shadow-lg" : "text-slate-500 hover:text-slate-300"
-                      )}
-                    >{f.label}</button>
-                  ))}
-                </div>
-              </div>
-
-              <button 
-                onClick={handleGenerateAIQuiz} disabled={isGeneratingQuiz || !quizGenForm.topic}
-                className="w-full h-16 sm:h-20 bg-brand text-white rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] sm:text-xs shadow-2xl shadow-brand/20 active:scale-95 transition-all flex items-center justify-center gap-4 disabled:opacity-50 mt-auto"
-              >
-                {isGeneratingQuiz ? (
-                  <Zap className="h-5 w-5 animate-spin" />
-                ) : (
-                  <BrainCircuit className="h-5 w-5" />
-                )}
-                {isGeneratingQuiz ? 'Synthesizing Neural Map...' : 'Trigger Synaptic Synthesis'}
-              </button>
-            </div>
+            <button 
+              onClick={handleGenerateAIQuiz} disabled={isGeneratingQuiz || !quizGenForm.topic}
+              className="w-full h-16 sm:h-20 bg-brand text-white rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] sm:text-xs shadow-2xl shadow-brand/20 active:scale-95 transition-all flex items-center justify-center gap-4 disabled:opacity-50 mt-auto"
+            >
+              {isGeneratingQuiz ? (
+                <Zap className="h-5 w-5 animate-spin" />
+              ) : (
+                <BrainCircuit className="h-5 w-5" />
+              )}
+              {isGeneratingQuiz ? 'Synthesizing Neural Map...' : 'Trigger Synaptic Synthesis'}
+            </button>
           </div>
         </div>
       </div>
-
-      <AnimatePresence>
-        {generatedQuiz && (
-          <motion.div 
-            initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 40 }}
-            className="space-y-8 sm:space-y-12"
-          >
-            <div className="bg-slate-900 border border-border-strong p-6 sm:p-10 rounded-3xl sm:rounded-[40px] shadow-2xl relative overflow-hidden">
-               <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 sm:gap-8 mb-8 sm:mb-12">
-                  <div>
-                    <h4 className="text-2xl sm:text-3xl font-black uppercase italic tracking-tighter text-white mb-2">Review & Deployment</h4>
-                    <p className="text-slate-500 text-[9px] sm:text-[10px] font-black uppercase tracking-widest italic">Review the synthesized dataset before target integration.</p>
-                  </div>
-                  <div className="flex gap-4">
-                    <button 
-                      onClick={() => setGeneratedQuiz(null)}
-                      className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-slate-800 text-slate-400 rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest hover:bg-slate-700 transition-all border border-border-strong"
-                    >Discard Bundle</button>
-                  </div>
-               </div>
-
-               <div className="bg-slate-800/40 p-6 sm:p-10 rounded-[28px] sm:rounded-[32px] border-2 border-dashed border-border-strong mb-8 sm:mb-12">
-                  <div className="flex items-center gap-3 mb-6 sm:mb-8">
-                    <Archive className="h-4 w-4 text-brand" />
-                    <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-400">Target Integration Protocol</span>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-                    <div className="space-y-3 sm:space-y-4">
-                       <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Destination Course</label>
-                       <select 
-                         value={quizGenForm.targetCourseId} onChange={e => setQuizGenForm({...quizGenForm, targetCourseId: e.target.value})}
-                         className="w-full bg-slate-900 border border-border-strong p-4 sm:p-5 rounded-2xl text-white font-bold text-[10px] sm:text-xs outline-none focus:border-brand appearance-none"
-                       >
-                         <option value="">Select Target...</option>
-                         {courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
-                       </select>
-                    </div>
-                    <div className="space-y-3 sm:space-y-4">
-                       <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Destination Section</label>
-                       <select 
-                         value={quizGenForm.targetSectionId} onChange={e => setQuizGenForm({...quizGenForm, targetSectionId: e.target.value})}
-                         className="w-full bg-slate-900 border border-border-strong p-4 sm:p-5 rounded-2xl text-white font-bold text-[10px] sm:text-xs outline-none focus:border-brand appearance-none"
-                         disabled={!quizGenForm.targetCourseId}
-                       >
-                         <option value="">Select Section...</option>
-                         {targetSections.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
-                       </select>
-                    </div>
-                    <div className="space-y-3 sm:space-y-4">
-                       <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Destination Playlist</label>
-                       <select 
-                         value={quizGenForm.targetPlaylistId} onChange={e => setQuizGenForm({...quizGenForm, targetPlaylistId: e.target.value})}
-                         className="w-full bg-slate-900 border border-border-strong p-4 sm:p-5 rounded-2xl text-white font-bold text-[10px] sm:text-xs outline-none focus:border-brand appearance-none"
-                         disabled={!quizGenForm.targetSectionId}
-                       >
-                         <option value="">Select Playlist...</option>
-                         {targetPlaylists.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
-                       </select>
-                    </div>
-                  </div>
-
-                  <button 
-                    onClick={handlePublishGeneratedQuiz} disabled={isProcessing || !quizGenForm.targetPlaylistId}
-                    className="w-full mt-8 sm:mt-10 bg-brand text-white py-5 sm:py-6 rounded-2xl sm:rounded-[24px] font-black uppercase tracking-widest text-[10px] sm:text-xs shadow-xl shadow-brand/20 active:scale-[1.01] transition-all flex items-center justify-center gap-3 disabled:opacity-50"
-                  >
-                    {isProcessing ? <Zap className="h-4 w-4 animate-spin" /> : <Globe className="h-4 w-4" />}
-                    Authorize Lesson Integration
-                  </button>
-               </div>
-
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
-                  {generatedQuiz.map((q, i) => (
-                    <div key={i} className="bg-bg-deep border border-border-strong p-6 sm:p-10 rounded-3xl sm:rounded-[40px] hover:border-brand/30 transition-all group relative overflow-hidden shadow-xl">
-                       <div className="absolute top-0 right-0 p-8 opacity-5 scale-125">
-                         <Sparkles className="h-24 w-24 text-brand" />
-                       </div>
-                       
-                       <div className="relative z-10">
-                          <div className="flex items-center gap-4 mb-6 sm:mb-8">
-                            <span className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-brand/10 border border-brand/20 flex items-center justify-center font-black text-brand italic text-xs sm:text-sm shadow-inner shadow-brand/5">{(i+1).toString().padStart(2, '0')}</span>
-                            <span className="px-3 py-1 sm:px-4 sm:py-1.5 bg-slate-800 rounded-lg text-xs sm:text-[9px] font-black uppercase tracking-widest text-slate-500 border border-border-strong">{q.type}</span>
-                          </div>
-                          
-                          <h5 className="text-lg sm:text-xl font-black uppercase italic tracking-tighter text-white mb-6 sm:mb-10 leading-tight">"{q.question}"</h5>
-                          
-                          {q.options && q.options.length > 0 && (
-                            <div className="space-y-2 sm:space-y-3 mb-6 sm:mb-10">
-                               {q.options.map((opt: string, oi: number) => (
-                                 <div key={oi} className={cn(
-                                   "px-6 py-4 rounded-2xl border text-[10px] font-bold uppercase tracking-widest flex items-center gap-4 transition-all",
-                                   opt === q.correctAnswer ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-400" : "bg-slate-800/40 border-border-strong text-slate-500"
-                                 )}>
-                                   <div className={cn("w-2 h-2 rounded-full", opt === q.correctAnswer ? "bg-emerald-500 shadow-xl shadow-emerald-500/40 animate-pulse" : "bg-slate-700")} />
-                                   {opt}
-                                 </div>
-                               ))}
-                            </div>
-                          )}
-
-                          {(!q.options || q.options.length === 0) && (
-                            <div className="p-8 bg-emerald-500/5 border border-emerald-500/20 rounded-[32px] mb-10">
-                               <span className="text-[10px] font-black uppercase text-emerald-500 tracking-widest block mb-3">Model Accuracy Threshold</span>
-                               <p className="text-white font-bold italic">"{q.correctAnswer}"</p>
-                            </div>
-                          )}
-
-                          <div className="p-8 bg-slate-900 rounded-[32px] border border-border-strong/50">
-                             <span className="text-[10px] font-black uppercase text-brand tracking-widest block mb-4 italic">Neural Insight Generator</span>
-                             <p className="text-slate-400 text-sm italic font-medium leading-relaxed">"{q.explanation}"</p>
-                          </div>
-                       </div>
-                    </div>
-                  ))}
-               </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
-  );
-
+    {/* ... (Keep the rest of the AnimatePresence code for Review & Deployment) */}
+  </div>
+);
   const renderStudents = () => (
     <div className="bg-slate-900 rounded-3xl sm:rounded-[40px] border border-border-strong overflow-hidden">
        <div className="p-6 sm:p-10 border-b border-border-strong flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6">
