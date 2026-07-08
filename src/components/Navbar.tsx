@@ -38,8 +38,10 @@ export default function Navbar({ user, profile }: NavbarProps) {
     : [
         { name: 'Dashboard', path: '/dashboard', show: !!user },
         { name: 'Library', path: '/library', show: !!user },
-        { name: 'VideoHub', path: '/videos', show: !!user }, // 🚀 ADDED VIDEO SHORTS NAVIGATION
+        { name: 'Video Hub', path: '/videos', show: !!user }, 
+        { name: 'Study Notes', path: '/notes', show: !!user }, // 🚀 ADDED STUDY NOTES
         { name: 'Study Visuals', path: '/visuals', show: !!user }, 
+        { name: 'Tests', path: '/tests', show: !!user },
         { name: 'AI Mentor', path: '/ai-teacher', show: !!user },
         { name: 'Dictionary', path: '/dictionary', show: !!user },
       ];

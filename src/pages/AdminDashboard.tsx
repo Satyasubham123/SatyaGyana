@@ -17,7 +17,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LayoutDashboard, 
   Users, 
-  BookOpen, 
+  BookOpen,
+  BookText, 
   Video, 
   Trash2, 
   Bell,
@@ -53,8 +54,7 @@ interface AdminDashboardProps {
   profile: UserProfile | null;
 }
 
-type Tab = 'overview' | 'course-creation' | 'courses' | 'sections' | 'playlists' | 'lessons' | 'students' | 'notifications' | 'ai-quiz' | 'submissions' | 'quizzes' | 'founder' | 'books' | 'videos';
-
+type Tab = 'overview' | 'course-creation' | 'courses' | 'sections' | 'playlists' | 'lessons' | 'students' | 'notifications' | 'ai-quiz' | 'submissions' | 'quizzes' | 'founder' | 'books' | 'videos' | 'notes' | 'quizzes';
 // 🚀 Subjects and Branches for the Library Form
 const CLASSES = ['Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10'];
 
@@ -190,6 +190,46 @@ export default function AdminDashboard({ profile }: AdminDashboardProps) {
       await supabase.from('video_lessons').delete().eq('id', id);
       fetchSupabaseVideos();
     } catch (err) { console.error(err); }
+  };
+
+  // 🚀 NEW NOTES STATE
+  const [notes, setNotes] = useState<any[]>([]);
+  const [noteForm, setNoteForm] = useState({
+    title: '', drive_url: '', classLevel: '', medium: '', subject: '', topic: ''
+  });
+
+  const fetchSupabaseNotes = async () => {
+    try {
+      const { data, error } = await supabase.from('study_notes').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      setNotes(data || []);
+    } catch (err) { console.error(err); }
+  };
+
+  useEffect(() => {
+    if (profile?.role === 'admin' && activeTab === 'notes') fetchSupabaseNotes();
+  }, [profile, activeTab]);
+
+  const handleAddNote = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsProcessing(true);
+    try {
+      const { error } = await supabase.from('study_notes').insert([{
+        title: noteForm.title, drive_url: noteForm.drive_url, class_level: noteForm.classLevel,
+        medium: noteForm.medium, subject: noteForm.subject, topic: noteForm.topic
+      }]);
+      if (error) throw error;
+      alert("Secure Note deployed successfully!");
+      setNoteForm({ title: '', drive_url: '', classLevel: '', medium: '', subject: '', topic: '' });
+      fetchSupabaseNotes();
+    } catch (err: any) { alert("Error: " + err.message); } 
+    finally { setIsProcessing(false); }
+  };
+
+  const handleDeleteNote = async (id: string) => {
+    if(!window.confirm("Delete this note?")) return;
+    await supabase.from('study_notes').delete().eq('id', id);
+    fetchSupabaseNotes();
   };
 
   const [founderForm, setFounderForm] = useState<FounderProfileData>({
@@ -887,6 +927,120 @@ Each object must follow this scheme exactly:
     </div>
   </div>
 );
+
+  const renderNotes = () => (
+    <div className="space-y-8">
+      <div className="bg-slate-900 p-8 rounded-[32px] border border-border-strong shadow-2xl">
+        <div className="flex items-center gap-4 mb-8">
+          <div className="w-12 h-12 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-500 border border-indigo-500/20">
+            <BookText className="h-6 w-6" />
+          </div>
+          <div>
+            <h3 className="text-2xl font-black uppercase italic tracking-tighter text-white">Study Notes Hub</h3>
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Secure PDF Drive Sync</p>
+          </div>
+        </div>
+
+        <form onSubmit={handleAddNote} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="space-y-2 lg:col-span-3">
+              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Note Title *</label>
+              <input 
+                type="text" placeholder="e.g. Thermodynamics Handwritten Notes" 
+                value={noteForm.title} onChange={e => setNoteForm({...noteForm, title: e.target.value})}
+                className="w-full bg-slate-800 border border-border-strong p-4 rounded-xl text-white outline-none focus:border-indigo-500" required
+              />
+            </div>
+            
+            <div className="space-y-2 lg:col-span-3">
+              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Google Drive Link *</label>
+              <input 
+                type="url" placeholder="https://drive.google.com/file/d/..." 
+                value={noteForm.drive_url} onChange={e => setNoteForm({...noteForm, drive_url: e.target.value})}
+                className="w-full bg-slate-800 border border-border-strong p-4 rounded-xl text-white outline-none focus:border-indigo-500" required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Class *</label>
+              <select 
+                value={noteForm.classLevel} onChange={e => setNoteForm({...noteForm, classLevel: e.target.value})}
+                className="w-full bg-slate-800 border border-border-strong p-4 rounded-xl text-white outline-none focus:border-indigo-500 appearance-none" required
+              >
+                <option value="">Select...</option>
+                {CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Medium *</label>
+              <select 
+                value={noteForm.medium} onChange={e => setNoteForm({...noteForm, medium: e.target.value})}
+                className="w-full bg-slate-800 border border-border-strong p-4 rounded-xl text-white outline-none focus:border-indigo-500 appearance-none" required
+              >
+                <option value="">Select...</option>
+                <option value="English">English</option><option value="Odia">Odia</option><option value="Hindi">Hindi</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Subject *</label>
+              <select 
+                value={noteForm.subject} onChange={e => setNoteForm({...noteForm, subject: e.target.value})}
+                className="w-full bg-slate-800 border border-border-strong p-4 rounded-xl text-white outline-none focus:border-indigo-500 appearance-none" required
+              >
+                <option value="">Select...</option>
+                {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+
+            <div className="space-y-2 lg:col-span-3">
+              <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-4">Topic / Chapter *</label>
+              <input 
+                type="text" placeholder="e.g. Thermodynamics, Algebra" 
+                value={noteForm.topic} onChange={e => setNoteForm({...noteForm, topic: e.target.value})}
+                className="w-full bg-slate-800 border border-border-strong p-4 rounded-xl text-white outline-none focus:border-indigo-500" required
+              />
+            </div>
+          </div>
+
+          <button type="submit" disabled={isProcessing} className="w-full bg-indigo-600 text-white py-4 rounded-xl font-black uppercase tracking-widest text-xs shadow-xl flex items-center justify-center gap-2 mt-4">
+            Deploy Secure Note
+          </button>
+        </form>
+      </div>
+
+      {/* Grid of uploaded Notes */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+         {notes.map(n => (
+            <div key={n.id} className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col justify-between">
+               <div>
+                 <div className="flex justify-between items-start mb-2">
+                   <h4 className="text-white font-bold">{n.title}</h4>
+                   <button onClick={() => handleDeleteNote(n.id)} className="text-slate-500 hover:text-red-500"><Trash2 className="h-4 w-4" /></button>
+                 </div>
+                 <div className="flex gap-2 mb-2">
+                   <span className="text-[9px] bg-slate-800 text-slate-300 px-2 py-1 rounded font-black uppercase">{n.class_level}</span>
+                   <span className="text-[9px] bg-slate-800 text-slate-300 px-2 py-1 rounded font-black uppercase">{n.subject}</span>
+                 </div>
+                 <p className="text-xs text-indigo-400 font-medium truncate mb-2">{n.topic}</p>
+               </div>
+            </div>
+         ))}
+      </div>
+    </div>
+  );
+
+  const renderQuizzes = () => (
+    <div className="p-12 text-center bg-slate-900 border border-border-strong rounded-[40px]">
+      <BrainCircuit className="h-12 w-12 text-brand mx-auto mb-6 opacity-50" />
+      <h3 className="text-2xl font-black uppercase italic tracking-tighter text-white">Test Management</h3>
+      <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-2">
+        Interface for creating and managing time-bound student assessments.
+      </p>
+      {/* Add your Quiz Creator Form here later */}
+    </div>
+  );
 
   // 🚀 RENDER VIDEOS VIEW
   const renderVideos = () => (
@@ -2429,6 +2583,7 @@ Each object must follow this scheme exactly:
               { id: 'course-creation', icon: <PlusCircle className="h-4 w-4" />, label: 'Creator' },
               { id: 'courses', icon: <Layers className="h-4 w-4" />, label: 'Vault' },
               { id: 'students', icon: <Users className="h-4 w-4" />, label: 'Students' },
+              { id: 'notes', icon: <BookText className="h-4 w-4" />, label: 'Manage Notes' },   // <--- ADD THIS
               { id: 'books', icon: <BookOpen className="h-4 w-4" />, label: 'Library' },
               { id: 'videos', icon: <Video className="h-4 w-4" />, label: 'Videos' },
               { id: 'ai-quiz', icon: <Sparkles className="h-4 w-4" />, label: 'AI Quiz' },
@@ -2487,7 +2642,9 @@ Each object must follow this scheme exactly:
                 {activeTab === 'submissions' && renderSubmissions()}
                 {activeTab === 'ai-quiz' && renderAIQuizGenerator()}
                 {activeTab === 'books' && renderBooks()}
+                {activeTab === 'notes' && renderNotes()}
                 {activeTab === 'videos' && renderVideos()}
+                {activeTab === 'quizzes' && renderQuizzes()}
                 {activeTab === 'founder' && renderFounderSettings()}
                 {(activeTab === 'notifications' || activeTab === 'quizzes') && (
                   <div className="py-40 text-center bg-slate-900 border-2 border-dashed border-border-strong rounded-[40px]">

@@ -364,7 +364,16 @@ export default function Dashboard() {
               className="w-full sm:w-auto bg-slate-900 border border-slate-700 text-slate-300 px-6 sm:px-8 py-4 rounded-xl font-black text-xs sm:text-sm uppercase tracking-widest hover:border-red-500 hover:text-red-500 transition-all flex items-center justify-center gap-3 shadow-xl active:scale-95 group"
             >
               <Video className="h-5 w-5 group-hover:animate-pulse" />
-              <span className="whitespace-nowrap">VideoVideo Shorts</span>
+              <span className="whitespace-nowrap">Video Hub</span>
+            </Link>
+
+            {/* 🚀 ADDED STUDY NOTES BUTTON */}
+            <Link
+              to="/notes"
+              className="w-full sm:w-auto bg-slate-900 border border-slate-700 text-slate-300 px-6 sm:px-8 py-4 rounded-xl font-black text-xs sm:text-sm uppercase tracking-widest hover:border-indigo-500 hover:text-indigo-500 transition-all flex items-center justify-center gap-3 shadow-xl active:scale-95 group"
+            >
+              <BookText className="h-5 w-5 group-hover:animate-pulse" />
+              <span className="whitespace-nowrap">Study Notes</span>
             </Link>
 
             <Link

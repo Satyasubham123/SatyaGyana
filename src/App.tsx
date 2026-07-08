@@ -30,6 +30,9 @@ import Navbar from './components/Navbar';
 import InstallAppBanner from './components/InstallAppBanner';
 import ResetPassword from './pages/ResetPassword';
 import Verify from './pages/Verify';
+import NoteHub from './pages/NoteHub';
+import TestHub from './pages/TestHub';
+import ActiveTest from './pages/ActiveTest';
 
 // Protected Route Wrapper
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -92,6 +95,9 @@ function AppContent() {
           <Route path="/about" element={<About />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/library" element={<ProtectedRoute><Library /></ProtectedRoute>} />
+          <Route path="/notes" element={<ProtectedRoute><NoteHub /></ProtectedRoute>} /> {/* 🚀 ADDED NOTE HUB ROUTE */}
+          <Route path="/exam/:testId" element={<ProtectedRoute><ActiveTest /></ProtectedRoute>} />
+          <Route path="/tests" element={<ProtectedRoute><TestHub /></ProtectedRoute>} />
           <Route path="/videos" element={<ProtectedRoute><VideoHub /></ProtectedRoute>} /> {/* 🚀 ADDED VIDEO HUB ROUTE */}
           <Route path="/contact" element={<Contact />} />
           <Route path="/terms" element={<Terms />} />
